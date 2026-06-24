@@ -8,7 +8,10 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "dev": "node src/server.js",
+    "start:swagger": "node src/swagger-server.js",
+    "dev:swagger": "node src/swagger-server.js"
   },
   "author": "CuongLH",
   "license": "ISC",
@@ -18,7 +21,14 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "jsonwebtoken": "^9.0.3"
+    "jsonwebtoken": "^9.0.3",
+    "pino": "^10.3.1",
+    "pino-http": "^11.0.0",
+    "swagger-jsdoc": "^6.3.0",
+    "swagger-ui-express": "^5.0.1"
   },
-  "type": "module"
+  "type": "module",
+  "devDependencies": {
+    "pino-pretty": "^13.1.3"
+  }
 }

@@ -14,6 +14,7 @@ axiosApi.interceptors.response.use(
         const message = error.response?.data?.message || error.message || 'An error occurred';
         const code = error.response?.data?.code || 'UNKNOWN_ERROR';
         const status = error.response?.status;
+        const detail = error.response?.data?.detail || 'An error occurred';
         const pathName = window.location.pathname;
 
         // Đây là nơi FE "hứng" và xử lý Status Code từ BE ném về
@@ -33,7 +34,7 @@ axiosApi.interceptors.response.use(
         }
 
 
-        return Promise.reject({ message, code, status });
+        return Promise.reject({ message, code, status, detail }); // Chuyển tiếp response error thành lỗi ném vô catch
     }
 );
 
