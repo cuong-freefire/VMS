@@ -1,4 +1,4 @@
-# Version: 4.0 | Updated: 2026-06-21 | Project: Warehouse Management System (VMS)
+# Version: 4.0 | Updated: 2026-06-21 | Project: Volunteer Management System (VMS)
 
 ## 1. PROJECT OVERVIEW
 
