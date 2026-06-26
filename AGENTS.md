@@ -20,9 +20,11 @@ Mục tiêu chính: Xây dựng một nền tảng kết nối tổ chức với
 Backend: NodeJS + Javascript
 Frontend: React + jsx
 Database: MySQL
+Send Email: NodeMailer + Gmail service
 Logging: pino + pino-http + pino-pretty
 Swagger: swagger-jsdoc + swagger-ui-express
 ORM: Prisma
+File + image Storage: Cloudinary
 Auth: JWT HttpOnly + Cookie + bcryptjs.
 Testing: Jest + Supertest (cho Backend) và Jest + React Testing Library (cho Frontend)
 Styling: Bootstrap CSS.
