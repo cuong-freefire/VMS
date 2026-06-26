@@ -240,11 +240,12 @@ Ghi log mọi thay đổi có thể làm hỏng code của module khác.
 - **Format Standard:** ISO8601 (`2026-06-25T12:00:00.000Z`)
 
 ### Authentication
-- **Backend:** JWT (RS256) trong HttpOnly Cookie
-- **Frontend:** Axios config `credentials: 'include'`, dùng `jwt-decode` để đọc `user_id` và `role` (optional, chỉ cho UI logic)
+- **Cookie Name:** `vms_access_token` (HttpOnly, SameSite=Strict)
+- **Frontend Config:** Axios `credentials: 'include'`
+- **Architecture rationale:** Xem ADR-002 tại `CLAUDE.md` Section 3
 
 ### Validation
-- **Backend:** Zod schemas trong `/backend/src/validators/`
+- **Backend:** Zod schemas trong `/backend/src/validators/` (Xem ADR-003 tại `CLAUDE.md`)
 - **Frontend:** React Hook Form với validation rules
 
 ### HTTP Client

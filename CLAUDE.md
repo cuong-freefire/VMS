@@ -19,13 +19,7 @@ Prisma -> MySQL
 
 ### Module Ownership & Responsibilities
 
-| Member | Module | Backend Path | Frontend Path | Key Features |
-|--------|--------|--------------|---------------|--------------|
-| **Member 1** | Auth & Profile | `/backend/src/modules/auth`, `/backend/src/modules/user` | `/frontend/src/pages/auth`, `/frontend/src/pages/profile` | Login, Register, Forgot Password, Profile Management, Skills |
-| **Member 2** | Volunteer Event | `/backend/src/modules/event`, `/backend/src/modules/application` | `/frontend/src/pages/event`, `/frontend/src/pages/application` | Event List, Event Detail, Apply Event, Search/Filter |
-| **Member 3** | Staff Operations | `/backend/src/modules/staff` | `/frontend/src/pages/staff` | Event Management, Application Approval, Attendance |
-| **Member 4** | Manager Tools | `/backend/src/modules/manager` | `/frontend/src/pages/manager` | User/Category/Skill/Organization Management |
-| **Member 5** | Admin & Reports | `/backend/src/modules/admin`, `/backend/src/modules/donation`, `/backend/src/modules/certificate` | `/frontend/src/pages/admin`, `/frontend/src/pages/donation` | Dashboard, Reports, Notifications, Certificates, Donations |
+**Xem bảng phân công LIVE (với status updates) tại `share_context.md` Section 1.**
 
 **Cross-module Communication Rules:**
 - Modules SHALL communicate via Service layer contracts, NOT direct Repository calls
@@ -203,6 +197,31 @@ frontend/
 - Queries phải filter `WHERE is_active = true`
 - UI phải có "Active/Inactive" toggle cho admin
 - Cascade delete phải được handle carefully
+
+---
+
+### ADR-006: Standardized API Response Format
+**Context**: Cần format response nhất quán cho tất cả API endpoints.
+
+**Decision**: Tất cả API response PHẢI dùng format:
+```javascript
+{
+  success: boolean,
+  data?: any,      // Present when success = true
+  error?: string   // Present when success = false
+}
+```
+
+**Rationale**:
+- Consistent error handling ở Frontend
+- Dễ dàng cho automated testing
+- Clear contract giữa FE và BE
+- TypeScript-friendly structure
+
+**Consequences**:
+- Mọi endpoint phải dùng `response.util.js`
+- KHÔNG tự ý dùng `res.json()` trực tiếp
+- Error messages phải human-readable
 
 ## 4. Bài học kinh nghiệm (Lessons Learned)
 

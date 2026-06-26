@@ -53,63 +53,49 @@ Hệ thống phục vụ 5 nhóm người dùng: **Guest, Volunteer, Staff, Mana
 2. **Rollback thanh toán**: Các giao dịch lỗi hoặc timeout phải chuyển sang `Failed` hoặc `Cancelled`, không được kẹt vĩnh viễn ở trạng thái `Pending`.
 
 ### Soft delete rules (Quy tắc xóa dữ liệu)
-1. **Master data**: User, Organization, Event, Category, Skill BẮT BUỘC dùng xóa mềm bằng cờ `is_active = false`.
-2. **Transaction data**: Application, Donation, Feedback không xóa vật lý, thay vào đó chuyển trạng thái (`status = cancelled` hoặc `status = rejected`).
+**Chi tiết rationale và consequences xem ADR-005 tại `CLAUDE.md` Section 3.**
+
+1. **Master data**: User, Organization, Event, Category, Skill → Soft delete (`is_active = false`)
+2. **Transaction data**: Application, Donation, Feedback → State transition (`status = cancelled/rejected`)
 
 ## 4. Quy chuẩn đặt tên (Naming Conventions)
 
-**Chi tiết file naming patterns xem `CLAUDE.md` Section 2.**
+**Xem chi tiết đầy đủ file naming patterns tại `CLAUDE.md` Section 2.**
 
-### Code & Components
-- **Backend Files**: `[resource].[layer].js` (lowercase + dot notation)  
-  Ví dụ: `event.controller.js`, `event.service.js`, `user.repository.js`
-- **Frontend React Components (JSX)**: PascalCase  
-  Ví dụ: `EventList.jsx`, `ApplicationTable.jsx`
-- **Utilities/Hooks (Javascript)**: camelCase  
-  Ví dụ: `formatDate.js`, `useAuth.js`
-
-### Database & API
-- **Database Tables (MySQL)**: snake_case  
-  Ví dụ: `volunteer_applications`, `event_categories`  
-  *Lưu ý: Trong Prisma schema, model name dùng PascalCase và map xuống bảng bằng `@@map("table_name")`*
-- **API Endpoints**: kebab-case  
-  Ví dụ: `/api/v1/volunteer-events`, `/api/v1/feedback-forms`
-
-### Specs & Features
-- **Specs**: Đặt theo cấu trúc `.sdd/specs/[feature-name]/`  
-  Ví dụ: `.sdd/specs/feat-apply-event/SPEC.md`
+Tóm tắt:
+- Backend: `[resource].[layer].js` (event.controller.js, user.service.js)
+- Frontend Components: PascalCase JSX (EventList.jsx)
+- Database Tables: snake_case (volunteer_applications)
+- API Endpoints: kebab-case (/api/v1/volunteer-events)
 
 ## 5. Module Ownership (Phân công 5 thành viên)
 
-**Xem phân công module chi tiết tại `CLAUDE.md` Section 1.**
+**Xem bảng phân công module LIVE (với status updates) tại `share_context.md` Section 1.**
 
-**Quy tắc Cross-Module**: Agent SHALL NOT thay đổi logic bên trong folder/module của thành viên khác trừ khi:
-1. Có sự xác nhận của chủ sở hữu module
-2. Thay đổi được định nghĩa rõ trong Swagger documentation
+**Quy tắc Cross-Module (STRICT)**:
+- Modules giao tiếp qua Service layer contracts, KHÔNG import trực tiếp Repository của module khác
+- Thay đổi logic trong module của thành viên khác CHỈ được phép khi:
+  1. Có xác nhận từ chủ sở hữu module
+  2. Thay đổi được định nghĩa rõ trong Swagger documentation
 
 ## 6. Architecture Principles
+
+**Xem chi tiết ADRs (Architectural Decision Records) tại `CLAUDE.md` Section 3.**  
+**Xem Anti-Patterns và Lessons Learned tại `CLAUDE.md` Sections 4-5.**
 
 ### Layered Architecture
 Tuân thủ kiến trúc phân tầng: **Controller → Service → Repository**
 - Tầng **Repository** là nơi duy nhất giao tiếp trực tiếp với Database thông qua Prisma Client.
-- Sử dụng trực tiếp các object do Prisma sinh ra, **không** tạo thủ công các class Entity thuần túy.
+- Business logic và validation BẮT BUỘC ở Service layer (xem ADR-001, Lesson 1).
 
-### Module Boundaries (Ranh giới Module)
-Các module giao tiếp với nhau BẮT BUỘC phải thông qua tầng **Service** hoặc Route API. TUYỆT ĐỐI KHÔNG import chéo tầng Repository của module này vào module khác để tránh hidden coupling.
+### Module Boundaries
+Modules giao tiếp qua **Service layer**, TUYỆT ĐỐI KHÔNG import Repository của module khác (xem Anti-Patterns).
 
-### API Style
-Thiết kế RESTful API và BẮT BUỘC sử dụng prefix `/api/v1/[resource]` cho tất cả các route.
-
-### Response & Error Handling
-- BẮT BUỘC sử dụng hàm dùng chung tại `backend/src/utils/response.util.js` cho mọi HTTP response.
-- **Không** tự ý tạo format response mới bằng `res.json()` hay `res.send()`.
-- Xử lý lỗi phải được quản lý tập trung và trả về đúng HTTP status codes.
-
-### Database Access
-Toàn bộ truy xuất cơ sở dữ liệu phải đi qua Prisma ORM. Tuyệt đối không sử dụng raw SQL trừ khi có yêu cầu đặc biệt.
-
-### Logging
-BẮT BUỘC sử dụng thư viện `Pino`. Tuyệt đối **cấm** sử dụng `console.log`, `console.error` hay `console.info` trong production code.
+### Core Standards
+- **API Style**: RESTful với prefix `/api/v1/[resource]`
+- **Response Format**: Tuân thủ ADR-006 tại `CLAUDE.md`. Dùng `backend/src/utils/response.util.js`
+- **Database Access**: Prisma ORM only (ADR-001)
+- **Logging**: Tuân thủ quy tắc Logging và Anti-Patterns tại `CLAUDE.md` Sections 3-5
 
 ## 7. Code & Quality Rules
 
@@ -122,12 +108,15 @@ BẮT BUỘC sử dụng thư viện `Pino`. Tuyệt đối **cấm** sử dụn
 
 ## 8. Error Handling & Safety
 
-- **Clarification-First**: Nếu yêu cầu mơ hồ, thiếu domain context quan trọng hoặc có mâu thuẫn, AI **BẮT BUỘC phải hỏi lại** thay vì tự đoán.
-- **Kiểm tra tác động VMS Core**: Luôn kiểm tra tác động nghiệp vụ chéo trước khi sửa các luồng cốt lõi: Event, Application, Attendance, Certificate và Donation.
-- **Đọc ngữ cảnh đa tầng**: Trước các thay đổi có rủi ro cao, bắt buộc phải đọc chéo ngữ cảnh trong `CLAUDE.md`, `share_context.md`, và `SPEC.md` hiện hành.
-- **Shadow Plan cho rủi ro cao**: Với thao tác có thể phá hủy dữ liệu hoặc thay đổi cấu trúc diện rộng, AI **phải báo cáo Shadow Plan và chờ con người phê duyệt**.
-- **Phòng chống Loop Trap**: Nếu AI thử và thất bại quá 3 lần liên tiếp, **BẮT BUỘC phải DỪNG LẠI** và yêu cầu con người hỗ trợ.
-- **Fix the Spec, not the Code**: Nếu lỗi phát sinh do yêu cầu nghiệp vụ trong Spec bị sai, AI phải báo cáo để con người cập nhật lại Spec trước.
+**Xem Lessons Learned và Anti-Patterns chi tiết tại `CLAUDE.md` Sections 4-5.**
+
+### AI Agent Safety Rules
+- **Clarification-First**: Yêu cầu mơ hồ → Hỏi lại, KHÔNG tự đoán
+- **Kiểm tra tác động VMS Core**: Trước khi sửa Event, Application, Attendance, Certificate, Donation
+- **Đọc ngữ cảnh đa tầng**: Đọc chéo `CLAUDE.md`, `share_context.md`, `SPEC.md` cho changes có rủi ro cao
+- **Shadow Plan**: Thao tác phá hủy dữ liệu → Báo cáo và chờ phê duyệt
+- **Loop Trap**: Thất bại 3 lần liên tiếp → DỪNG và yêu cầu con người hỗ trợ
+- **Fix the Spec, not the Code**: Spec sai → Báo cáo để update Spec trước
 
 ## 9. Definition of Done (Tiêu chí hoàn thành)
 

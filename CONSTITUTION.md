@@ -75,12 +75,12 @@ Vi phạm = **Critical security/data integrity issue**. Không có exception.
 
 - ❌ **KHÔNG lưu password plaintext**: SHALL hash bằng bcrypt/argon2id.
 - ❌ **KHÔNG SQL Injection**: SHALL dùng parameterized queries hoặc ORM (Prisma).
-- ❌ **KHÔNG hard delete dữ liệu**: SHALL soft delete (`is_active: false` hoặc `deleted_at`) cho Users, Events, Applications, Organizations, Donations.
+- ❌ **KHÔNG hard delete dữ liệu**: SHALL soft delete cho master data. **Chi tiết xem ADR-005 tại `CLAUDE.md` Section 3.**
 - ❌ **KHÔNG leak credentials trong response**: Error SHALL NOT chứa password, JWT secret, API keys, database credentials, stack trace.
-- ❌ **KHÔNG lấy userId từ request body**: SHALL lấy từ JWT token (`req.user.id`).
+- ❌ **KHÔNG lấy userId từ request body**: SHALL lấy từ JWT token. **Chi tiết xem ADR-002 và Lesson 3 tại `CLAUDE.md`.**
 - ❌ **KHÔNG commit secrets vào Git**: `.env`, private keys SHALL nằm trong `.gitignore`.
 - ❌ **KHÔNG lưu trữ thông tin thẻ/tài khoản ngân hàng**: Mọi giao dịch thanh toán (VNPay, MoMo) SHALL được thực hiện qua Redirect hoặc Iframe của Gateway. Hệ thống CHỈ lưu transaction ID và status.
-- **Input validation**: SHALL validate mọi request input bằng Zod.
+- **Input validation**: SHALL validate mọi request input bằng Zod. **Chi tiết xem ADR-003 tại `CLAUDE.md`.**
 - **Authentication**: Protected routes SHALL verify JWT token qua `authMiddleware.authenticate`.
 - **File Upload**: Upload phải validate kích thước (Max 5MB), định dạng (image/jpeg, image/png), và SHALL upload lên Cloudinary.
 
@@ -89,7 +89,7 @@ Vi phạm = **Critical security/data integrity issue**. Không có exception.
 ### Layer 2 (Architecture Constraints) — Cần approval để thay đổi
 Vi phạm = **Technical debt** hoặc **architectural inconsistency**.
 
-- **Layered Architecture**: SHALL tuân thủ Controller → Service → Repository. Service SHALL NOT truy cập `req`/`res`. Controller SHALL NOT viết SQL.
+- **Layered Architecture**: SHALL tuân thủ Controller → Service → Repository. **Chi tiết xem `CLAUDE.md` Section 3 (ADR-001) và Section 5 (Anti-Patterns).**
 - **Cross-module access**: Module A SHALL NOT query trực tiếp bảng của Module B. SHALL gọi qua public service/adapter.
 - **Module Ownership**: Agent SHALL NOT thay đổi logic bên trong folder/module của thành viên khác trừ khi:
   1. Có sự xác nhận của chủ sở hữu module
@@ -108,7 +108,7 @@ Vi phạm = **Code quality issue**. Có thể linh hoạt nếu có lý do docum
 - **Performance**: API response time target < 200ms (p95) với 100 concurrent requests.
 - **Linting**: ESLint SHALL have 0 errors (warnings acceptable nếu có lý do documented).
 - **Tests traceability**: Tests SHALL trace được về acceptance criteria trong `SPEC.md`.
-- **API response format**: Standard `{ success: boolean, data: any, error?: string }`.
+- **API response format**: Tuân thủ chuẩn định dạng tại `CLAUDE.md` (ADR-006).
 
 **Chi tiết checklist hoàn thành (Definition of Done) xem `AGENTS.md` Section 9.**
 
@@ -152,4 +152,4 @@ Risk: [Low/Medium/High]
 - v4.0: Tái cấu trúc theo bộ khung mới - tập trung vào Quy trình SDD, Constraint Layers và AI Agent Authority
 - v4.0: Rút gọn để dễ đọc, loại bỏ các phần chi tiết kỹ thuật sang AGENTS.md và CLAUDE.md
 
-*Tham chiếu: Xem Persona & Tech Stack tại `AGENTS.md`, Cấu trúc thư mục tại `CLAUDE.md`, Giao kèo API tại `share_context.md`.*
+*Tham chiếu: Xem Persona & Tech Stack tại `AGENTS.md`, Architecture & ADRs tại `CLAUDE.md`, API Contracts & Team Status tại `share_context.md`.*
