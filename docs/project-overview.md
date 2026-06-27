@@ -1,93 +1,76 @@
 # Volunteer Event Management System - Project Overview
 
-## 1. Project Summary
+## 1. Project Overview
 
-Volunteer Event Management System is a web-based system designed to support the management of volunteer activities and volunteer events.
+Volunteer Event Management System is a web-based system that supports the management of volunteer activities and volunteer events.
 
-The system connects organizations, staff, managers, administrators, and volunteers in one platform. It allows public users to browse volunteer events, registered volunteers to apply for events, and staff/admin users to manage the full volunteer event lifecycle.
+The system helps connect organizations with volunteers. It allows users to search for events, view event details, register accounts, apply for events, track application status, check attendance, submit feedback, and view/download certificates after completing events.
+
+The system also supports staff, managers, and administrators in managing events, applications, attendance, feedback, certificates, users, organizations, reports, notifications, donations, and related system activities.
 
 The system aims to digitize the full volunteer management process, including:
 
 * Event discovery
-* Volunteer registration
 * Event application
 * Application review
-* Attendance tracking
+* Attendance check-in
 * Feedback submission
 * Certificate generation
-* Notifications
-* Reporting and statistics
-* Donation and payment support
-
-This project is a student team project developed by 5 members. The team has not finalized the database schema or API contracts yet. Therefore, all specifications must be written and reviewed before creating database migrations, API implementation, or frontend/backend feature code.
-
----
-
-## 2. Project Objectives
-
-The main objectives of the system are:
-
-1. Allow guests to view volunteer events and register accounts.
-2. Allow volunteers to search, filter, and apply for volunteer events.
-3. Allow volunteers to manage their profiles, skills, event history, feedback, and certificates.
-4. Allow staff to create and manage events.
-5. Allow staff to approve or reject volunteer applications.
-6. Allow staff to manage attendance for approved volunteers.
-7. Allow staff or authorized users to generate certificates after event completion.
-8. Allow managers to manage categories, skills, staff, organizations, and reports.
-9. Allow admins to manage accounts, organizations, dashboards, statistics, notifications, certificates, and donations.
-10. Provide a clear foundation for future database, API, and feature implementation.
+* Notification management
+* Reporting and dashboard
+* Donation and payment gateway
+* Email services
 
 ---
 
-## 3. Target Users and Roles
+## 2. User Roles
 
-The system has 5 main user roles:
+Guest is not a role stored in the database.
 
-1. Guest
-2. Volunteer
-3. Staff
-4. Manager
-5. Admin
+Guest is only the unauthenticated state of a user before login. Guest users can only access public pages.
 
-Each role has different permissions and responsibilities.
+The roles stored in the database are:
+
+* `VOLUNTEER`
+* `STAFF`
+* `MANAGER`
+* `ADMIN`
 
 ---
 
-## 4. Role Description and Permission Overview
+## 3. Role Description and Permission Overview
 
-### 4.1 Guest
+### 3.1 Guest
 
-A Guest is an unauthenticated user who can access public pages.
+Guest is an unauthenticated user.
 
 Guest can:
 
 * Access the website
 * View the landing page
-* View the home page
-* View the event list
-* View event details
-* Register a new account
+* View public event list
+* View public event detail
+* Register an account
 * Login to the system
 
 Guest cannot:
 
 * Apply for events
-* View personal profile
 * View applied events
+* View volunteer history
+* Check attendance
 * Submit feedback
-* Receive certificates
+* View or download certificates
 * Access staff, manager, or admin functions
 
 ---
 
-### 4.2 Volunteer
+### 3.2 Volunteer
 
-A Volunteer is an authenticated user who participates in volunteer events.
+Volunteer is an authenticated user who joins volunteer events.
 
 Volunteer can:
 
-* Login and logout
 * Manage personal profile
 * Edit personal information
 * Manage volunteer skills
@@ -95,116 +78,105 @@ Volunteer can:
 * Filter events
 * View event details
 * Apply for events
-* View applied events
-* Cancel applications
 * Track application status
-* Check attendance
-* View attendance history
-* Submit feedback after participating in events
+* View applied events
+* Cancel application only when the application is `PENDING`
+* Check attendance for approved events
+* View volunteer history
+* Submit feedback after successful attendance
 * View certificates
 * Download certificates
-* View donation history if donation is supported
 
 Volunteer cannot:
 
 * Create events
 * Edit events
 * Delete events
-* Approve or reject applications
-* Manage other users
+* Approve applications
+* Reject applications
+* Manage attendance list as staff
+* Generate certificates
+* Manage user accounts
 * Manage organizations
-* Access dashboard or system statistics
+* View system-wide reports or dashboard unless assigned another authorized role
 
 ---
 
-### 4.3 Staff
+### 3.3 Staff
 
-Staff members are responsible for operating volunteer events and handling event-related workflows.
+Staff is responsible for operating events and handling event-related workflows.
 
 Staff can:
 
 * Create events
-* Edit events
-* Delete events
-* View application lists
-* View application details
+* Manage events
+* View application list
+* View application detail
 * Approve applications
 * Reject applications
 * Manage attendance
-* View attendance lists
-* Generate certificates
-* Create notifications related to events
+* Create certificates for volunteers who attended events
 * Send event-related notifications
 
 Staff cannot:
 
-* Manage all system accounts unless granted permission
-* Manage system-wide dashboard settings
-* Manage payment configuration
+* Manage all user accounts unless granted permission by Manager/Admin
+* Manage system-wide reports and dashboard
 * Manage all organizations unless assigned by Manager/Admin
 
 ---
 
-### 4.4 Manager
+### 3.4 Manager
 
-Manager is responsible for management-level operations and system data management.
+Manager is responsible for management-level operations.
 
 Manager can:
 
 * Export reports
-* View event statistics
-* View volunteer statistics
 * Manage categories
 * Manage skills
-* Manage staff
-* Manage organizations
-* View user-related information needed for management
+* Manage Staff accounts
 
-Manager may manage:
+Manager can manage data such as:
 
 * Event categories
 * Event location categories
 * Event time categories
 * Event type categories
 * Volunteer skills
-* Staff users
-* Organization information
+* Staff account information
 
 Manager cannot:
 
-* Directly access volunteer-only personal actions
-* Apply for events as a volunteer unless also assigned volunteer role
-* Perform low-level system administration unless permitted
+* Perform volunteer-only personal actions unless also acting as a Volunteer
+* Perform Admin-only system management unless granted permission
 
 ---
 
-### 4.5 Admin
+### 3.5 Admin
 
-Admin is the highest-level system role.
+Admin is responsible for system-level management.
 
 Admin can:
 
-* Manage accounts
+* Manage user accounts
 * Manage organizations
-* View dashboard
-* View statistics
-* Manage notifications
-* Manage certificates
-* Manage donations
-* View reports
-* Monitor system-wide activities
+* View overall dashboard
+* View system-wide statistics
+* View and manage notifications if assigned
+* View donation history if donation module is included
 
 Admin is responsible for:
 
-* System-level account control
-* High-level monitoring
+* Account control
 * Organization supervision
-* Dashboard and report access
+* Dashboard monitoring
+* System-wide statistics
 * Administrative data management
 
 ---
 
-## 5. Functional Modules
+## 4. Functional Modules
 
 The system contains 15 functional modules.
 
@@ -224,7 +196,7 @@ Use cases:
 
 Purpose:
 
-This module handles basic authentication and account access flows. It allows users to register, login, logout, recover passwords, and change passwords.
+This module handles account access flows such as landing page, home page, login, register, logout, change password, and forgot password.
 
 Main actors:
 
@@ -246,14 +218,14 @@ Use cases:
 * UC11 - Filter Event
 * UC12 - Apply Event
 * UC13 - View Applied Events
-* UC14 - Cancel Application
+* UC14 - Cancel Application, only when the application is `PENDING`
 * UC15 - Add Event
 * UC16 - Edit Event
 * UC17 - Delete Event
 
 Purpose:
 
-This module supports event browsing for guests and volunteers, event application for volunteers, and event creation/management for staff.
+This module supports public event browsing, event search/filter, volunteer event application, applied event tracking, cancel application, and staff event management.
 
 Main actors:
 
@@ -274,11 +246,14 @@ Use cases:
 
 Purpose:
 
-This module allows authenticated users, especially volunteers, to manage personal information, skills, and volunteer activity history.
+This module allows users, especially Volunteers, to manage profile information, skills, and volunteer history.
 
 Main actors:
 
 * Volunteer
+
+Related actors:
+
 * Staff
 * Manager
 * Admin
@@ -296,7 +271,7 @@ Use cases:
 
 Purpose:
 
-This module allows staff to manage volunteer applications for events.
+This module allows Staff to manage volunteer applications for events.
 
 Main actors:
 
@@ -320,7 +295,7 @@ Use cases:
 
 Purpose:
 
-This module allows authorized users to manage accounts and user information.
+This module allows authorized users to manage user accounts.
 
 Main actors:
 
@@ -339,7 +314,7 @@ Use cases:
 
 Purpose:
 
-This module allows managers to manage event-related categories, such as event type, location, time, or other classification data.
+This module allows Managers to manage categories such as event location, event time, event type, and other event classification data.
 
 Main actors:
 
@@ -357,11 +332,14 @@ Use cases:
 
 Purpose:
 
-This module manages volunteer skills such as communication, English, teamwork, leadership, or other skills required by events.
+This module manages volunteer skills such as communication, English, teamwork, leadership, and other skills required by volunteer events.
 
 Main actors:
 
 * Manager
+
+Related actors:
+
 * Volunteer
 
 ---
@@ -381,8 +359,8 @@ This module manages organizations that create, sponsor, or participate in volunt
 
 Main actors:
 
-* Manager
 * Admin
+* Manager
 
 ---
 
@@ -397,7 +375,7 @@ Use cases:
 
 Purpose:
 
-This module allows users to receive notifications and authorized users to create notifications.
+This module allows users to view notifications and authorized users to create notifications.
 
 Main actors:
 
@@ -411,18 +389,18 @@ Main actors:
 
 Use cases:
 
-* UC45 - Attendance Check
+* UC45 - Attendance Check-in
 * UC46 - View Attendance List
 * UC47 - View Attendance History
 
 Purpose:
 
-This module tracks volunteer attendance for events.
+This module supports attendance check-in and attendance tracking for volunteer events.
 
 Main actors:
 
-* Staff
 * Volunteer
+* Staff
 
 ---
 
@@ -436,13 +414,12 @@ Use cases:
 
 Purpose:
 
-This module allows volunteers to submit feedback and authorized users to view feedback.
+This module allows Volunteers to submit feedback after successful attendance and allows authorized users to view feedback.
 
 Main actors:
 
 * Volunteer
 * Staff
-* Admin
 
 ---
 
@@ -456,13 +433,12 @@ Use cases:
 
 Purpose:
 
-This module allows certificates to be generated after volunteers complete events.
+This module supports certificate viewing, downloading, and generation after volunteers attend events.
 
 Main actors:
 
 * Volunteer
 * Staff
-* Admin
 
 ---
 
@@ -477,7 +453,7 @@ Use cases:
 
 Purpose:
 
-This module provides dashboard, statistics, and exportable reports for management users.
+This module provides dashboard, statistics, and export reports for management-level users.
 
 Main actors:
 
@@ -502,16 +478,12 @@ Integrations:
 
 Purpose:
 
-This module supports event donations and payment gateway integration.
+This module supports donations and payment gateway integration for volunteer events.
 
 Main actors:
 
 * Volunteer
 * Admin
-
-Important note:
-
-Payment integration may be complex and should be clarified before implementation. The team must decide whether this module is implemented fully, partially, or mocked in the MVP.
 
 ---
 
@@ -527,7 +499,7 @@ Use cases:
 
 Purpose:
 
-This module supports automated email sending for verification, password recovery, event approval, reminders, and certificates.
+This module supports automated email sending for verification, password recovery, event approval, event reminders, and certificates.
 
 Main actors:
 
@@ -538,18 +510,14 @@ Main actors:
 
 Integration:
 
-* SMTP
 * NodeMailer
+* Gmail service
 
 ---
 
-## 6. Screen List
+## 5. Screen List
 
-The system has 46 screens in total.
-
----
-
-### Authentication Screens
+### Authentication
 
 1. Landing Page
 2. Login
@@ -560,273 +528,527 @@ The system has 46 screens in total.
 
 ---
 
-### Event Screens
+### Event
 
 7. Event List
 8. Event Detail
-9. Event Search & Filter
-10. Applied Event List
-11. Add Event
-12. Edit Event
+9. Applied Event List
+10. Add Event
+11. Edit Event
+
+Note:
+
+Search Event and Filter Event are included inside Event List.
 
 ---
 
-### Profile Screens
+### Profile
 
-13. Profile
-14. Edit Profile
-15. Manage Skills
-16. Volunteer History
-
----
-
-### Application Screens
-
-17. Application List
-18. Application Detail
-19. Approval Screen
+12. Profile
+13. Edit Profile
+14. Manage Skills
+15. Volunteer History
 
 ---
 
-### User Management Screens
+### Application
 
-20. User List
-21. User Detail
-22. Add User
-23. Edit User
-
----
-
-### Category and Skill Screens
-
-24. Category List
-25. Category Form
-26. Skill List
-27. Skill Form
+16. Application List
+17. Application Detail
+18. Approval Screen
 
 ---
 
-### Organization Screens
+### User Management
 
-28. Organization List
-29. Organization Detail
-30. Organization Form
-
----
-
-### Notification Screens
-
-31. Notification List
-32. Notification Detail
-33. Create Notification
+19. User List
+20. User Detail
+21. Add User
+22. Edit User
 
 ---
 
-### Attendance Screens
+### Category and Skill
 
-34. Attendance Management
-35. Attendance History
-
----
-
-### Feedback Screens
-
-36. Feedback Form
-37. Feedback List
+23. Category List
+24. Category Form
+25. Skill List
+26. Skill Form
 
 ---
 
-### Certificate Screens
+### Organization
 
-38. Certificate List
-39. Certificate Detail
-
----
-
-### Report Screens
-
-40. Dashboard
-41. Event Statistics
-42. Volunteer Statistics
-43. Export Report
+27. Organization List
+28. Organization Detail
+29. Organization Form
 
 ---
 
-### Donation Screens
+### Notification
 
-44. Donation Page
+30. Notification List
+31. Notification Detail
+32. Create Notification
+
+---
+
+### Attendance
+
+33. Attendance Management
+34. Attendance History
+
+---
+
+### Feedback
+
+35. Feedback Form
+36. Feedback List
+
+---
+
+### Certificate
+
+37. Certificate List
+38. Certificate Detail
+
+---
+
+### Reports
+
+39. Dashboard
+40. Event Statistics
+41. Volunteer Statistics
+42. Export Report
+
+---
+
+### Donation
+
+43. Donation Page
+44. Payment Result
 45. Payment Gateway
 46. Donation History
 
 ---
 
-## 7. Team Assignment
+## 6. Team Assignment
 
-The project is divided among 5 members using the original official project
-overview assignment below. This assignment is the source of truth.
+The project is divided among 5 members.
 
-| Member   | Module                   | Number of Screens |
-| -------- | ------------------------ | ----------------: |
-| Member 1 | Authentication + Profile |                 8 |
-| Member 2 | Volunteer Event Module   |                 7 |
-| Member 3 | Staff Module             |                 7 |
-| Member 4 | Manager Module           |                10 |
-| Member 5 | Admin Module             |                14 |
-| **Total** |                          |            **46** |
+### Member 1 — Authentication and Profile
+
+Member 1 is responsible for:
+
+* Landing Page
+* Login
+* Register
+* Forgot Password
+* Reset Password
+* Change Password
+* View Profile
+* Edit Profile
+* Volunteer Skill Management
 
 ---
 
-## 8. Suggested Technology Stack
+### Member 2 — Volunteer Event Module
 
-### Frontend
+Member 2 is responsible for:
 
-* ReactJS
-* Bootstrap CSS
-* react-toastify
-* Material UI
+* Home Dashboard
+* Event List, including Search and Filter
+* Event Detail
+* Applied Event List
+* Volunteer History
+* Feedback Form
+* Certificate List
+* Certificate Detail
+
+Recommended feature folders for Member 2:
+
+```txt
+001-volunteer-event-discovery
+002-volunteer-event-detail
+003-volunteer-event-application
+004-volunteer-applied-events
+005-volunteer-history
+006-volunteer-feedback-form
+007-volunteer-certificates
+008-volunteer-home-dashboard
+```
+
+---
+
+### Member 3 — Staff Module
+
+Member 3 is responsible for:
+
+* Add Event
+* Edit Event
+* Application List
+* Application Detail, including Approve and Reject
+* Attendance Management
+* Feedback List
+* Generate Certificate
+
+---
+
+### Member 4 — Manager Module
+
+Member 4 is responsible for:
+
+* User List
+* User Detail
+* Add User
+* Edit User
+* Category Management, including location, event time, event type, and related event classification data
+* Skill Management
+* Organization Management
+
+---
+
+### Member 5 — Admin Module
+
+Member 5 is responsible for:
+
+* Dashboard
+* Event Statistics
+* Volunteer Statistics
+* Export Report
+* Notification List
+* Notification Detail
+* Create Notification
+* Donation History
+
+---
+
+## 7. Suggested Technology Stack
 
 ### Backend
 
 * NodeJS
-
-### Database
-
+* JavaScript
+* Prisma ORM
 * MySQL
+* Zod validation
+* Swagger using `swagger-jsdoc` and `swagger-ui-express`
+* Logging using `pino`, `pino-http`, and `pino-pretty`
+
+---
+
+### Frontend
+
+* React
+* JSX
+* Bootstrap CSS
+* Jest
+* React Testing Library
+
+---
 
 ### Authentication
 
-* JWT Authentication
-* Zod validation
+* JWT
+* HttpOnly Cookie
+* bcryptjs
 
-### Storage
+---
+
+### Email
+
+* NodeMailer
+* Gmail service
+
+---
+
+### File and Image Storage
 
 * Cloudinary
+
+---
 
 ### Payment
 
 * VNPay
 * MoMo
 
-### Email
+---
 
-* SMTP
-* NodeMailer
+### Testing
+
+* Jest
+* Supertest for Backend
+* Jest and React Testing Library for Frontend
 
 ---
 
-## 9. Current Project Status
+## 8. Core Business Rules
 
-Current repository status:
+### 8.1 Authentication Rules
 
-* Codex is installed in VSCode.
-* Spec Kit is installed in the repository.
-* The project contains frontend, backend, and shared folders.
-* The project has not finalized the database schema.
-* The project has not finalized API contracts.
-* The project has not finalized detailed route structure.
-* The project has not finalized implementation tasks.
-* The team is preparing a project-level specification before implementation.
+1. Guest is not stored as a database role.
+2. Guest means unauthenticated user.
+3. The database stores only these roles:
 
-Important workflow rule:
-
-The team must not generate database schema, API contracts, migrations, or feature implementation code before completing and reviewing:
-
-1. Project overview/context
-2. Constitution
-3. Project-level specification
-4. Project-level plan
-5. Project-level tasks
+   * `VOLUNTEER`
+   * `STAFF`
+   * `MANAGER`
+   * `ADMIN`
+4. Unauthenticated users can only access public pages.
+5. Only authenticated users can access protected features.
+6. Accounts that have not verified email are not allowed to login.
+7. Forgot password reset token expires after 1 hour.
+8. After a reset token is used, it must be invalidated immediately.
 
 ---
 
-## 10. Core Business Rules
+### 8.2 Event Rules
 
-The following business rules should be used as the initial baseline for future specification and planning.
-
-### General Rules
-
-1. Guest users can only access public pages.
-2. Only authenticated users can access protected features.
-3. Each authenticated user has a role.
-4. Permissions are controlled by role.
-5. The system must prevent unauthorized users from accessing restricted features.
-6. All important user input must be validated before being processed.
+1. Guests can view public event lists.
+2. Guests can view public event details.
+3. Volunteers can search and filter events.
+4. Volunteers must login before applying for an event.
+5. Staff can create and manage events.
+6. User, Event, and Organization use soft delete.
+7. Soft-deleted data is not physically deleted from the database.
+8. Staff cannot delete or edit an event if the event already has at least one `APPROVED` application and the event is about to happen.
 
 ---
 
-### Event Rules
+### 8.3 Application Rules
 
-1. Guests can view public event lists and event details.
-2. Volunteers can search and filter events.
-3. Volunteers must login before applying for an event.
-4. A volunteer should not apply to the same event more than once.
-5. Staff can create, edit, and delete events.
-6. Event deletion behavior must be clarified before implementation: hard delete, soft delete, or archive.
-7. Events should have clear status values, but the exact status list must be clarified later.
-
----
-
-### Application Rules
-
-1. A volunteer can apply to an event.
-2. A new application should start with a pending status.
-3. Staff can approve or reject applications.
-4. Volunteers can view their applied events.
-5. Volunteers can cancel applications if cancellation is allowed by business rules.
-6. The team must clarify whether volunteers can cancel approved applications.
+1. Each Volunteer can apply only once for each event.
+2. A Volunteer cannot apply after the application deadline.
+3. A Volunteer cannot apply when the event is full.
+4. A new application starts as `PENDING`.
+5. Staff can approve or reject applications.
+6. Volunteers can view their applied events.
+7. Volunteers can cancel an application only when the application status is `PENDING`.
+8. Volunteers cannot directly cancel an `APPROVED` application.
+9. If an application is already `APPROVED`, the Volunteer must contact Staff to cancel or handle the case.
 
 ---
 
-### Attendance Rules
+### 8.4 Attendance Rules
 
-1. Attendance is related to event participation.
-2. Staff can manage attendance.
-3. Volunteers can view attendance history.
-4. The team must clarify whether attendance is checked manually, by QR code, or by another method.
-
----
-
-### Feedback Rules
-
-1. Volunteers can submit feedback for events.
-2. Feedback should be related to an event.
-3. The team must clarify whether only attended volunteers can submit feedback.
-4. Staff/Admin can view feedback list and feedback detail.
+1. Only Volunteers with `APPROVED` applications can check in.
+2. Attendance check-in is only open during the event time.
+3. Staff can manage attendance.
+4. Volunteers can view attendance history.
 
 ---
 
-### Certificate Rules
+### 8.5 Feedback Rules
 
-1. Certificates are generated after event completion.
-2. Volunteers can view and download certificates.
-3. Staff/Admin can generate certificates.
-4. The team must clarify whether certificates are generated as PDF files, images, or database records.
-
----
-
-### Notification Rules
-
-1. Users can view notifications.
-2. Users can view notification detail.
-3. Users can mark notifications as read.
-4. Authorized users can create notifications.
-5. The system may send event reminders and certificate notifications.
+1. Volunteers can submit feedback only after successful attendance.
+2. Each Volunteer can submit only one feedback for each event.
+3. Staff can view feedback list.
+4. Staff can view feedback detail.
 
 ---
 
-### Donation and Payment Rules
+### 8.6 Certificate Rules
 
-1. Users may donate to events.
-2. Payments may be processed through VNPay or MoMo.
-3. Users can view donation history.
-4. Admin can manage donations.
-5. The team must clarify whether payment gateway integration is real or mocked for MVP.
+1. Staff can generate certificates only for Volunteers who attended the event.
+2. Each Volunteer has only one certificate per event.
+3. Volunteers can view certificates.
+4. Volunteers can download certificates.
 
 ---
 
-## 11. High-Level Data Concepts
+### 8.7 Donation and Payment Rules
 
-The following are high-level data concepts only. They are not database tables yet.
+1. Minimum donation amount is 10,000 VND.
+2. Payment transaction status must be updated through webhook callback from the payment gateway.
+3. The system must not trust redirect URL from the client as the final payment result.
+4. VNPay and MoMo are the planned payment integrations.
+
+---
+
+## 9. Member 2 Feature Breakdown
+
+Member 2 should divide the Volunteer Event Module into the following features.
+
+---
+
+### 001-volunteer-event-discovery
+
+Covers:
+
+* Event List
+* Search Event
+* Filter Event
+
+Main use cases:
+
+* UC08 - View Event List
+* UC10 - Search Event
+* UC11 - Filter Event
+
+Main actors:
+
+* Guest
+* Volunteer
+
+---
+
+### 002-volunteer-event-detail
+
+Covers:
+
+* Event Detail
+* Apply entry point
+
+Main use case:
+
+* UC09 - View Event Detail
+
+Main actors:
+
+* Guest
+* Volunteer
+
+---
+
+### 003-volunteer-event-application
+
+Covers:
+
+* Apply Event
+
+Main use case:
+
+* UC12 - Apply Event
+
+Main actors:
+
+* Volunteer
+
+Important rules:
+
+* Volunteer must login before applying.
+* Each Volunteer can apply only once for each event.
+* Volunteer cannot apply after deadline.
+* Volunteer cannot apply when the event is full.
+
+---
+
+### 004-volunteer-applied-events
+
+Covers:
+
+* Applied Event List
+* Cancel Application
+
+Main use cases:
+
+* UC13 - View Applied Events
+* UC14 - Cancel Application
+
+Main actors:
+
+* Volunteer
+
+Important rules:
+
+* Volunteer can view their applied events.
+* Volunteer can cancel only `PENDING` applications.
+* `APPROVED` applications cannot be cancelled directly by Volunteer.
+
+---
+
+### 005-volunteer-history
+
+Covers:
+
+* Volunteer History
+
+Main use case:
+
+* UC21 - View Volunteer History
+
+Main actors:
+
+* Volunteer
+
+Important rules:
+
+* Volunteer History should show volunteer participation records.
+* Attendance and completion data are related to Staff Attendance Management.
+
+---
+
+### 006-volunteer-feedback-form
+
+Covers:
+
+* Feedback Form
+
+Main use case:
+
+* UC48 - Submit Feedback
+
+Main actors:
+
+* Volunteer
+
+Important rules:
+
+* Volunteer can submit feedback only after successful attendance.
+* Each Volunteer can submit only one feedback per event.
+
+---
+
+### 007-volunteer-certificates
+
+Covers:
+
+* Certificate List
+* Certificate Detail
+* Download Certificate
+
+Main use cases:
+
+* UC51 - View Certificates
+* UC52 - Download Certificate
+
+Main actors:
+
+* Volunteer
+
+Important rules:
+
+* Volunteer can view certificates.
+* Volunteer can download certificates.
+* Staff generates certificates.
+* Each Volunteer has only one certificate per event.
+
+---
+
+### 008-volunteer-home-dashboard
+
+Covers:
+
+* Home Dashboard for Volunteer
+
+Main actors:
+
+* Volunteer
+
+Purpose:
+
+This feature summarizes useful Volunteer information, such as upcoming approved events, applied events, attendance status, feedback reminders, and certificate shortcuts.
+
+Note:
+
+This feature should be specified after the core Volunteer features because it depends on data from Event Discovery, Applied Events, Volunteer History, Feedback, and Certificates.
+
+---
+
+## 10. High-Level Data Concepts
+
+The following are high-level data concepts only. They are not finalized database tables.
 
 Database schema, fields, relations, constraints, and migrations must be designed later during the planning phase.
 
@@ -834,8 +1056,6 @@ Potential data concepts:
 
 * User
 * Role
-* Volunteer Profile
-* Staff Profile
 * Event
 * Event Category
 * Skill
@@ -854,41 +1074,36 @@ Potential data concepts:
 
 Important note:
 
-This section must not be treated as a finalized database design. It is only a high-level concept list for future planning.
+This section must not be treated as finalized database design.
 
 ---
 
-## 12. External Integrations
+## 11. External Integrations
 
-### Cloudinary
+### 11.1 Cloudinary
 
-Cloudinary may be used for storing uploaded images or files, such as:
+Cloudinary may be used for storing uploaded images and files, such as:
 
 * User avatars
 * Event images
 * Organization images
 * Certificate files if needed
 
-The exact usage must be clarified before implementation.
-
 ---
 
-### VNPay and MoMo
+### 11.2 VNPay and MoMo
 
 VNPay and MoMo may be used for donation and payment gateway integration.
 
-The team must clarify:
+Important payment rule:
 
-* Whether real payment integration is required
-* Whether sandbox mode is enough
-* Whether payment should be mocked for MVP
-* Whether donation is required in the first implementation phase
+Payment result must be updated through webhook callback from the payment gateway. The system must not trust only the redirect URL from the client.
 
 ---
 
-### SMTP and NodeMailer
+### 11.3 NodeMailer and Gmail Service
 
-SMTP and NodeMailer may be used for email services, including:
+NodeMailer and Gmail service may be used for:
 
 * Email verification
 * Forgot password email
@@ -896,193 +1111,58 @@ SMTP and NodeMailer may be used for email services, including:
 * Event reminder email
 * Certificate email
 
-The team must clarify:
-
-* Which email provider will be used
-* Whether email sending should be real or mocked during development
-* Whether email templates are required
-
 ---
 
-## 13. Non-Functional Requirements
+## 12. Non-Functional Requirements
 
-### Security
+### 12.1 Security
 
 1. Passwords must not be stored in plain text.
-2. Sensitive configuration must be stored in environment variables.
-3. JWT must be used for protected routes.
-4. Role-based access control must be enforced.
-5. Input validation must be applied using Zod or equivalent validation.
-6. Payment-related data must be handled carefully.
-7. User permissions must be checked on the backend, not only on the frontend.
+2. Passwords must be hashed using bcryptjs.
+3. JWT must be stored using HttpOnly Cookie.
+4. Sensitive configuration must be stored in environment variables.
+5. Role-based access control must be enforced.
+6. Protected features must check permissions on the backend.
+7. Input validation must be applied using Zod or an equivalent validation method.
+8. Payment-related data must be handled carefully.
+9. Email verification must be checked before allowing login.
 
 ---
 
-### Usability
+### 12.2 Usability
 
-1. The system should be easy to use for volunteers.
+1. The system should be easy to use for Volunteers.
 2. Event search and filtering should be clear.
-3. Success and error messages should be shown clearly.
-4. react-toastify may be used for notifications.
-5. The UI should be consistent across all modules.
+3. Success and error messages should be displayed clearly.
+4. The UI should be consistent across all modules.
+5. Bootstrap CSS is the main styling approach.
 6. The website should focus on desktop web first.
 
 ---
 
-### Performance
+### 12.3 Performance
 
-1. Event list should support pagination or a scalable loading strategy.
-2. Search and filter should avoid loading unnecessary data.
+1. Event list should support pagination or scalable loading.
+2. Search and filter should avoid unnecessary data loading.
 3. Dashboard and statistics should avoid expensive operations when possible.
 4. Reports should be generated in a controlled way.
 
 ---
 
-### Maintainability
+### 12.4 Maintainability
 
 1. Frontend and backend code should be separated clearly.
-2. Shared constants, validation rules, or types may be placed in the shared folder if needed.
-3. Each module should have clear ownership.
-4. Code should follow consistent naming conventions.
-5. Database and API changes must be reviewed before implementation.
-6. AI-generated code must be reviewed by team members.
+2. Each module should have clear ownership.
+3. Code should follow consistent naming conventions.
+4. Database and API changes must be reviewed before implementation.
+5. AI-generated code must be reviewed by team members.
+6. Specifications should be reviewed before database migration and code implementation.
 
 ---
 
-## 14. Delivery Scope Clarification
+## 13. Specification Workflow Rule
 
-The current project has many modules. To avoid overloading the team, the MVP scope should be clarified.
-
-Suggested MVP includes:
-
-* Authentication
-* Profile Management
-* Event List and Event Detail
-* Search and Filter Event
-* Apply Event
-* View Applied Events
-* Staff Event Management
-* Application Approval
-* Attendance Management
-* Basic Category Management
-* Basic Skill Management
-* Basic Organization Management
-* Basic Dashboard
-* Basic Certificate Record
-
-Suggested optional or later-phase modules:
-
-* Real VNPay/MoMo integration
-* Advanced reporting
-* Advanced dashboard analytics
-* Real certificate PDF generation
-* Automated reminder email
-* Complex donation management
-* Advanced notification system
-
-Final MVP scope must be confirmed by the team before database and API planning.
-
----
-
-## 15. Open Questions
-
-The team must clarify the following questions before database design, API contracts, and implementation.
-
-### Project Scope Questions
-
-1. How will Donation and Payment Gateway be implemented in each delivery stage: real, sandbox, mocked, or documented only?
-2. Will VNPay/MoMo be integrated for real, sandbox only, or mocked?
-3. Is Email Service required in the MVP or later phase?
-4. Is Certificate generation required as a real downloadable file or only a record?
-
----
-
-### Role and Permission Questions
-
-1. Can a user have multiple roles?
-2. Can Staff also be a Volunteer?
-3. Can Manager also perform Staff actions?
-4. Can Admin perform all Manager and Staff actions?
-5. Who can create staff accounts?
-6. Who can manage organizations?
-
----
-
-### Event Questions
-
-1. What statuses can an event have?
-2. Can staff delete events permanently, or should events be archived?
-3. Can volunteers apply to full events?
-4. Does each event have a maximum number of volunteers?
-5. Can events require specific skills?
-6. Can an event belong to multiple categories?
-
----
-
-### Application Questions
-
-1. What statuses can an application have?
-2. Can volunteers cancel pending applications?
-3. Can volunteers cancel approved applications?
-4. Can staff change an approved application back to rejected?
-5. Should application approval trigger an email?
-
----
-
-### Attendance Questions
-
-1. Is attendance checked manually by staff?
-2. Is QR code attendance required?
-3. Can volunteers self check-in?
-4. Can attendance be edited after the event ends?
-5. Does attendance affect certificate eligibility?
-
----
-
-### Feedback Questions
-
-1. Can only attended volunteers submit feedback?
-2. Can volunteers submit more than one feedback per event?
-3. Can staff reply to feedback?
-4. Can feedback be anonymous?
-
----
-
-### Certificate Questions
-
-1. Is certificate generated as PDF?
-2. Does certificate require a template?
-3. Who can generate certificates?
-4. Can certificates be regenerated?
-5. Can volunteers download certificates anytime?
-
----
-
-### Organization Questions
-
-1. Does each event belong to one organization?
-2. Can one organization have many staff members?
-3. Can one staff member manage events for multiple organizations?
-4. Who approves organizations?
-
----
-
-### Technical Planning Questions
-
-1. What frontend route structure should be used?
-2. What backend architecture should be used?
-3. Should backend use ExpressJS?
-4. Should the database use Prisma or raw SQL?
-5. What API response format should be standardized?
-6. What naming convention should be used for files and folders?
-7. What validation strategy should be used for request bodies?
-8. What error handling format should be used?
-
----
-
-## 16. Specification Workflow Rule
-
-This project must follow a Spec-Driven Development workflow.
+This project should follow a Spec-Driven Development workflow.
 
 The correct order is:
 
@@ -1097,11 +1177,11 @@ The correct order is:
 9. Frontend implementation
 10. Testing and validation
 
-The team must not skip directly to database or code implementation without reviewing the project specification and plan.
+The team should not skip directly to database or implementation code before reviewing the project specification and plan.
 
 ---
 
-## 17. Notes for AI Agents
+## 14. Notes for AI Agents
 
 When using Codex or any AI agent in this repository:
 
@@ -1109,9 +1189,18 @@ When using Codex or any AI agent in this repository:
 2. Do not create database schema from this project overview alone.
 3. Do not create API contracts from this project overview alone.
 4. Use this file only as high-level project context.
-5. Ask clarification questions when business rules are unclear.
-6. Follow the project constitution once it is created.
+5. Follow the official team assignment.
+6. Follow the project constitution once it exists.
 7. Follow project-level spec, plan, and tasks before implementation.
 8. Keep frontend, backend, and shared concerns separated.
 9. Avoid inventing unsupported features that are not listed in the project overview.
-10. Preserve the team assignment structure unless the team changes it.
+10. Preserve the Member 2 feature order:
+
+    * `001-volunteer-event-discovery`
+    * `002-volunteer-event-detail`
+    * `003-volunteer-event-application`
+    * `004-volunteer-applied-events`
+    * `005-volunteer-history`
+    * `006-volunteer-feedback-form`
+    * `007-volunteer-certificates`
+    * `008-volunteer-home-dashboard`
