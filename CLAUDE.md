@@ -1,159 +1,429 @@
-# AGENTS.md — AI Agent Persona & VMS Domain Rules
+# CLAUDE.md — Project Memory & Architecture
 
-## 1. Persona
-Bạn là **Senior Software Engineer** xây dựng hệ thống **Volunteer Management System (VMS)** để kết nối tình nguyện viên và tổ chức. Mục tiêu chính: Số hóa toàn trình quy trình sự kiện tình nguyện từ tìm kiếm, đăng ký tham gia, xét duyệt, điểm danh cho đến khâu đánh giá và cấp phát chứng nhận.
+Tài liệu này là bộ nhớ dự án (Project Memory) giúp AI agents hiểu kiến trúc hệ thống, cấu trúc thư mục, các quyết định thiết kế quan trọng (ADR) và bài học kinh nghiệm.
 
-Hệ thống phục vụ 5 nhóm người dùng: **Guest, Volunteer, Staff, Manager, Admin**.
+## 1. Kiến trúc hệ thống & Phân công Module
 
-## 2. Tech Stack (STRICT — do not deviate)
+### System Architecture
+```text
+Browser / React App
+  |
+  | Axios (credentials: include)
+  v
+Backend REST API (Express)
+  |
+  | Route -> Middleware -> Controller -> Service -> Repository
+  v
+Prisma -> MySQL
+```
 
-### Backend
-- **Runtime**: NodeJS + Javascript (ESM)
-- **Framework**: Express 5.x
-- **Database**: MySQL
-- **ORM**: Prisma
-- **Validation**: Zod
-- **Auth**: JWT HttpOnly Cookie + bcryptjs/argon2id
-- **Logging**: Pino + pino-http + pino-pretty
-- **API Doc**: swagger-jsdoc + swagger-ui-express
-- **Testing**: Jest + Supertest
-- **File Storage**: Cloudinary
-- **Payment**: VNPay, MoMo
+### Module Ownership & Responsibilities
 
-### Frontend
-- **Framework**: React 19 + JSX
-- **UI Library**: Material UI + Bootstrap 5
-- **HTTP Client**: Axios (với credentials: include)
-- **Form**: React Hook Form
-- **Testing**: Jest + React Testing Library
+**Xem bảng phân công LIVE (với status updates) tại `share_context.md` Section 1.**
 
-### Nguyên tắc chọn công nghệ
-- Ưu tiên stability và community support hơn bleeding-edge features
-- Tránh vendor lock-in khi có thể
-- Chọn tools có documentation tốt và actively maintained
+**Cross-module Communication Rules:**
+- Modules SHALL communicate via Service layer contracts, NOT direct Repository calls
+- Shared utilities live in `/backend/src/utils` and `/frontend/src/utils`
+- API contracts MUST be documented in `share_context.md` before implementation
 
-## 3. Quy tắc nghiệp vụ VMS (Domain Rules)
+## 2. Cấu trúc thư mục quan trọng
 
-### Event & Capacity rules (Sự kiện và Sức chứa)
-1. **Sức chứa**: `event.approved_participants <= event.max_capacity` luôn phải đúng trước và sau mọi thao tác duyệt đơn. TUYỆT ĐỐI KHÔNG duyệt đơn vượt quá số lượng cho phép.
-2. **Bất biến trạng thái**: Không được phép chỉnh sửa thông tin cốt lõi của Sự kiện khi sự kiện đang diễn ra (`In Progress`) hoặc đã kết thúc (`Completed`).
-3. **Điều chỉnh tham gia**: Tình nguyện viên chỉ có thể hủy đăng ký khi sự kiện chưa diễn ra. Đối với no-show, phải xử lý thông qua Điểm danh (Attendance Check), KHÔNG dùng chức năng Hủy đơn.
+### File Naming Conventions
 
-### Application rules (Quy tắc xét duyệt đơn)
-1. **Luồng trạng thái một chiều**: Đơn đăng ký đã chuyển sang `Approved` hoặc `Rejected` thì TUYỆT ĐỐI KHÔNG được quay ngược lại trạng thái `Pending`.
-2. **Điều kiện hợp lệ**: Chỉ tình nguyện viên có account hợp lệ (`is_active: true`) mới được tạo Application.
+**Backend:**
 
-### Attendance & Certificate rules (Điểm danh và Chứng nhận)
-1. **Ràng buộc điểm danh**: Chỉ có thể điểm danh cho những tình nguyện viên có đơn đăng ký ở trạng thái `Approved`.
-2. **Điều kiện cấp chứng nhận**: TUYỆT ĐỐI KHÔNG cấp phát chứng nhận cho Tình nguyện viên không có dữ liệu điểm danh hợp lệ.
-3. **Tính duy nhất**: Mỗi tình nguyện viên chỉ được cấp tối đa 1 chứng nhận cho mỗi sự kiện hoàn thành.
+| Type | Pattern | Example |
+| --- | --- | --- |
+| Controller | `[resource].controller.js` | `event.controller.js` |
+| Service | `[resource].service.js` | `event.service.js` |
+| Repository | `[resource].repository.js` | `event.repository.js` |
+| Validator/schema | `[resource].validator.js` | `event.validator.js` |
+| Middleware | `[feature].middleware.js` | `auth.middleware.js` |
+| Config | `[provider].config.js` | `cors.config.js` |
+| Utility | `[purpose].util.js` | `response.util.js` |
 
-### Donation & Payment rules (Quyên góp và Thanh toán)
-1. **Tính bất biến của giao dịch**: Giao dịch quyên góp qua VNPay/MoMo sau khi ghi nhận trạng thái `Success` là dữ liệu bất biến. TUYỆT ĐỐI KHÔNG tự ý cập nhật/sửa đổi số tiền hoặc trạng thái.
-2. **Rollback thanh toán**: Các giao dịch lỗi hoặc timeout phải chuyển sang `Failed` hoặc `Cancelled`, không được kẹt vĩnh viễn ở trạng thái `Pending`.
+**Frontend:**
 
-### Soft delete rules (Quy tắc xóa dữ liệu)
-**Chi tiết rationale và consequences xem ADR-005 tại `CLAUDE.md` Section 3.**
+| Type | Pattern | Example |
+| --- | --- | --- |
+| Page/component | PascalCase `.jsx` | `EventDetailPage.jsx` |
+| Hook | camelCase `.js` | `useAuth.js` |
+| API client | camelCase `.js` | `eventApi.js` |
+| Utility | camelCase `.js` | `formatCurrency.js` |
 
-1. **Master data**: User, Organization, Event, Category, Skill → Soft delete (`is_active = false`)
-2. **Transaction data**: Application, Donation, Feedback → State transition (`status = cancelled/rejected`)
+### Backend Structure
+```text
+backend/
+├── src/
+│   ├── app.js            # Express app configuration
+│   ├── server.js         # Server entry point
+│   ├── swagger-server.js # Swagger documentation server
+│   ├── config/           # Logger, Swagger config
+│   ├── controllers/      # HTTP layer (auth.controller.js)
+│   ├── services/         # Business logic (auth.service.js)
+│   ├── repositories/     # Data access layer (empty, ready for Prisma)
+│   ├── middleware/       # Auth, logger middleware
+│   ├── middlewares/      # Additional middlewares
+│   ├── routes/           # API route definitions (auth.routes.js, user.routes.js)
+│   ├── utils/            # Helper functions (jwt.util.js, response.util.js)
+│   └── seeds/            # Database seed files
+├── public/               # Static files
+└── tests/                # Jest + Supertest integration tests
 
-## 4. Quy chuẩn đặt tên (Naming Conventions)
+Note: prisma/ directory chưa được tạo - cần setup khi bắt đầu database schema
+```
 
-**Xem chi tiết đầy đủ file naming patterns tại `CLAUDE.md` Section 2.**
+### Frontend Structure
+```text
+frontend/
+├── public/               # Static files
+├── src/
+│   ├── index.js          # React app entry point
+│   ├── App.js            # Main App component
+│   ├── index.css         # Global styles
+│   ├── api/              # Axios clients (axiosApi.js)
+│   ├── assets/           # Images, fonts, static assets
+│   ├── components/       # Reusable UI components
+│   │   ├── layouts/      # Layout components
+│   │   ├── pages/        # Page-level components
+│   │   └── ui/           # UI components (buttons, inputs, etc.)
+│   ├── contexts/         # React Context (authContext.context.js)
+│   ├── hooks/            # Custom React hooks (empty, ready for useAuth.js)
+│   ├── mock_datas/       # Mock data for development
+│   ├── services/         # Service layer (auth.service.js, user.service.js)
+│   └── utils/            # Frontend utilities
+└── tests/                # Jest + React Testing Library (chưa setup)
+```
 
-Tóm tắt:
-- Backend: `[resource].[layer].js` (event.controller.js, user.service.js)
-- Frontend Components: PascalCase JSX (EventList.jsx)
-- Database Tables: snake_case (volunteer_applications)
-- API Endpoints: kebab-case (/api/v1/volunteer-events)
+### Spec Structure
+```text
+.sdd/
+└── specs/
+    ├── feat-apply-event/
+    │   ├── CONTEXT.md    # Problem statement, constraints
+    │   ├── SPEC.md       # Feature specification (EARS notation)
+    │   ├── PLAN.md       # Implementation plan
+    │   └── TASKS.md      # Atomic tasks with dependencies
+    └── feat-attendance/
+        └── ...
+```
 
-## 5. Module Ownership (Phân công 5 thành viên)
+## 3. Quyết định kiến trúc (ADR — Architectural Decision Records)
 
-**Xem bảng phân công module LIVE (với status updates) tại `share_context.md` Section 1.**
+### ADR-001: MySQL cho VMS
+**Context**: Cần database cho hệ thống quản lý tình nguyện viên với ACID compliance.
 
-**Quy tắc Cross-Module (STRICT)**:
-- Modules giao tiếp qua Service layer contracts, KHÔNG import trực tiếp Repository của module khác
-- Thay đổi logic trong module của thành viên khác CHỈ được phép khi:
-  1. Có xác nhận từ chủ sở hữu module
-  2. Thay đổi được định nghĩa rõ trong Swagger documentation
+**Decision**: Sử dụng MySQL với Prisma ORM.
 
-## 6. Architecture Principles
+**Rationale**:
+- ACID compliance cho giao dịch quyên góp (Donation) và điểm danh (Attendance)
+- Relational model phù hợp với cấu trúc: User ↔ Application ↔ Event
+- Prisma type-safe queries giảm SQL injection risk
+- Mature ecosystem, wide community support
 
-**Xem chi tiết ADRs (Architectural Decision Records) tại `CLAUDE.md` Section 3.**  
-**Xem Anti-Patterns và Lessons Learned tại `CLAUDE.md` Sections 4-5.**
-
-### Layered Architecture
-Tuân thủ kiến trúc phân tầng: **Controller → Service → Repository**
-- Tầng **Repository** là nơi duy nhất giao tiếp trực tiếp với Database thông qua Prisma Client.
-- Business logic và validation BẮT BUỘC ở Service layer (xem ADR-001, Lesson 1).
-
-### Module Boundaries
-Modules giao tiếp qua **Service layer**, TUYỆT ĐỐI KHÔNG import Repository của module khác (xem Anti-Patterns).
-
-### Core Standards
-- **API Style**: RESTful với prefix `/api/v1/[resource]`
-- **Response Format**: Tuân thủ ADR-006 tại `CLAUDE.md`. Dùng `backend/src/utils/response.util.js`
-- **Database Access**: Prisma ORM only (ADR-001)
-- **Logging**: Tuân thủ quy tắc Logging và Anti-Patterns tại `CLAUDE.md` Sections 3-5
-
-## 7. Code & Quality Rules
-
-- **NodeJS (Backend)**: Bắt buộc sử dụng `async/await` cho các xử lý bất đồng bộ (tránh callback hell), và ném lỗi rõ ràng để middleware xử lý tập trung.
-- **React (Frontend)**: BẮT BUỘC dùng `PropTypes` để kiểm tra chặt chẽ các props. Không sử dụng biến global hoặc `var`, ưu tiên `const` và `let`.
-- **Kích thước file & hàm**: Max function length: 40 dòng; max file length: 300 dòng.
-- **Comments**: Comments chỉ dùng để giải thích TẠI SAO (why), TUYỆT ĐỐI KHÔNG giải thích ĐANG LÀM GÌ (what).
-- **Kiểm thử (Testing)**: Test coverage tối thiểu bắt buộc là **80%** cho Service layer. Sử dụng `Jest` cho cả Backend và Frontend.
-- **Tài liệu API**: BẮT BUỘC cập nhật giao kèo vào `share_context.md` VÀ viết đầy đủ comment Swagger JSDoc (@swagger) ngay phía trên code của endpoint. Các comment Swagger bắt buộc phải định nghĩa rõ Request Body, các mã Response lỗi và kèm theo ví dụ cụ thể.
-
-## 8. Error Handling & Safety
-
-**Xem Lessons Learned và Anti-Patterns chi tiết tại `CLAUDE.md` Sections 4-5.**
-
-### AI Agent Safety Rules
-- **Clarification-First**: Yêu cầu mơ hồ → Hỏi lại, KHÔNG tự đoán
-- **Kiểm tra tác động VMS Core**: Trước khi sửa Event, Application, Attendance, Certificate, Donation
-- **Đọc ngữ cảnh đa tầng**: Đọc chéo `CLAUDE.md`, `share_context.md`, `SPEC.md` cho changes có rủi ro cao
-- **Shadow Plan**: Thao tác phá hủy dữ liệu → Báo cáo và chờ phê duyệt
-- **Loop Trap**: Thất bại 3 lần liên tiếp → DỪNG và yêu cầu con người hỗ trợ
-- **Fix the Spec, not the Code**: Spec sai → Báo cáo để update Spec trước
-
-## 9. Definition of Done (Tiêu chí hoàn thành)
-
-- [ ] Unit tests đã được viết và passing (Tối thiểu 80% coverage cho Services).
-- [ ] Integration tests cho tất cả API endpoints (Cover cả happy path + error paths).
-- [ ] Không có lỗi linting/type errors (`npm run lint` pass).
-- [ ] API endpoint bắt buộc được document đầy đủ trong Swagger.
-- [ ] Các trường hợp lỗi ĐÃ ĐƯỢC handle với HTTP status codes chuẩn (400, 401, 403, 404, 409, 500).
-- [ ] Đã ghi nhận Audit log cho các luồng thay đổi trạng thái quan trọng.
-- [ ] TUYỆT ĐỐI KHÔNG để lại comments dạng `TODO` hoặc `FIXME` trong code chuẩn bị merge.
-- [ ] Các logic nghiệp vụ cốt lõi của VMS ĐÃ ĐƯỢC test nghiêm ngặt.
-
-## 10. Git Conventions
-
-### Branch naming
-- `feat/[feature-name]` — tính năng mới
-- `fix/[bug-name]` — sửa lỗi
-- `spec/[feature-name]` — viết spec
-- `chore/[short-name]` — cập nhật nhỏ
-
-### Commit format
-`[type]([scope]): [description]`
-
-Example: `feat(auth): implement volunteer login API`
-
-### PR rules
-- Min 1 approval before merge
-- Max 400 lines changed; larger work should be split
-- Never commit trực tiếp vào `main`/`Dev`
+**Consequences**:
+- Phải dùng Prisma migrations cho schema changes
+- Soft delete bắt buộc để preserve audit trail
+- Transactions phải được handle ở Service layer
 
 ---
 
-**Version**: 5.0  
+### ADR-002: JWT HttpOnly Cookies
+**Context**: Cần authentication mechanism an toàn cho web app.
+
+**Decision**: JWT lưu trong HttpOnly cookies, KHÔNG dùng localStorage.
+
+**Rationale**:
+- HttpOnly cookies prevent XSS attacks
+- SameSite=Strict/Lax prevent CSRF
+- Stateless authentication scales well
+- Frontend KHÔNG cần quản lý token storage
+
+**Consequences**:
+- Frontend phải config `credentials: 'include'` cho Axios
+- Backend phải config CORS để accept credentials
+- Token refresh phải qua dedicated endpoint
+
+---
+
+### ADR-003: Zod Validation
+**Context**: Cần validate input data từ Frontend và bảo vệ API.
+
+**Decision**: Sử dụng Zod cho tất cả API input validation.
+
+**Rationale**:
+- Type-safe schema definition
+- Reusable schemas giữa middleware và service
+- Clear error messages cho client
+- Runtime validation bổ sung cho Prisma
+
+**Consequences**:
+- Mọi POST/PUT/PATCH endpoint phải có Zod validator
+- Validation errors return 400 với structured message
+- Schemas phải được maintain khi API changes
+
+---
+
+### ADR-004: Cloudinary cho File Upload
+**Context**: Cần lưu trữ ảnh đại diện, chứng nhận, event images.
+
+**Decision**: Sử dụng Cloudinary, KHÔNG lưu files vào server filesystem.
+
+**Rationale**:
+- Scalable cloud storage
+- Automatic image optimization/transformation
+- CDN delivery for performance
+- Free tier sufficient cho MVP
+
+**Consequences**:
+- File upload phải validate kích thước (Max 5MB) và định dạng
+- Backend trả về Cloudinary URL, không lưu binary data
+- Cần Cloudinary API key trong `.env`
+
+---
+
+### ADR-005: Soft Delete cho Master Data
+**Context**: Cần preserve data integrity và audit trail.
+
+**Decision**: User, Event, Organization, Category, Skill PHẢI dùng soft delete (`is_active: false`).
+
+**Rationale**:
+- Preserve historical data for reporting
+- Prevent orphaned foreign keys
+- Enable data recovery
+- Audit compliance
+
+**Consequences**:
+- Queries phải filter `WHERE is_active = true`
+- UI phải có "Active/Inactive" toggle cho admin
+- Cascade delete phải được handle carefully
+
+---
+
+### ADR-006: Standardized API Response Format
+**Context**: Cần format response nhất quán cho tất cả API endpoints.
+
+**Decision**: Tất cả API response PHẢI dùng format:
+```javascript
+{
+  success: boolean,
+  data?: any,      // Present when success = true
+  error?: string   // Present when success = false
+}
+```
+
+**Rationale**:
+- Consistent error handling ở Frontend
+- Dễ dàng cho automated testing
+- Clear contract giữa FE và BE
+- TypeScript-friendly structure
+
+**Consequences**:
+- Mọi endpoint phải dùng `response.util.js`
+- KHÔNG tự ý dùng `res.json()` trực tiếp
+- Error messages phải human-readable
+
+## 4. Bài học kinh nghiệm (Lessons Learned)
+
+### Lesson 1: Capacity Validation phải ở Service Layer
+**What Happened**: Có bug cho phép approve vượt quá `max_capacity` vì validation chỉ ở Controller.
+
+**Root Cause**: Controller validation không atomic với database transaction.
+
+**Fix**: Validate capacity trong `ApplicationService.approveApplication()` với transaction lock.
+
+**Takeaway**: Business invariants PHẢI được enforce ở Service layer, không phải Controller.
+
+---
+
+### Lesson 2: Luồng trạng thái Application cần Finite State Machine
+**What Happened**: Có case Application bị set từ `Rejected` về `Pending`, gây confusion.
+
+**Root Cause**: Không có state transition rules rõ ràng.
+
+**Fix**: Implement state machine: `Pending → [Approved | Rejected]` (one-way only).
+
+**Takeaway**: Sử dụng enum và validation cho state transitions trong critical workflows.
+
+---
+
+### Lesson 3: UserId PHẢI lấy từ JWT, KHÔNG từ request body
+**What Happened**: Security issue khi user có thể giả mạo `userId` trong request body.
+
+**Root Cause**: Controller đọc `req.body.userId` thay vì `req.user.id` từ JWT.
+
+**Fix**: Middleware `authenticate()` inject `req.user`, Service ONLY đọc từ đó.
+
+**Takeaway**: NEVER trust client-provided identity. Always extract from verified token.
+
+---
+
+### Lesson 4: Audit Log phải được log bất đồng bộ
+**What Happened**: API response chậm vì wait audit log write.
+
+**Root Cause**: Audit log write đồng bộ trong transaction chính.
+
+**Fix**: Audit log write vào queue/async handler sau khi transaction commit.
+
+**Takeaway**: Non-critical side effects (logging, notifications) nên được decouple khỏi main business logic.
+
+## 5. Anti-Patterns (FORBIDDEN)
+
+### ❌ Cross-module Repository Import
+```javascript
+// BAD: EventService import ApplicationRepository trực tiếp
+import ApplicationRepository from '../application/application.repository.js';
+```
+
+**Why Bad**: Tạo hidden coupling, khó test và maintain.
+
+**Correct Approach**: EventService gọi `ApplicationService.getByEventId()`.
+
+---
+
+### ❌ Business Logic trong Controller
+```javascript
+// BAD: Logic approve trong Controller
+if (application.status !== 'Pending') {
+  return res.status(400).json({ error: 'Cannot approve' });
+}
+```
+
+**Why Bad**: Logic bị duplicate, khó test, không reusable.
+
+**Correct Approach**: Delegate to `ApplicationService.approve()`.
+
+---
+
+### ❌ Console.log trong Production Code
+```javascript
+// BAD
+console.log('User logged in:', userId);
+```
+
+**Why Bad**: Không structured, không có log levels, performance overhead.
+
+**Correct Approach**: Dùng Pino logger.
+
+---
+
+### ❌ Hard Delete Critical Data
+```javascript
+// BAD: Xóa vật lý User record
+await prisma.user.delete({ where: { id: userId } });
+```
+
+**Why Bad**: Mất audit trail, break foreign keys, không recover được.
+
+**Correct Approach**: `UPDATE users SET is_active = false WHERE id = ?`.
+
+## 6. Environment Variables
+
+### Backend `.env` (Example)
+```text
+PORT=5000
+API_PREFIX=/api/v1
+FRONTEND_ORIGIN=http://localhost:3000
+
+DATABASE_URL=mysql://user:pass@localhost:3306/vms
+
+AUTH_SECRET=your-jwt-secret-key
+COOKIE_ACCESS_NAME=vms_access_token
+COOKIE_REFRESH_NAME=vms_refresh_token
+JWT_ACCESS_EXPIRES_IN=15m
+JWT_REFRESH_EXPIRES_IN=7d
+
+BCRYPT_SALT_ROUNDS=10
+
+CLOUDINARY_CLOUD_NAME=your-cloud
+CLOUDINARY_API_KEY=your-key
+CLOUDINARY_API_SECRET=your-secret
+
+VNPAY_TMN_CODE=your-tmn
+VNPAY_HASH_SECRET=your-secret
+VNPAY_URL=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+```
+
+### Frontend `.env` (Example)
+```text
+PORT=3000
+REACT_APP_API_BASE_URL=http://localhost:5000/api/v1
+```
+
+**Security Rules:**
+- NEVER commit real `.env` files
+- Use `.env.example` as template
+- Rotate secrets regularly
+- Use different secrets per environment (dev/staging/prod)
+
+## 7. Testing Strategy
+
+### Backend Testing (Jest + Supertest)
+- **Unit Tests**: Service layer business logic (80% coverage target)
+- **Integration Tests**: API endpoints với real database (test DB)
+- **Test Structure**: `tests/[module]/[feature].test.js`
+
+### Frontend Testing (Jest + React Testing Library)
+- **Component Tests**: UI components với mocked API
+- **Integration Tests**: User flows với mocked backend
+- **Test Structure**: `src/[component]/__tests__/[component].test.jsx`
+
+### Test Data Strategy
+- Use `prisma migrate reset --force` để reset test DB
+- Seed test data với `prisma/seed.js`
+- Clean up sau mỗi test case
+
+## 8. GitNexus Integration
+
+VMS project được indexed bởi GitNexus để hỗ trợ code intelligence, impact analysis và architecture navigation.
+
+> **Index Status**: Run `node .gitnexus/run.cjs analyze` từ project root để update index. Nếu chưa có `.gitnexus/run.cjs`, chạy `npx gitnexus analyze`.
+
+### Always Do (Bắt buộc)
+
+- **MUST run impact analysis trước khi edit symbol**: Trước khi sửa function/class/method, chạy `impact({target: "symbolName", direction: "upstream"})` để báo cáo blast radius (callers, affected processes, risk level).
+- **MUST run `detect_changes()` trước khi commit**: Verify changes chỉ affect expected symbols và execution flows. Để regression review, so sánh với default branch: `detect_changes({scope: "compare", base_ref: "main"})`.
+- **MUST warn user** nếu impact analysis returns HIGH hoặc CRITICAL risk trước khi proceed.
+- Khi explore unfamiliar code, dùng `query({search_query: "concept"})` để tìm execution flows thay vì grep. Nó trả về process-grouped results ranked by relevance.
+- Khi cần full context về specific symbol (callers, callees, execution flows), dùng `context({name: "symbolName"})`.
+- Để security review, `explain({target: "fileOrSymbol"})` lists taint findings (source→sink flows; cần `analyze --pdg`).
+
+### Never Do (Cấm)
+
+- NEVER edit function/class/method mà không chạy `impact` trước.
+- NEVER ignore HIGH hoặc CRITICAL risk warnings từ impact analysis.
+- NEVER rename symbols bằng find-and-replace — dùng `rename` (hiểu call graph).
+- NEVER commit changes mà không chạy `detect_changes()` để check affected scope.
+
+### GitNexus Resources
+
+| Resource | Use for |
+|----------|---------|
+| `gitnexus://repo/VMS/context` | Codebase overview, check index freshness |
+| `gitnexus://repo/VMS/clusters` | All functional areas |
+| `gitnexus://repo/VMS/processes` | All execution flows |
+| `gitnexus://repo/VMS/process/{name}` | Step-by-step execution trace |
+
+### GitNexus CLI Skills
+
+| Task | Skill File |
+|------|-----------|
+| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
+| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
+| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
+| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
+| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
+| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
+
+**Note**: Nếu môi trường không có GitNexus tooling, agent phải báo rõ không thể thực thi automation này trước khi tiếp tục các thay đổi thủ công.
+
+---
+
+**Version**: 3.0  
 **Last Updated**: 2026-06-25  
 **Changelog**:
-- v5.0: Tái cấu trúc theo bộ khung mới - tập trung vào Persona, Tech Stack, Domain Rules và Naming Conventions
-- v5.0: Thêm Module Ownership chi tiết cho 5 members dựa trên team.docx
-- v5.0: Rút gọn Architecture Principles, loại bỏ GitNexus section (chuyển sang CLAUDE.md)
+- v3.0: Tái cấu trúc theo bộ khung mới - tập trung vào Architecture, ADRs và Lessons Learned
+- v3.0: Thêm Anti-Patterns section và GitNexus Integration section
+- v3.0: Loại bỏ duplicate content đã có trong AGENTS.md
 
-*Tham chiếu: Xem quy trình SDD tại `CONSTITUTION.md`, Kiến trúc chi tiết tại `CLAUDE.md`, Giao kèo API tại `share_context.md`.*
+*Tham chiếu: Xem quy trình SDD tại `CONSTITUTION.md`, Tech Stack & Domain Rules tại `AGENTS.md`, Giao kèo API tại `share_context.md`.*
