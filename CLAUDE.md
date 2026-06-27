@@ -5,7 +5,6 @@ Tài liệu này là bộ nhớ dự án (Project Memory) giúp AI agents hiểu
 ## 1. Kiến trúc hệ thống & Phân công Module
 
 ### System Architecture
-
 ```text
 Browser / React App
   |
@@ -23,7 +22,6 @@ Prisma -> MySQL
 **Xem bảng phân công LIVE (với status updates) tại `share_context.md` Section 1.**
 
 **Cross-module Communication Rules:**
-
 - Modules SHALL communicate via Service layer contracts, NOT direct Repository calls
 - Shared utilities live in `/backend/src/utils` and `/frontend/src/utils`
 - API contracts MUST be documented in `share_context.md` before implementation
@@ -54,7 +52,6 @@ Prisma -> MySQL
 | Utility | camelCase `.js` | `formatCurrency.js` |
 
 ### Backend Structure
-
 ```text
 backend/
 ├── src/
@@ -77,7 +74,6 @@ Note: prisma/ directory chưa được tạo - cần setup khi bắt đầu data
 ```
 
 ### Frontend Structure
-
 ```text
 frontend/
 ├── public/               # Static files
@@ -100,7 +96,6 @@ frontend/
 ```
 
 ### Spec Structure
-
 ```text
 .sdd/
 └── specs/
@@ -116,20 +111,17 @@ frontend/
 ## 3. Quyết định kiến trúc (ADR — Architectural Decision Records)
 
 ### ADR-001: MySQL cho VMS
-
 **Context**: Cần database cho hệ thống quản lý tình nguyện viên với ACID compliance.
 
 **Decision**: Sử dụng MySQL với Prisma ORM.
 
 **Rationale**:
-
 - ACID compliance cho giao dịch quyên góp (Donation) và điểm danh (Attendance)
 - Relational model phù hợp với cấu trúc: User ↔ Application ↔ Event
 - Prisma type-safe queries giảm SQL injection risk
 - Mature ecosystem, wide community support
 
 **Consequences**:
-
 - Phải dùng Prisma migrations cho schema changes
 - Soft delete bắt buộc để preserve audit trail
 - Transactions phải được handle ở Service layer
@@ -137,20 +129,17 @@ frontend/
 ---
 
 ### ADR-002: JWT HttpOnly Cookies
-
 **Context**: Cần authentication mechanism an toàn cho web app.
 
 **Decision**: JWT lưu trong HttpOnly cookies, KHÔNG dùng localStorage.
 
 **Rationale**:
-
 - HttpOnly cookies prevent XSS attacks
 - SameSite=Strict/Lax prevent CSRF
 - Stateless authentication scales well
 - Frontend KHÔNG cần quản lý token storage
 
 **Consequences**:
-
 - Frontend phải config `credentials: 'include'` cho Axios
 - Backend phải config CORS để accept credentials
 - Token refresh phải qua dedicated endpoint
@@ -158,20 +147,17 @@ frontend/
 ---
 
 ### ADR-003: Zod Validation
-
 **Context**: Cần validate input data từ Frontend và bảo vệ API.
 
 **Decision**: Sử dụng Zod cho tất cả API input validation.
 
 **Rationale**:
-
 - Type-safe schema definition
 - Reusable schemas giữa middleware và service
 - Clear error messages cho client
 - Runtime validation bổ sung cho Prisma
 
 **Consequences**:
-
 - Mọi POST/PUT/PATCH endpoint phải có Zod validator
 - Validation errors return 400 với structured message
 - Schemas phải được maintain khi API changes
@@ -179,20 +165,17 @@ frontend/
 ---
 
 ### ADR-004: Cloudinary cho File Upload
-
 **Context**: Cần lưu trữ ảnh đại diện, chứng nhận, event images.
 
 **Decision**: Sử dụng Cloudinary, KHÔNG lưu files vào server filesystem.
 
 **Rationale**:
-
 - Scalable cloud storage
 - Automatic image optimization/transformation
 - CDN delivery for performance
 - Free tier sufficient cho MVP
 
 **Consequences**:
-
 - File upload phải validate kích thước (Max 5MB) và định dạng
 - Backend trả về Cloudinary URL, không lưu binary data
 - Cần Cloudinary API key trong `.env`
@@ -200,20 +183,17 @@ frontend/
 ---
 
 ### ADR-005: Soft Delete cho Master Data
-
 **Context**: Cần preserve data integrity và audit trail.
 
 **Decision**: User, Event, Organization, Category, Skill PHẢI dùng soft delete (`is_active: false`).
 
 **Rationale**:
-
 - Preserve historical data for reporting
 - Prevent orphaned foreign keys
 - Enable data recovery
 - Audit compliance
 
 **Consequences**:
-
 - Queries phải filter `WHERE is_active = true`
 - UI phải có "Active/Inactive" toggle cho admin
 - Cascade delete phải được handle carefully
@@ -221,11 +201,9 @@ frontend/
 ---
 
 ### ADR-006: Standardized API Response Format
-
 **Context**: Cần format response nhất quán cho tất cả API endpoints.
 
 **Decision**: Tất cả API response PHẢI dùng format:
-
 ```javascript
 {
   success: boolean,
@@ -235,14 +213,12 @@ frontend/
 ```
 
 **Rationale**:
-
 - Consistent error handling ở Frontend
 - Dễ dàng cho automated testing
 - Clear contract giữa FE và BE
 - TypeScript-friendly structure
 
 **Consequences**:
-
 - Mọi endpoint phải dùng `response.util.js`
 - KHÔNG tự ý dùng `res.json()` trực tiếp
 - Error messages phải human-readable
@@ -250,7 +226,6 @@ frontend/
 ## 4. Bài học kinh nghiệm (Lessons Learned)
 
 ### Lesson 1: Capacity Validation phải ở Service Layer
-
 **What Happened**: Có bug cho phép approve vượt quá `max_capacity` vì validation chỉ ở Controller.
 
 **Root Cause**: Controller validation không atomic với database transaction.
@@ -262,7 +237,6 @@ frontend/
 ---
 
 ### Lesson 2: Luồng trạng thái Application cần Finite State Machine
-
 **What Happened**: Có case Application bị set từ `Rejected` về `Pending`, gây confusion.
 
 **Root Cause**: Không có state transition rules rõ ràng.
@@ -274,7 +248,6 @@ frontend/
 ---
 
 ### Lesson 3: UserId PHẢI lấy từ JWT, KHÔNG từ request body
-
 **What Happened**: Security issue khi user có thể giả mạo `userId` trong request body.
 
 **Root Cause**: Controller đọc `req.body.userId` thay vì `req.user.id` từ JWT.
@@ -286,7 +259,6 @@ frontend/
 ---
 
 ### Lesson 4: Audit Log phải được log bất đồng bộ
-
 **What Happened**: API response chậm vì wait audit log write.
 
 **Root Cause**: Audit log write đồng bộ trong transaction chính.
@@ -298,7 +270,6 @@ frontend/
 ## 5. Anti-Patterns (FORBIDDEN)
 
 ### ❌ Cross-module Repository Import
-
 ```javascript
 // BAD: EventService import ApplicationRepository trực tiếp
 import ApplicationRepository from '../application/application.repository.js';
@@ -311,7 +282,6 @@ import ApplicationRepository from '../application/application.repository.js';
 ---
 
 ### ❌ Business Logic trong Controller
-
 ```javascript
 // BAD: Logic approve trong Controller
 if (application.status !== 'Pending') {
@@ -326,7 +296,6 @@ if (application.status !== 'Pending') {
 ---
 
 ### ❌ Console.log trong Production Code
-
 ```javascript
 // BAD
 console.log('User logged in:', userId);
@@ -339,7 +308,6 @@ console.log('User logged in:', userId);
 ---
 
 ### ❌ Hard Delete Critical Data
-
 ```javascript
 // BAD: Xóa vật lý User record
 await prisma.user.delete({ where: { id: userId } });
@@ -352,7 +320,6 @@ await prisma.user.delete({ where: { id: userId } });
 ## 6. Environment Variables
 
 ### Backend `.env` (Example)
-
 ```text
 PORT=5000
 API_PREFIX=/api/v1
@@ -378,14 +345,12 @@ VNPAY_URL=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
 ```
 
 ### Frontend `.env` (Example)
-
 ```text
 PORT=3000
 REACT_APP_API_BASE_URL=http://localhost:5000/api/v1
 ```
 
 **Security Rules:**
-
 - NEVER commit real `.env` files
 - Use `.env.example` as template
 - Rotate secrets regularly
@@ -394,19 +359,16 @@ REACT_APP_API_BASE_URL=http://localhost:5000/api/v1
 ## 7. Testing Strategy
 
 ### Backend Testing (Jest + Supertest)
-
 - **Unit Tests**: Service layer business logic (80% coverage target)
 - **Integration Tests**: API endpoints với real database (test DB)
 - **Test Structure**: `tests/[module]/[feature].test.js`
 
 ### Frontend Testing (Jest + React Testing Library)
-
 - **Component Tests**: UI components với mocked API
 - **Integration Tests**: User flows với mocked backend
 - **Test Structure**: `src/[component]/__tests__/[component].test.jsx`
 
 ### Test Data Strategy
-
 - Use `prisma migrate reset --force` để reset test DB
 - Seed test data với `prisma/seed.js`
 - Clean up sau mỗi test case
@@ -460,7 +422,6 @@ VMS project được indexed bởi GitNexus để hỗ trợ code intelligence, 
 **Version**: 3.0  
 **Last Updated**: 2026-06-25  
 **Changelog**:
-
 - v3.0: Tái cấu trúc theo bộ khung mới - tập trung vào Architecture, ADRs và Lessons Learned
 - v3.0: Thêm Anti-Patterns section và GitNexus Integration section
 - v3.0: Loại bỏ duplicate content đã có trong AGENTS.md
