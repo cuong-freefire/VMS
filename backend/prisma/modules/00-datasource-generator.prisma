@@ -1,0 +1,15 @@
+// ============================================================
+// MODULE 00: Datasource & Generator
+// ============================================================
+// This file defines the Prisma client generator and MySQL
+// datasource configuration. Shared by all modules.
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}

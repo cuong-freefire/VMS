@@ -1,0 +1,32 @@
+// ============================================================
+// MODULE 05: Attendance Management
+// ============================================================
+// Models: Attendance
+// Owner: Member 3 - Staff Module
+//         Member 2 - Volunteer Event Module (history view)
+// ============================================================
+
+// ---- Attendance ----
+model Attendance {
+  attendanceId  Int      @id @default(autoincrement()) @map("attendance_id")
+  applicationId Int      @map("application_id")
+  eventId       Int      @map("event_id")
+  userId        Int      @map("user_id")
+  status        String   @default("Present") @db.VarChar(20) // Present, Absent
+  checkInTime   DateTime @default(now()) @map("check_in_time")
+  checkedBy     Int      @map("checked_by")
+  notes         String?  @db.VarChar(500)
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  // Relations
+  application Application @relation(fields: [applicationId], references: [applicationId])
+  event       Event       @relation(fields: [eventId], references: [eventId])
+  user        User        @relation("Attendee", fields: [userId], references: [userId])
+  checker     User        @relation("AttendanceTaker", fields: [checkedBy], references: [userId])
+
+  @@unique([applicationId]) // One attendance record per application
+  @@index([eventId])
+  @@index([userId])
+  @@index([status])
+  @@map("attendances")
+}

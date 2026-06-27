@@ -1,0 +1,49 @@
+// ============================================================
+// MODULE 10: Audit & Reporting
+// ============================================================
+// Models: AuditLog, Report
+// Owner: Member 5 - Admin Module (dashboard, statistics, export)
+// ============================================================
+
+// ---- Audit Log ----
+model AuditLog {
+  auditLogId  Int      @id @default(autoincrement()) @map("audit_log_id")
+  userId      Int      @map("user_id")
+  action      String   @db.VarChar(100) // e.g., APPROVE_APPLICATION, CREATE_EVENT, GENERATE_CERTIFICATE
+  entityType  String   @map("entity_type") @db.VarChar(100) // e.g., application, event, certificate
+  entityId    Int      @map("entity_id")
+  oldValue    String?  @map("old_value") @db.Text // JSON snapshot before change
+  newValue    String?  @map("new_value") @db.Text // JSON snapshot after change
+  ipAddress   String?  @map("ip_address") @db.VarChar(45)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [userId])
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ---- Report ----
+model Report {
+  reportId    Int      @id @default(autoincrement()) @map("report_id")
+  title       String   @db.VarChar(255)
+  type        String   @db.VarChar(50) // Event, Volunteer, Donation, System
+  parameters  String?  @db.Text // JSON: filter criteria used to generate report
+  fileUrl     String?  @map("file_url") @db.VarChar(500) // URL of exported file (PDF, Excel)
+  format      String?  @db.VarChar(20) // pdf, excel, csv
+  generatedBy Int      @map("generated_by")
+  generatedAt DateTime @default(now()) @map("generated_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  generator User @relation("ReportGenerator", fields: [generatedBy], references: [userId])
+
+  @@index([type])
+  @@index([generatedBy])
+  @@index([generatedAt])
+  @@map("reports")
+}

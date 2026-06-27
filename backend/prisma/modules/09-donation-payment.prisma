@@ -1,0 +1,55 @@
+// ============================================================
+// MODULE 09: Donation & Payment Gateway
+// ============================================================
+// Models: Donation, PaymentTransaction
+// Owner: Member 5 - Admin Module (view donation history)
+// ============================================================
+
+// ---- Donation ----
+model Donation {
+  donationId    Int      @id @default(autoincrement()) @map("donation_id")
+  userId        Int      @map("user_id")
+  eventId       Int      @map("event_id")
+  amount        Decimal  @map("amount") @db.Decimal(15, 0) // VND amount (no decimals)
+  message       String?  @db.VarChar(500)
+  status        String   @default("Pending") @db.VarChar(50) // Pending, Success, Failed, Cancelled
+  donatedAt     DateTime @default(now()) @map("donated_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user  User  @relation(fields: [userId], references: [userId])
+  event Event @relation(fields: [eventId], references: [eventId])
+
+  paymentTransactions PaymentTransaction[]
+
+  @@index([userId])
+  @@index([eventId])
+  @@index([status])
+  @@map("donations")
+}
+
+// ---- Payment Transaction ----
+model PaymentTransaction {
+  transactionId   Int      @id @default(autoincrement()) @map("transaction_id")
+  donationId      Int      @map("donation_id")
+  userId          Int      @map("user_id")
+  amount          Decimal  @map("amount") @db.Decimal(15, 0)
+  paymentMethod   String   @map("payment_method") @db.VarChar(50) // VNPay, MoMo
+  transactionRef  String   @unique @map("transaction_ref") @db.VarChar(255) // External gateway reference
+  gatewayResponse String?  @map("gateway_response") @db.Text // Raw response from payment gateway
+  status          String   @default("Pending") @db.VarChar(50) // Pending, Success, Failed, Cancelled
+  paidAt          DateTime? @map("paid_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  donation Donation @relation(fields: [donationId], references: [donationId])
+  user     User     @relation(fields: [userId], references: [userId])
+
+  @@index([donationId])
+  @@index([userId])
+  @@index([transactionRef])
+  @@index([status])
+  @@map("payment_transactions")
+}

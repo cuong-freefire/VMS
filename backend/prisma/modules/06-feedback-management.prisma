@@ -1,0 +1,29 @@
+// ============================================================
+// MODULE 06: Feedback Management
+// ============================================================
+// Models: Feedback
+// Owner: Member 2 - Volunteer Event Module (submit feedback)
+//         Member 3 - Staff Module (view feedback list)
+// ============================================================
+
+// ---- Feedback ----
+model Feedback {
+  feedbackId  Int      @id @default(autoincrement()) @map("feedback_id")
+  userId      Int      @map("user_id")
+  eventId     Int      @map("event_id")
+  rating      Int      @map("rating") // 1-5 star rating
+  comment     String?  @db.Text
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user  User  @relation(fields: [userId], references: [userId])
+  event Event @relation(fields: [eventId], references: [eventId])
+
+  @@unique([userId, eventId]) // One feedback per volunteer per event
+  @@index([userId])
+  @@index([eventId])
+  @@index([rating])
+  @@map("feedbacks")
+}

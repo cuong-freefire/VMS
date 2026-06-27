@@ -1,0 +1,48 @@
+// ============================================================
+// MODULE 08: Notification Management
+// ============================================================
+// Models: Notification, NotificationRecipient
+// Owner: Member 5 - Admin Module
+// ============================================================
+
+// ---- Notification ----
+model Notification {
+  notificationId Int      @id @default(autoincrement()) @map("notification_id")
+  title          String   @db.VarChar(255)
+  message        String?  @db.Text
+  type           String   @default("System") @db.VarChar(50) // System, Event, Application, Certificate
+  referenceId    Int?     @map("reference_id") // ID of related entity (event, application, etc.)
+  referenceType  String?  @map("reference_type") @db.VarChar(50) // Entity type: event, application, etc.
+  createdBy      Int      @map("created_by")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  sender              User                   @relation("NotificationSender", fields: [createdBy], references: [userId])
+  notificationRecipients NotificationRecipient[]
+
+  @@index([createdBy])
+  @@index([type])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// ---- Notification Recipient (Many-to-Many: Notification <-> User) ----
+model NotificationRecipient {
+  notificationRecipientId Int      @id @default(autoincrement()) @map("notification_recipient_id")
+  notificationId          Int      @map("notification_id")
+  userId                  Int      @map("user_id")
+  isRead                  Boolean  @default(false) @map("is_read")
+  readAt                  DateTime? @map("read_at")
+  createdAt               DateTime @default(now()) @map("created_at")
+
+  // Relations
+  notification Notification @relation(fields: [notificationId], references: [notificationId], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [userId])
+
+  @@unique([notificationId, userId])
+  @@index([userId])
+  @@index([notificationId])
+  @@index([isRead])
+  @@map("notification_recipients")
+}

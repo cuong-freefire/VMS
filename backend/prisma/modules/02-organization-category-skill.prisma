@@ -1,0 +1,74 @@
+// ============================================================
+// MODULE 02: Organization, Category & Skill
+// ============================================================
+// Models: Organization, EventCategory, Skill, UserSkill
+// Owner: Member 4 - Manager Module
+// ============================================================
+
+// ---- Organization ----
+model Organization {
+  organizationId Int      @id @default(autoincrement()) @map("organization_id")
+  name           String   @unique @db.VarChar(255)
+  description    String?  @db.Text
+  logoUrl        String?  @map("logo_url") @db.VarChar(500)
+  website        String?  @db.VarChar(500)
+  contactEmail   String?  @map("contact_email") @db.VarChar(255)
+  contactPhone   String?  @map("contact_phone") @db.VarChar(20)
+  address        String?  @db.Text
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  users User[]
+  events Event[]
+
+  @@index([isActive])
+  @@map("organizations")
+}
+
+// ---- Event Category ----
+model EventCategory {
+  categoryId  Int      @id @default(autoincrement()) @map("category_id")
+  name        String   @unique @db.VarChar(100)
+  description String?  @db.VarChar(255)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  events Event[]
+
+  @@index([isActive])
+  @@map("event_categories")
+}
+
+// ---- Skill ----
+model Skill {
+  skillId     Int      @id @default(autoincrement()) @map("skill_id")
+  name        String   @unique @db.VarChar(100)
+  description String?  @db.VarChar(255)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  userSkills UserSkill[]
+
+  @@index([isActive])
+  @@map("skills")
+}
+
+// ---- User Skill (Many-to-Many: User <-> Skill) ----
+model UserSkill {
+  userSkillId     Int      @id @default(autoincrement()) @map("user_skill_id")
+  userId          Int      @map("user_id")
+  skillId         Int      @map("skill_id")
+  proficiencyLevel String? @map("proficiency_level") @db.VarChar(50) // e.g., Beginner, Intermediate, Advanced
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  user  User  @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [skillId], onDelete: Cascade)
+
+  @@unique([userId, skillId])
+  @@index([userId])
+  @@index([skillId])
+  @@map("user_skills")
+}

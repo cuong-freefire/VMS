@@ -1,0 +1,46 @@
+// ============================================================
+// MODULE 03: Event Management
+// ============================================================
+// Models: Event
+// Owner: Member 2 - Volunteer Event Module & Member 3 - Staff Module
+// ============================================================
+
+// ---- Event ----
+model Event {
+  eventId         Int       @id @default(autoincrement()) @map("event_id")
+  title           String    @db.VarChar(255)
+  description     String?   @db.Text
+  location        String?   @db.VarChar(500)
+  startDate       DateTime  @map("start_date")
+  endDate         DateTime  @map("end_date")
+  registrationDeadline DateTime? @map("registration_deadline")
+  maxCapacity     Int       @map("max_capacity")
+  approvedParticipants Int  @default(0) @map("approved_participants")
+  status          String    @default("Pending") @db.VarChar(50) // Pending, Approved, In Progress, Completed, Cancelled
+  bannerUrl       String?   @map("banner_url") @db.VarChar(500)
+  isActive        Boolean   @default(true) @map("is_active")
+  categoryId      Int?      @map("category_id")
+  organizationId  Int?      @map("organization_id")
+  createdBy       Int       @map("created_by")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  category    EventCategory? @relation(fields: [categoryId], references: [categoryId])
+  organization Organization? @relation(fields: [organizationId], references: [organizationId])
+  creator     User           @relation("EventCreator", fields: [createdBy], references: [userId])
+  applications Application[]
+  attendances  Attendance[]
+  feedbacks    Feedback[]
+  certificates Certificate[]
+  donations    Donation[]
+
+  @@index([status])
+  @@index([categoryId])
+  @@index([organizationId])
+  @@index([createdBy])
+  @@index([startDate])
+  @@index([isActive])
+  @@index([title])
+  @@map("events")
+}
