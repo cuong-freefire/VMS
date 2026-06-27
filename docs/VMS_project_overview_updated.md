@@ -6,7 +6,7 @@ Volunteer Event Management System is a web-based system that supports the manage
 
 The system helps connect organizations with volunteers. It allows users to search for events, view event details, register accounts, apply for events, track application status, check attendance, submit feedback, and view/download certificates after completing events.
 
-The system also supports staff, managers, and administrators in managing events, applications, attendance, feedback, certificates, users, organizations, reports, notifications, donations, and related system activities.
+The system also supports staff, managers, and administrators in managing events, applications, attendance, certificates, users, organizations, reports, notifications, donations, payment gateway activities, and related system activities.
 
 The system aims to digitize the full volunteer management process, including:
 
@@ -48,7 +48,9 @@ Guest can:
 
 * Access the website
 * View the landing page
+* View the public home page
 * View public event list
+* Search and filter public events
 * View public event detail
 * Register an account
 * Login to the system
@@ -94,7 +96,7 @@ Volunteer cannot:
 * Delete events
 * Approve applications
 * Reject applications
-* Manage attendance list as staff
+* Manage attendance list as Staff
 * Generate certificates
 * Manage user accounts
 * Manage organizations
@@ -116,7 +118,7 @@ Staff can:
 * Reject applications
 * Manage attendance
 * Create certificates for volunteers who attended events
-* Send event-related notifications
+* Send or trigger event-related notifications if assigned
 
 Staff cannot:
 
@@ -132,19 +134,12 @@ Manager is responsible for management-level operations.
 
 Manager can:
 
-* Export reports
+* View dashboard and reports if assigned
+* Export reports if assigned
 * Manage categories
 * Manage skills
-* Manage Staff accounts
-
-Manager can manage data such as:
-
-* Event categories
-* Event location categories
-* Event time categories
-* Event type categories
-* Volunteer skills
-* Staff account information
+* Manage Staff accounts if assigned
+* Manage data such as event categories, event location categories, event time categories, event type categories, and volunteer skills
 
 Manager cannot:
 
@@ -165,6 +160,7 @@ Admin can:
 * View system-wide statistics
 * View and manage notifications if assigned
 * View donation history if donation module is included
+* Manage donation/payment records if assigned
 
 Admin is responsible for:
 
@@ -233,6 +229,10 @@ Main actors:
 * Volunteer
 * Staff
 
+Implementation note:
+
+Search Event and Filter Event are separate use cases, but they should be implemented inside the Event List screen instead of as disconnected pages.
+
 ---
 
 ### Module 3: Profile Management
@@ -257,6 +257,10 @@ Related actors:
 * Staff
 * Manager
 * Admin
+
+Assignment note:
+
+UC21 - View Volunteer History belongs to Member 1 in the latest team assignment, not Member 2.
 
 ---
 
@@ -362,6 +366,10 @@ Main actors:
 * Admin
 * Manager
 
+Assignment note:
+
+In the latest team assignment, Organization Management belongs to Member 5.
+
 ---
 
 ### Module 9: Notification Management
@@ -421,6 +429,10 @@ Main actors:
 * Volunteer
 * Staff
 
+Assignment note:
+
+In the latest team assignment, only UC48 - Submit Feedback is assigned to Member 2. UC49 and UC50 are not assigned in the latest member split and should be clarified before implementation.
+
 ---
 
 ### Module 12: Certificate Management
@@ -439,6 +451,10 @@ Main actors:
 
 * Volunteer
 * Staff
+
+Implementation note:
+
+UC51 and UC52 should share the same Certificates page or Certificate Detail screen. UC52 is a download action inside the certificate UI. UC53 is Staff certificate generation and belongs to Member 3.
 
 ---
 
@@ -520,10 +536,10 @@ Integration:
 ### Authentication
 
 1. Landing Page
-2. Login
-3. Register
-4. Forgot Password
-5. Home Dashboard
+2. Home Page
+3. Login
+4. Register
+5. Forgot Password
 6. Change Password
 
 ---
@@ -538,7 +554,7 @@ Integration:
 
 Note:
 
-Search Event and Filter Event are included inside Event List.
+Search Event and Filter Event are included inside Event List. Apply Event is an action from Event Detail. Cancel Application is an action inside Applied Event List.
 
 ---
 
@@ -548,6 +564,10 @@ Search Event and Filter Event are included inside Event List.
 13. Edit Profile
 14. Manage Skills
 15. Volunteer History
+
+Note:
+
+Volunteer History belongs to Profile Management and is assigned to Member 1 in the latest team assignment.
 
 ---
 
@@ -605,12 +625,20 @@ Search Event and Filter Event are included inside Event List.
 35. Feedback Form
 36. Feedback List
 
+Note:
+
+Feedback Form maps to UC48. Feedback List/Detail should be clarified because UC49 and UC50 are not assigned in the latest member split.
+
 ---
 
 ### Certificate
 
 37. Certificate List
 38. Certificate Detail
+
+Note:
+
+Download Certificate is an action inside Certificate List or Certificate Detail, not a standalone page.
 
 ---
 
@@ -634,92 +662,199 @@ Search Event and Filter Event are included inside Event List.
 
 ## 6. Team Assignment
 
-The project is divided among 5 members.
-
-### Member 1 — Authentication and Profile
-
-Member 1 is responsible for:
-
-* Landing Page
-* Login
-* Register
-* Forgot Password
-* Reset Password
-* Change Password
-* View Profile
-* Edit Profile
-* Volunteer Skill Management
+The latest team assignment is divided by use case among 5 members.
 
 ---
 
-### Member 2 — Volunteer Event Module
+### Member 1 — CuongLH
+
+Module: Authentication + Profile + Email Services.
+
+Member 1 is responsible for:
+
+#### Authentication
+
+* UC01 - View Landing Page
+* UC02 - View Home Page
+* UC03 - Login
+* UC04 - Register
+* UC05 - Logout
+* UC06 - Change Password
+* UC07 - Forgot Password
+
+#### Profile Management
+
+* UC18 - View Profile
+* UC19 - Edit Profile
+* UC20 - Edit Volunteer Skills
+* UC21 - View Volunteer History
+
+#### Email Services
+
+* UC62 - Verify Email
+* UC63 - Forgot Password Email
+* UC64 - Event Approval Email
+* UC65 - Event Reminder Email
+* UC66 - Certificate Email
+
+Member 1 owns authentication, user profile, volunteer history, and email integration.
+
+---
+
+### Member 2 — NamLD
+
+Module: Volunteer Event.
 
 Member 2 is responsible for:
 
-* Home Dashboard
-* Event List, including Search and Filter
-* Event Detail
-* Applied Event List
-* Volunteer History
-* Feedback Form
-* Certificate List
-* Certificate Detail
+#### Event Management
 
-Recommended feature folders for Member 2:
+* UC08 - View Event List
+* UC09 - View Event Detail
+* UC10 - Search Event
+* UC11 - Filter Event
+* UC12 - Apply Event
+* UC13 - View Applied Events
+* UC14 - Cancel Application
+
+#### Feedback
+
+* UC48 - Submit Feedback
+
+#### Certificate
+
+* UC51 - View Certificates
+* UC52 - Download Certificate
+
+Member 2 owns Volunteer-facing event discovery, application, applied events, feedback submission, and certificates view/download.
+
+Important clarification:
+
+* Home Dashboard is not part of Member 2 in the latest team assignment.
+* Volunteer History is not part of Member 2 in the latest team assignment.
+* UC21 - View Volunteer History belongs to Member 1.
+* UC54 to UC57 Dashboard and Reporting belong to Member 5.
+* UC52 Download Certificate should be implemented as an action inside the Certificates UI from UC51.
+
+Recommended `.sdd` feature folders for Member 2:
 
 ```txt
-001-volunteer-event-discovery
-002-volunteer-event-detail
-003-volunteer-event-application
-004-volunteer-applied-events
-005-volunteer-history
-006-volunteer-feedback-form
-007-volunteer-certificates
-008-volunteer-home-dashboard
+UC08-feat-event-list
+UC09-feat-event-detail
+UC10-feat-event-search
+UC11-feat-event-filter
+UC12-feat-apply-event
+UC13-feat-applied-events
+UC14-feat-cancel-application
+UC48-feat-submit-feedback
+UC51-feat-view-certificates
+UC52-feat-download-certificate
 ```
 
 ---
 
-### Member 3 — Staff Module
+### Member 3 — TienTD
+
+Module: Event & Application Management.
 
 Member 3 is responsible for:
 
-* Add Event
-* Edit Event
-* Application List
-* Application Detail, including Approve and Reject
-* Attendance Management
-* Feedback List
-* Generate Certificate
+#### Event Management
+
+* UC15 - Add Event
+* UC16 - Edit Event
+* UC17 - Delete Event
+
+#### Application Management
+
+* UC22 - View Application List
+* UC23 - View Application Detail
+* UC24 - Approve Application
+* UC25 - Reject Application
+
+#### Attendance
+
+* UC45 - Attendance Check
+* UC46 - View Attendance List
+* UC47 - View Attendance History
+
+#### Certificate
+
+* UC53 - Generate Certificate
+
+Member 3 owns Staff event operations, Staff application review, attendance, and certificate generation.
 
 ---
 
-### Member 4 — Manager Module
+### Member 4 — AnhND
+
+Module: Admin & Manager Management.
 
 Member 4 is responsible for:
 
-* User List
-* User Detail
-* Add User
-* Edit User
-* Category Management, including location, event time, event type, and related event classification data
-* Skill Management
-* Organization Management
+#### User Management
+
+* UC26 - View User List
+* UC27 - View User Detail
+* UC28 - Add User
+* UC29 - Edit User
+* UC30 - Filter User
+
+#### Category Management
+
+* UC31 - View Category List
+* UC32 - Add Category
+* UC33 - Edit Category
+
+#### Skill Management
+
+* UC34 - View Skill List
+* UC35 - Add Skill
+* UC36 - Edit Skill
+
+Member 4 owns user management, category management, and skill management.
+
+Important clarification:
+
+Organization Management is not part of Member 4 in the latest team assignment. It belongs to Member 5.
 
 ---
 
-### Member 5 — Admin Module
+### Member 5 — DucNM
+
+Module: Organization + Notification + Dashboard + Payment.
 
 Member 5 is responsible for:
 
-* Dashboard
-* Event Statistics
-* Volunteer Statistics
-* Export Report
-* Notification List
-* Notification Detail
-* Create Notification
-* Donation History
+#### Organization Management
+
+* UC37 - View Organization List
+* UC38 - View Organization Detail
+* UC39 - Add Organization
+* UC40 - Edit Organization
+
+#### Notification
+
+* UC41 - View Notifications
+* UC42 - View Notification Detail
+* UC43 - Mark Notification As Read
+* UC44 - Create Notification
+
+#### Dashboard and Reporting
+
+* UC54 - View Dashboard
+* UC55 - Event Statistics
+* UC56 - Volunteer Statistics
+* UC57 - Export Reports
+
+#### Donation and Payment
+
+* UC58 - Donate To Event
+* UC59 - Make Payment
+* UC60 - View Donation History
+* UC61 - Manage Donations
+
+Member 5 owns organization, notification, dashboard, reports, donation, and payment gateway.
 
 ---
 
@@ -807,12 +942,15 @@ Member 5 is responsible for:
 
 1. Guests can view public event lists.
 2. Guests can view public event details.
-3. Volunteers can search and filter events.
+3. Guests and Volunteers can search and filter public events.
 4. Volunteers must login before applying for an event.
 5. Staff can create and manage events.
 6. User, Event, and Organization use soft delete.
 7. Soft-deleted data is not physically deleted from the database.
 8. Staff cannot delete or edit an event if the event already has at least one `APPROVED` application and the event is about to happen.
+9. Search Event and Filter Event are included in Event List.
+10. Apply Event starts from Event Detail.
+11. Cancel Application is handled from Applied Event List.
 
 ---
 
@@ -827,6 +965,7 @@ Member 5 is responsible for:
 7. Volunteers can cancel an application only when the application status is `PENDING`.
 8. Volunteers cannot directly cancel an `APPROVED` application.
 9. If an application is already `APPROVED`, the Volunteer must contact Staff to cancel or handle the case.
+10. Backend/API must enforce duplicate application, deadline, capacity, role, and ownership rules.
 
 ---
 
@@ -843,8 +982,9 @@ Member 5 is responsible for:
 
 1. Volunteers can submit feedback only after successful attendance.
 2. Each Volunteer can submit only one feedback for each event.
-3. Staff can view feedback list.
-4. Staff can view feedback detail.
+3. Feedback content/comment is required.
+4. Rating can be optional if the team decides to support rating.
+5. Staff feedback list/detail use cases are not assigned in the latest member split and need team clarification before implementation.
 
 ---
 
@@ -854,6 +994,9 @@ Member 5 is responsible for:
 2. Each Volunteer has only one certificate per event.
 3. Volunteers can view certificates.
 4. Volunteers can download certificates.
+5. Download Certificate is an action inside Certificate List or Certificate Detail.
+6. Certificate generation belongs to Staff through UC53.
+7. Backend/API must enforce certificate ownership and file availability before download.
 
 ---
 
@@ -868,32 +1011,33 @@ Member 5 is responsible for:
 
 ## 9. Member 2 Feature Breakdown
 
-Member 2 should divide the Volunteer Event Module into the following features.
+Member 2 should divide the Volunteer Event Module into the following use-case folders.
 
 ---
 
-### 001-volunteer-event-discovery
+### UC08-feat-event-list
 
 Covers:
 
 * Event List
-* Search Event
-* Filter Event
 
-Main use cases:
+Main use case:
 
 * UC08 - View Event List
-* UC10 - Search Event
-* UC11 - Filter Event
 
 Main actors:
 
 * Guest
 * Volunteer
 
+Important notes:
+
+* This is the shared Event List screen used by UC08, UC10, and UC11.
+* Search and Filter are separate use cases but should be implemented in this screen.
+
 ---
 
-### 002-volunteer-event-detail
+### UC09-feat-event-detail
 
 Covers:
 
@@ -909,9 +1053,58 @@ Main actors:
 * Guest
 * Volunteer
 
+Important notes:
+
+* Event Detail can show Apply entry point.
+* Actual Apply Event submission belongs to UC12.
+
 ---
 
-### 003-volunteer-event-application
+### UC10-feat-event-search
+
+Covers:
+
+* Search Event
+
+Main use case:
+
+* UC10 - Search Event
+
+Main actors:
+
+* Guest
+* Volunteer
+
+Important notes:
+
+* Search Event should be implemented inside Event List.
+* Do not create a disconnected standalone Search page.
+
+---
+
+### UC11-feat-event-filter
+
+Covers:
+
+* Filter Event
+
+Main use case:
+
+* UC11 - Filter Event
+
+Main actors:
+
+* Guest
+* Volunteer
+
+Important notes:
+
+* Filter Event should be implemented inside Event List.
+* Do not create a disconnected standalone Filter page.
+
+---
+
+### UC12-feat-apply-event
 
 Covers:
 
@@ -931,19 +1124,39 @@ Important rules:
 * Each Volunteer can apply only once for each event.
 * Volunteer cannot apply after deadline.
 * Volunteer cannot apply when the event is full.
+* A new application starts as `PENDING`.
 
 ---
 
-### 004-volunteer-applied-events
+### UC13-feat-applied-events
 
 Covers:
 
 * Applied Event List
-* Cancel Application
 
-Main use cases:
+Main use case:
 
 * UC13 - View Applied Events
+
+Main actors:
+
+* Volunteer
+
+Important notes:
+
+* Volunteer can view only their own applied events.
+* Cancel Application is a related action from UC14.
+
+---
+
+### UC14-feat-cancel-application
+
+Covers:
+
+* Cancel Application action
+
+Main use case:
+
 * UC14 - Cancel Application
 
 Main actors:
@@ -952,34 +1165,14 @@ Main actors:
 
 Important rules:
 
-* Volunteer can view their applied events.
+* Volunteer can cancel only their own applications.
 * Volunteer can cancel only `PENDING` applications.
 * `APPROVED` applications cannot be cancelled directly by Volunteer.
+* UC14 should be implemented as an action inside Applied Event List.
 
 ---
 
-### 005-volunteer-history
-
-Covers:
-
-* Volunteer History
-
-Main use case:
-
-* UC21 - View Volunteer History
-
-Main actors:
-
-* Volunteer
-
-Important rules:
-
-* Volunteer History should show volunteer participation records.
-* Attendance and completion data are related to Staff Attendance Management.
-
----
-
-### 006-volunteer-feedback-form
+### UC48-feat-submit-feedback
 
 Covers:
 
@@ -997,20 +1190,41 @@ Important rules:
 
 * Volunteer can submit feedback only after successful attendance.
 * Each Volunteer can submit only one feedback per event.
+* Volunteer History is only an entry point or related data source; UC21 belongs to Member 1.
 
 ---
 
-### 007-volunteer-certificates
+### UC51-feat-view-certificates
 
 Covers:
 
 * Certificate List
-* Certificate Detail
-* Download Certificate
+* Certificate Detail or Preview if needed
 
-Main use cases:
+Main use case:
 
 * UC51 - View Certificates
+
+Main actors:
+
+* Volunteer
+
+Important rules:
+
+* Volunteer can view only their own certificates.
+* Staff generates certificates through UC53.
+* Download Certificate is a related action from UC52.
+
+---
+
+### UC52-feat-download-certificate
+
+Covers:
+
+* Download Certificate action
+
+Main use case:
+
 * UC52 - Download Certificate
 
 Main actors:
@@ -1019,30 +1233,10 @@ Main actors:
 
 Important rules:
 
-* Volunteer can view certificates.
-* Volunteer can download certificates.
-* Staff generates certificates.
-* Each Volunteer has only one certificate per event.
-
----
-
-### 008-volunteer-home-dashboard
-
-Covers:
-
-* Home Dashboard for Volunteer
-
-Main actors:
-
-* Volunteer
-
-Purpose:
-
-This feature summarizes useful Volunteer information, such as upcoming approved events, applied events, attendance status, feedback reminders, and certificate shortcuts.
-
-Note:
-
-This feature should be specified after the core Volunteer features because it depends on data from Event Discovery, Applied Events, Volunteer History, Feedback, and Certificates.
+* Volunteer can download only their own certificates.
+* Certificate must exist and have valid file/download data.
+* Certificate should be available before download.
+* UC52 should be implemented as an action inside Certificate List or Certificate Detail.
 
 ---
 
@@ -1126,6 +1320,7 @@ NodeMailer and Gmail service may be used for:
 7. Input validation must be applied using Zod or an equivalent validation method.
 8. Payment-related data must be handled carefully.
 9. Email verification must be checked before allowing login.
+10. Certificate download must check authentication, role, ownership, status, and file availability on the backend.
 
 ---
 
@@ -1189,18 +1384,29 @@ When using Codex or any AI agent in this repository:
 2. Do not create database schema from this project overview alone.
 3. Do not create API contracts from this project overview alone.
 4. Use this file only as high-level project context.
-5. Follow the official team assignment.
+5. Follow the latest official team assignment by use case.
 6. Follow the project constitution once it exists.
 7. Follow project-level spec, plan, and tasks before implementation.
 8. Keep frontend, backend, and shared concerns separated.
 9. Avoid inventing unsupported features that are not listed in the project overview.
-10. Preserve the Member 2 feature order:
+10. Do not assign Volunteer History or Home Dashboard to Member 2.
+11. Do not assign Organization Management to Member 4.
+12. Do not implement UC49 or UC50 until the team clarifies assignment and scope.
+13. Preserve the Member 2 `.sdd` feature order:
 
-    * `001-volunteer-event-discovery`
-    * `002-volunteer-event-detail`
-    * `003-volunteer-event-application`
-    * `004-volunteer-applied-events`
-    * `005-volunteer-history`
-    * `006-volunteer-feedback-form`
-    * `007-volunteer-certificates`
-    * `008-volunteer-home-dashboard`
+    * `UC08-feat-event-list`
+    * `UC09-feat-event-detail`
+    * `UC10-feat-event-search`
+    * `UC11-feat-event-filter`
+    * `UC12-feat-apply-event`
+    * `UC13-feat-applied-events`
+    * `UC14-feat-cancel-application`
+    * `UC48-feat-submit-feedback`
+    * `UC51-feat-view-certificates`
+    * `UC52-feat-download-certificate`
+
+14. Implement related Volunteer features together where appropriate:
+
+    * UC08, UC10, and UC11 should share the Event List screen.
+    * UC13 and UC14 should share the Applied Events screen.
+    * UC51 and UC52 should share the Certificates page or Certificate Detail.
