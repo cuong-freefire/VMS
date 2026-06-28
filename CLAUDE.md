@@ -20,7 +20,7 @@ Prisma -> MySQL
 
 ### Module Ownership & Responsibilities
 
-**Xem bảng phân công LIVE (với status updates) tại `share_context.md` Section 1.**
+**Xem bảng phân công tại `docs\VMS_project_overview_updated.md` Section 1.**
 
 | Member | Module | Use Cases | Responsibilities |
 |--------|--------|-----------|------------------|
