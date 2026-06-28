@@ -1,6 +1,6 @@
-# Constitution — Nguyên tắc cốt lõi của dự án OCP
+# Constitution — Nguyên tắc cốt lõi của dự án VMS
 
-Tài liệu này định nghĩa các quy tắc nền mà toàn bộ thành viên và AI agents phải tuân thủ khi viết spec, plan, tasks và code cho OCP.
+Tài liệu này định nghĩa các quy tắc nền mà toàn bộ thành viên và AI agents phải tuân thủ khi viết spec, plan, tasks và code cho VMS.
 
 ## 1. Spec-Driven Development
 
@@ -74,7 +74,7 @@ Quy tắc task:
 
 - Mọi input request phải validate bằng Zod hoặc validator được team approve.
 - API cần auth phải dùng JWT theo contract của Auth module.
-- Không hard delete dữ liệu liên quan user đã phát sinh payment/enrollment trừ khi spec được approve rõ.
+- Không hard delete dữ liệu liên quan user đã phát sinh donation/application/attendance trừ khi spec được approve rõ.
 - Cross-module access phải qua adapter/contract; không tự ý query bảng của module khác.
 - Error response không được leak stack trace, secret, cookie, JWT hoặc query nội bộ.
 - Tests phải trace được về acceptance criteria trong `SPEC.md`.
