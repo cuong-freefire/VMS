@@ -3,6 +3,7 @@
 ## 1. Quy trình Spec-Driven Development (SDD) 5 pha
 
 ### Tổng quan quy trình
+
 Mọi tính năng BẮT BUỘC phải đi qua các pha sau:
 
 1. **Pha 0 — Context**: Human viết `CONTEXT.md` với problem, domain, stakeholders, constraints, assumptions và open questions.
@@ -14,6 +15,7 @@ Mọi tính năng BẮT BUỘC phải đi qua các pha sau:
 **Trước mọi pha**: AI agent SHALL đọc `AGENTS.md` và `CLAUDE.md`.
 
 ### 1.1. Chuẩn `CONTEXT.md`
+
 Mỗi feature context phải có đúng **6 phần**:
 
 1. **PROBLEM STATEMENT**: Vấn đề cần giải quyết và tại sao cần feature này
@@ -24,6 +26,7 @@ Mỗi feature context phải có đúng **6 phần**:
 6. **OPEN QUESTIONS**: Các câu hỏi chưa trả lời cần làm rõ trước khi spec
 
 ### 1.2. Chuẩn `SPEC.md`
+
 Mỗi feature spec phải có đúng **8 phần**:
 
 1. **Context & Goal**: Bối cảnh và mục tiêu của feature
@@ -40,6 +43,7 @@ Mỗi feature spec phải có đúng **8 phần**:
 8. **Out of Scope**: Rõ ràng những gì KHÔNG nằm trong scope của feature này
 
 ### 1.3. Chuẩn `PLAN.md`
+
 Mỗi implementation plan phải có đúng **6 phần**:
 
 1. **ARCHITECTURAL APPROACH**: High-level approach, design patterns, trade-offs
@@ -50,12 +54,14 @@ Mỗi implementation plan phải có đúng **6 phần**:
 6. **QUESTIONS FOR HUMAN**: Các quyết định cần con người xác nhận
 
 ### 1.4. Chuẩn `TASKS.md`
+
 `TASKS.md` phải là **bảng Markdown** với 7 cột:
 
 | ID | Task | Files | Est | Deps | Spec Refs | Done When |
 | --- | --- | --- | --- | --- | --- | --- |
 
 **Quy tắc task:**
+
 - **ID**: Dùng `T001`, `T002`, ... theo thứ tự
 - **Task name**: Bắt đầu bằng động từ và danh từ rõ ràng (Create, Implement, Write, Update)
 - **Est**: Mỗi task tối đa 4 giờ; task lớn hơn phải chia nhỏ
@@ -64,6 +70,7 @@ Mỗi implementation plan phải có đúng **6 phần**:
 - **Done When**: Criteria kiểm chứng được bằng test, migration, response contract hoặc tài liệu cụ thể
 
 **Nguyên tắc taskflow:**
+
 - Tasks phải atomic (không thể chia nhỏ hơn mà vẫn có value)
 - Tasks phải independent (có thể làm song song nếu không có deps)
 - Tasks phải verifiable (done criteria đo lường được)
@@ -71,6 +78,7 @@ Mỗi implementation plan phải có đúng **6 phần**:
 ## 2. Hệ thống ràng buộc (Constraint Layers)
 
 ### Layer 1 (Hard Rules) — KHÔNG BAO GIỜ vi phạm
+
 Vi phạm = **Critical security/data integrity issue**. Không có exception.
 
 - ❌ **KHÔNG lưu password plaintext**: SHALL hash bằng bcrypt/argon2id.
@@ -87,6 +95,7 @@ Vi phạm = **Critical security/data integrity issue**. Không có exception.
 **Escalation**: Nếu AI Agent phát hiện vi phạm Layer 1, SHALL báo ngay lập tức.
 
 ### Layer 2 (Architecture Constraints) — Cần approval để thay đổi
+
 Vi phạm = **Technical debt** hoặc **architectural inconsistency**.
 
 - **Layered Architecture**: SHALL tuân thủ Controller → Service → Repository. **Chi tiết xem `CLAUDE.md` Section 3 (ADR-001) và Section 5 (Anti-Patterns).**
@@ -102,6 +111,7 @@ Vi phạm = **Technical debt** hoặc **architectural inconsistency**.
 **Escalation**: Nếu AI Agent muốn vi phạm Layer 2, SHALL raise question trong `PLAN.md` Section 6.
 
 ### Layer 3 (Engineering Standards) — Có thể điều chỉnh
+
 Vi phạm = **Code quality issue**. Có thể linh hoạt nếu có lý do documented.
 
 - **Test coverage**: Target 80% cho services, 60% cho controllers.
@@ -114,7 +124,8 @@ Vi phạm = **Code quality issue**. Có thể linh hoạt nếu có lý do docum
 
 ## 3. Quyền hạn AI Agent
 
-### 3.1 AI Agent ĐƯỢC PHÉP tự động:
+### 3.1 AI Agent ĐƯỢC PHÉP tự động
+
 ✅ Đọc files trong project (trừ files bị .gitignore)  
 ✅ Tạo/sửa code files (controllers, services, repositories, routes, middlewares, utils)  
 ✅ Viết unit tests và integration tests  
@@ -123,7 +134,8 @@ Vi phạm = **Code quality issue**. Có thể linh hoạt nếu có lý do docum
 ✅ Refactor code không thay đổi behavior  
 ✅ Fix ESLint và formatting issues  
 
-### 3.2 AI Agent PHẢI XIN PHÉP trước khi:
+### 3.2 AI Agent PHẢI XIN PHÉP trước khi
+
 ❌ Xóa files (trừ `.tmp`, `.log`)  
 ❌ Apply database migrations (tạo file migration: OK, apply lên DB: CẦN PHÉP)  
 ❌ Merge vào `main`/`develop`/`master`  
@@ -132,7 +144,8 @@ Vi phạm = **Code quality issue**. Có thể linh hoạt nếu có lý do docum
 ❌ `npm install` packages mới  
 ❌ Thay đổi architectural decisions (đổi ORM, framework, database type)  
 
-### 3.3 Permission Request Format:
+### 3.3 Permission Request Format
+
 ```markdown
 🚨 PERMISSION REQUIRED
 
@@ -148,6 +161,7 @@ Risk: [Low/Medium/High]
 **Version**: 4.1  
 **Last Updated**: 2026-06-25  
 **Changelog**:
+
 - v4.1: Bỏ Pha 1.5, gộp API documentation vào Pha 1
 - v4.0: Tái cấu trúc theo bộ khung mới - tập trung vào Quy trình SDD, Constraint Layers và AI Agent Authority
 - v4.0: Rút gọn để dễ đọc, loại bỏ các phần chi tiết kỹ thuật sang AGENTS.md và CLAUDE.md
