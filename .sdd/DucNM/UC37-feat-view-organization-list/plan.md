@@ -42,8 +42,6 @@ Kỹ thuật: Tạo REST API `GET /api/v1/organizations` với phân trang (page
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
-
 1. ✅ **Soft Delete Compliance**: Organization dùng is_active flag — tuân thủ ADR-005.
 2. ✅ **Layered Architecture**: Controller → Service → Repository.
 3. ✅ **API Format**: Tuân thủ `/api/v1/[resource]` prefix và response format ADR-006.

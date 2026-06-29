@@ -1,0 +1,46 @@
+// ============================================================
+// Module: Applications
+// Owner: Member 3
+// ============================================================
+// Models: applications, application_status_history
+
+model applications {
+  id           Int       @id @default(autoincrement())
+  user_id      Int
+  event_id     Int
+  status       Enum_application_status @default(PENDING)
+  message      String?   @db.Text
+  processed_by Int?
+  processed_at DateTime?
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+
+  user          users                       @relation(fields: [user_id], references: [id])
+  event         events                      @relation(fields: [event_id], references: [id])
+  processor     users?                      @relation("application_processor", fields: [processed_by], references: [id])
+  attendances   attendances?
+  feedbacks     feedbacks?
+  status_history application_status_history[]
+
+  @@unique([user_id, event_id])
+}
+
+enum Enum_application_status {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+model application_status_history {
+  id             Int       @id @default(autoincrement())
+  application_id Int
+  old_status     Enum_application_status?
+  new_status     Enum_application_status
+  changed_by     Int
+  reason         String?   @db.Text
+  changed_at     DateTime  @default(now())
+
+  application applications @relation(fields: [application_id], references: [id])
+  changer     users        @relation(fields: [changed_by], references: [id])
+}

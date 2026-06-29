@@ -1,0 +1,28 @@
+// ============================================================
+// Module: Skills Management
+// Owner: Member 4
+// ============================================================
+// Models: skills, user_skills
+
+model skills {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique @db.VarChar(255)
+  description String?   @db.Text
+  is_active   Boolean   @default(true)
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+
+  user_skills user_skills[]
+}
+
+model user_skills {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  skill_id   Int
+  created_at DateTime @default(now())
+
+  user  users  @relation(fields: [user_id], references: [id])
+  skill skills @relation(fields: [skill_id], references: [id])
+
+  @@unique([user_id, skill_id])
+}

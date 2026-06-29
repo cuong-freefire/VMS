@@ -1,0 +1,72 @@
+// ============================================================
+// Module: Events & Categories
+// Owner: Member 3 (Staff)
+// ============================================================
+// Models: event_categories, events
+//
+// NOTE: Event Approval (UC67-69) related fields are defined here
+// but the event_status_history model is in 10-event-approval.prisma
+// (owned by Member 4 - Manager).
+
+model event_categories {
+  id            Int       @id @default(autoincrement())
+  name          String    @db.VarChar(255)
+  category_type Enum_category_type
+  description   String?   @db.Text
+  is_active     Boolean   @default(true)
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+
+  events events[]
+
+  @@unique([name, category_type])
+}
+
+enum Enum_category_type {
+  LOCATION
+  TIME
+  TYPE
+}
+
+enum Enum_event_status {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model events {
+  id                    Int       @id @default(autoincrement())
+  title                 String    @db.VarChar(500)
+  description           String    @db.Text
+  location              String    @db.VarChar(500)
+  start_date            DateTime
+  end_date              DateTime
+  application_deadline  DateTime
+  max_capacity          Int
+  approved_participants Int       @default(0)
+  image_url             String?   @db.VarChar(500)
+  organization_id       Int
+  category_id           Int
+  created_by            Int
+  status                Enum_event_status @default(DRAFT)
+  approved_by           Int?
+  approved_at           DateTime?
+  rejection_reason      String?   @db.Text
+  is_active             Boolean   @default(true)
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+
+  organization  organizations @relation(fields: [organization_id], references: [id])
+  category      event_categories @relation(fields: [category_id], references: [id])
+  creator       users         @relation("event_creator", fields: [created_by], references: [id])
+  approver      users?        @relation("event_approver", fields: [approved_by], references: [id])
+  applications  applications[]
+  donations     donations[]
+  feedbacks     feedbacks[]
+  certificates  certificates[]
+  status_history event_status_history[]
+}

@@ -1,0 +1,15 @@
+// ============================================================
+// HEADER - Generator & Datasource Configuration
+// ============================================================
+// This file MUST be first (00-) as it contains the required
+// generator and datasource blocks for Prisma.
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}

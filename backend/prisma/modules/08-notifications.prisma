@@ -1,0 +1,37 @@
+// ============================================================
+// Module: Notifications
+// Owner: Member 5 - DucNM
+// ============================================================
+// Models: notification_types, notifications
+
+model notification_types {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique @db.VarChar(100)
+  description String?   @db.VarChar(255)
+  created_at  DateTime  @default(now())
+
+  notifications notifications[]
+}
+
+model notifications {
+  id             Int       @id @default(autoincrement())
+  user_id        Int
+  type_id        Int
+  title          String    @db.VarChar(255)
+  message        String    @db.Text
+  reference_type Enum_notification_reference_type?
+  reference_id   Int?
+  is_read        Boolean   @default(false)
+  created_at     DateTime  @default(now())
+  read_at        DateTime?
+
+  user      users              @relation(fields: [user_id], references: [id])
+  type      notification_types @relation(fields: [type_id], references: [id])
+}
+
+enum Enum_notification_reference_type {
+  EVENT
+  APPLICATION
+  CERTIFICATE
+  SYSTEM
+}

@@ -1,0 +1,26 @@
+// ============================================================
+// Module: Feedback
+// Owner: Member 2, Member 3
+// ============================================================
+// Models: feedbacks
+
+model feedbacks {
+  id             Int       @id @default(autoincrement())
+  application_id Int       @unique
+  user_id        Int
+  event_id       Int
+  rating         Int?
+  comment        String    @db.Text
+  status         Enum_feedback_status @default(SUBMITTED)
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+
+  application applications @relation(fields: [application_id], references: [id])
+  user        users        @relation(fields: [user_id], references: [id])
+  event       events       @relation(fields: [event_id], references: [id])
+}
+
+enum Enum_feedback_status {
+  DRAFT
+  SUBMITTED
+}

@@ -1,0 +1,39 @@
+// ============================================================
+// Module: Authentication & User Management
+// Owner: Member 1
+// ============================================================
+// Models: roles, users
+
+model roles {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique @db.VarChar(50)
+  description String?   @db.VarChar(255)
+  created_at  DateTime  @default(now())
+  users       users[]
+}
+
+model users {
+  id             Int       @id @default(autoincrement())
+  email          String    @unique @db.VarChar(255)
+  password_hash  String    @db.VarChar(255)
+  full_name      String    @db.VarChar(255)
+  phone          String?   @db.VarChar(20)
+  avatar_url     String?   @db.VarChar(500)
+  role_id        Int
+  is_active      Boolean   @default(true)
+  email_verified Boolean   @default(false)
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+
+  role              roles              @relation(fields: [role_id], references: [id])
+  applications      applications[]
+  user_skills       user_skills[]
+  notifications     notifications[]
+  donations         donations[]
+  feedbacks         feedbacks[]
+  certificates      certificates[]
+  events_created    events[]           @relation("event_creator")
+  applications_processed applications[] @relation("application_processor")
+  attendances_checked attendances[]    @relation("attendance_checker")
+  approved_events    events[]          @relation("event_approver")
+}

@@ -1,0 +1,38 @@
+// ============================================================
+// Module: Attendance & Certificates
+// Owner: Member 3
+// ============================================================
+// Models: attendances, certificates
+
+model attendances {
+  id              Int       @id @default(autoincrement())
+  application_id  Int       @unique
+  status          Enum_attendance_status
+  volunteer_hours Decimal?  @db.Decimal(5, 2)
+  checked_in_by   Int
+  checked_in_at   DateTime  @default(now())
+  notes           String?   @db.Text
+
+  application applications @relation(fields: [application_id], references: [id])
+  checker     users        @relation("attendance_checker", fields: [checked_in_by], references: [id])
+}
+
+enum Enum_attendance_status {
+  PRESENT
+  ABSENT
+}
+
+model certificates {
+  id              Int       @id @default(autoincrement())
+  user_id         Int
+  event_id        Int
+  certificate_url String    @db.VarChar(500)
+  issued_by       Int
+  issued_at       DateTime  @default(now())
+
+  user  users  @relation(fields: [user_id], references: [id])
+  event events @relation(fields: [event_id], references: [id])
+  issuer users @relation(fields: [issued_by], references: [id])
+
+  @@unique([user_id, event_id])
+}

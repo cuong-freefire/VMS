@@ -1,0 +1,22 @@
+// ============================================================
+// Module: Event Approval Management (Module 16)
+// Owner: Member 4 (Manager)
+// ============================================================
+// Models: event_status_history
+//
+// Related fields (approved_by, approved_at, rejection_reason)
+// are defined in 04-events.prisma (owned by Member 3).
+// ============================================================
+
+model event_status_history {
+  id          Int       @id @default(autoincrement())
+  event_id    Int
+  old_status  Enum_event_status?
+  new_status  Enum_event_status
+  changed_by  Int
+  reason      String?   @db.Text
+  changed_at  DateTime  @default(now())
+
+  event   events @relation(fields: [event_id], references: [id])
+  changer users  @relation(fields: [changed_by], references: [id])
+}

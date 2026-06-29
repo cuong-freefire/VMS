@@ -1,0 +1,44 @@
+// ============================================================
+// Module: Donations & Payment
+// Owner: Member 5 - DucNM
+// ============================================================
+// Models: donations, payment_transactions
+
+model donations {
+  id         Int               @id @default(autoincrement())
+  user_id    Int
+  event_id   Int
+  amount     Decimal           @db.Decimal(15, 2)
+  status     Enum_donation_status @default(PENDING)
+  created_at DateTime          @default(now())
+  updated_at DateTime          @updatedAt
+
+  user                users                @relation(fields: [user_id], references: [id])
+  event               events               @relation(fields: [event_id], references: [id])
+  payment_transactions payment_transactions?
+}
+
+enum Enum_donation_status {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
+model payment_transactions {
+  id              Int       @id @default(autoincrement())
+  donation_id     Int       @unique
+  payment_gateway Enum_payment_gateway
+  transaction_ref String?   @unique @db.VarChar(255)
+  gateway_response Json?
+  signature_valid Boolean?
+  processed_at    DateTime?
+  created_at      DateTime  @default(now())
+
+  donation donations @relation(fields: [donation_id], references: [id])
+}
+
+enum Enum_payment_gateway {
+  VNPAY
+  MOMO
+}

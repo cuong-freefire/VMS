@@ -11,7 +11,11 @@
     "start": "node src/server.js",
     "dev": "node src/server.js",
     "start:swagger": "node src/swagger-server.js",
-    "dev:swagger": "node src/swagger-server.js"
+    "dev:swagger": "node src/swagger-server.js",
+    "prisma:merge": "node prisma/merge-schema.js",
+    "prisma:generate": "node prisma/merge-schema.js && npx prisma generate",
+    "prisma:push": "node prisma/merge-schema.js && npx prisma db push",
+    "prisma:migrate": "node prisma/merge-schema.js && npx prisma migrate dev"
   },
   "author": "CuongLH",
   "license": "ISC",

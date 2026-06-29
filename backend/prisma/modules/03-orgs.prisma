@@ -1,0 +1,21 @@
+// ============================================================
+// Module: Organizations
+// Owner: Member 5 - DucNM
+// ============================================================
+// Models: organizations
+
+model organizations {
+  id          Int       @id @default(autoincrement())
+  name        String    @db.VarChar(255)
+  email       String?   @db.VarChar(255)
+  phone       String?   @db.VarChar(20)
+  address     String?   @db.Text
+  website     String?   @db.VarChar(500)
+  logo_url    String?   @db.VarChar(500)
+  description String?   @db.Text
+  is_active   Boolean   @default(true)
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+
+  events events[]
+}

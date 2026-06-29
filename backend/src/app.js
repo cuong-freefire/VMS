@@ -20,6 +20,7 @@ dotenv.config();
 import express from 'express';
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
+import organizationRoutes from './routes/organization.routes.js';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 
@@ -81,6 +82,8 @@ app.use(httpLogger);
 app.use('/auth', authRoutes);
 // 6.2 User routes
 app.use('/user', userRoutes);
+// 6.3 Organization routes (Member 5 - DucNM)
+app.use('/api/v1/organizations', organizationRoutes);
 
 
 export default app;
