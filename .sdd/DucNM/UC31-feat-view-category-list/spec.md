@@ -39,16 +39,16 @@ Staff cần xem danh sách category đang hoạt động để tham chiếu khi 
 
 ---
 
-### User Story 3 - Chặn truy cập với người dùng không có quyền (Priority: P1)
+### User Story 3 - Guest và Volunteer xem danh sách category active (Priority: P1)
 
-Volunteer và Guest không có quyền xem danh sách danh mục.
+Guest và Volunteer cần xem danh sách category active để tham chiếu khi lọc sự kiện (phục vụ UC11 — Filter Event của NamLD).
 
-**Independent Test**: Gọi `GET /api/v1/categories` với token Volunteer hoặc không có token, kiểm tra response trả về HTTP 403 hoặc 401.
+**Independent Test**: Gọi `GET /api/v1/categories` với token Volunteer hoặc không có token (Guest), kiểm tra response chỉ chứa categories có is_active = true.
 
 **Acceptance Scenarios**:
 
-1. **Given** Volunteer đã đăng nhập, **When** Volunteer gửi request, **Then** hệ thống trả về HTTP 403.
-2. **Given** Guest chưa đăng nhập, **When** Guest gửi request, **Then** hệ thống trả về HTTP 401.
+1. **Given** Guest chưa đăng nhập, **When** Guest gọi endpoint public, **Then** hệ thống trả về danh sách category active.
+2. **Given** Volunteer đã đăng nhập, **When** Volunteer gửi request, **Then** hệ thống trả về danh sách category active.
 
 ---
 
@@ -62,8 +62,9 @@ Volunteer và Guest không có quyền xem danh sách danh mục.
 
 - **FR-001**: System MUST trả về danh sách category khi Manager/Admin gọi `GET /api/v1/categories`, bao gồm cả active và inactive.
 - **FR-002**: System MUST chỉ trả về category active khi Staff gọi.
-- **FR-003**: System MUST từ chối request từ Volunteer (HTTP 403) và Guest (HTTP 401).
-- **FR-004**: System MUST trả về thông tin: category_id, name, description, type, is_active.
+- **FR-003**: System MUST chỉ trả về category active khi Volunteer gọi (phục vụ UC11 Filter Event).
+- **FR-004**: System MUST trả về category active cho Guest qua public endpoint (không cần auth) (phục vụ UC11 Filter Event).
+- **FR-005**: System MUST trả về thông tin: category_id, name, description, type, is_active.
 
 ### Key Entities *(Business Level Only)*
 
@@ -74,7 +75,8 @@ Volunteer và Guest không có quyền xem danh sách danh mục.
 ### Measurable Outcomes
 
 - **SC-001**: 100% request GET danh sách category trả về đúng và đủ trong vòng 500ms.
-- **SC-002**: 100% request từ Volunteer/Guest bị từ chối đúng HTTP status code.
+- **SC-002**: 100% request từ Guest/Volunteer/Staff chỉ trả về category active.
+- **SC-003**: 100% request từ Manager/Admin trả về tất cả category (active + inactive).
 
 ## Assumptions
 

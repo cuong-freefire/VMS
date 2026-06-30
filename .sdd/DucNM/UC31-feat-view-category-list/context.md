@@ -9,7 +9,11 @@ Hệ thống VMS có các danh mục (Category) để phân loại sự kiện �
 ## 2. DOMAIN KNOWLEDGE
 
 - **Category (Danh mục):** Là các nhóm phân loại sự kiện. Ví dụ: "Giáo dục", "Môi trường", "Y tế", "Miền Bắc", "Miền Nam".
-- **Phân quyền xem:** Manager có toàn quyền CRUD với Category. Admin cũng có thể xem. Staff có thể xem để tham chiếu khi tạo sự kiện.
+- **Phân quyền xem:** Manager có toàn quyền CRUD với Category. Admin cũng có thể xem.
+  - **Guest**: Xem categories active (public, không cần auth) — phục vụ UC11 Filter Event
+  - **Volunteer**: Xem categories active — phục vụ UC11 Filter Event
+  - **Staff**: Xem categories active — tham chiếu khi tạo sự kiện
+  - **Manager/Admin**: Xem tất cả (active + inactive)
 - **Soft-delete:** Category cũng sử dụng soft-delete (is_active) như các master data khác.
 
 ## 3. STAKEHOLDERS
@@ -20,8 +24,12 @@ Hệ thống VMS có các danh mục (Category) để phân loại sự kiện �
 
 ## 4. CONSTRAINTS (Ràng buộc cứng)
 
-- **Phân quyền:** Manager, Admin, Staff có quyền xem. Volunteer và Guest bị từ chối.
-- **API format:** Endpoint bắt buộc là `GET /api/v1/categories`.
+- **Phân quyền:** 
+  - Guest: Xem categories active (public, không cần auth)
+  - Volunteer: Xem categories active
+  - Staff: Xem categories active
+  - Manager/Admin: Xem tất cả (active + inactive)
+- **API format:** Endpoint là `GET /api/v1/categories`. Có thể public cho Guest (không auth) hoặc có auth cho các role cao hơn.
 - **Swagger:** Bắt buộc có Swagger JSDoc đầy đủ.
 
 ## 5. ASSUMPTIONS (Các giả định hiện tại)
