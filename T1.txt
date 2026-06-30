@@ -1,0 +1,334 @@
+﻿VOLUNTEER EVENT MANAGEMENT SYSTEM
+1. Project Overview
+Volunteer Event Management System là hệ thống hỗ trợ quản lý các hoạt động tình nguyện, giúp kết nối các tổ chức với tình nguyện viên. Hệ thống cho phép người dùng tìm kiếm và đăng ký tham gia các sự kiện, đồng thời hỗ trợ nhân viên và quản trị viên quản lý sự kiện, hồ sơ người dùng, đơn đăng ký, tổ chức, báo cáo và các hoạt động liên quan.
+Hệ thống hướng đến việc số hóa toàn bộ quy trình quản lý tình nguyện viên từ đăng ký tham gia, xét duyệt, điểm danh cho đến đánh giá và cấp chứng nhận sau khi hoàn thành sự kiện.
+________________
+
+
+2. User Roles
+Guest không phải là role được lưu trong d        atabase. Guest là trạng thái chưa đăng nhập — người dùng chưa xác thực chỉ có thể truy cập các trang công khai. Các role được lưu trong DB gồm: VOLUNTEER, STAFF, MANAGER, ADMIN.
+* Guest
+* Truy cập website
+* Xem danh sách sự kiện
+* Xem chi tiết sự kiện
+* Đăng ký tài khoản
+* Volunteer
+* Quản lý hồ sơ cá nhân
+* Tìm kiếm sự kiện
+* Đăng ký tham gia sự kiện
+* Theo dõi trạng thái đăng ký
+* Điểm danh tham gia
+* Đánh giá sự kiện sau khi hoàn thành
+* Xem và tải chứng nhận
+* Staff
+* Tạo và quản lý sự kiện
+* Xét duyệt đơn đăng ký
+* Quản lý điểm danh
+* Tạo chứng nhận cho tình nguyện viên đã tham gia
+* Gửi thông báo liên quan đến sự kiện
+* Manager
+* Xuất báo cáo
+* Quản lý danh mục
+* Quản lý kỹ năng
+* Xét duyệt sự kiện
+* Admin
+* Quản lý tài khoản người dùng
+* Quản lý tổ chức
+* Theo dõi Dashboard tổng quan
+* Xem thống kê toàn hệ thống
+________________
+
+
+3. Functional Modules
+* Module 1: Authentication
+* UC01 - View Landing Page
+* UC02 - View Home Page
+* UC03 - Login
+* UC04 - Register
+* UC05 - Logout
+* UC06 - Change Password
+* UC07 - Forgot Password
+________________
+
+
+* Module 2: Event Management
+* UC08 - View Event List
+* UC09 - View Event Detail
+* UC10 - Search Event
+* UC11 - Filter Event
+* UC12 - Apply Event
+* UC13 - View Applied Events
+* UC14 - Cancel Application (chỉ khi đơn đang Pending)
+* UC15 - Add Event
+* UC16 - Edit Event
+* UC17 - Delete Event
+________________
+
+
+* Module 3: Profile Management
+* UC18 - View Profile 
+* UC19 - Edit Profile
+* UC20 - Edit Volunteer Skills
+* UC21 - View Volunteer History
+________________
+
+
+* Module 4: Application Management
+* UC22 - View Application List
+* UC23 - View Application Detail
+* UC24 - Approve Application
+* UC25 - Reject Application
+________________
+
+
+* Module 5: User Management
+* UC26 - View User List
+* UC27 - View User Detail
+* UC28 - Add User
+* UC29 - Edit User
+* UC30 - Filter User
+________________
+
+
+* Module 6: Category Management
+* UC31 - View Category List
+* UC32 - Add Category
+* UC33 - Edit Category
+________________
+
+
+* Module 7: Skill Management
+* UC34 - View Skill List
+* UC35 - Add Skill
+* UC36 - Edit Skill
+________________
+
+
+* Module 8: Organization Management
+* UC37 - View Organization List
+* UC38 - View Organization Detail
+* UC39 - Add Organization
+* UC40 - Edit Organization
+________________
+
+
+* Module 9: Notification Management
+* UC41 - View Notifications
+* UC42 - View Notification Detail
+* UC43 - Mark Notification As Read
+* UC44 - Create Notification
+________________
+
+
+* Module 10: Attendance Management
+* UC45 - Attendance Check-in
+* UC46 - View Attendance List
+* UC47 - View Attendance History
+________________
+
+
+* Module 11: Feedback Management
+* UC48 - Submit Feedback
+* UC49 - View Feedback List
+* UC50 - View Feedback Detail
+________________
+
+
+* Module 12: Certificate Management
+* UC51 - View Certificates
+* UC52 - Download Certificate
+* UC53 - Generate Certificate
+________________
+
+
+* Module 13: Reporting & Dashboard
+* UC54 - View Dashboard
+* UC55 - Event Statistics
+* UC56 - Volunteer Statistics
+* UC57 - Export Reports
+________________
+
+
+* Module 14: Donation & Payment Gateway
+* UC58 - Donate To Event
+* UC59 - Make Payment
+* UC60 - View Donation History
+* UC61 - Manage Donations
+Tích hợp:
+* VNPay
+* MoMo
+________________
+
+
+* Module 15: Email Services
+* UC62 - Verify Email
+* UC63 - Forgot Password Email
+* UC64 - Event Approval Email
+* UC65 - Event Reminder Email
+* UC66 - Certificate Email
+________________
+
+
+* Module 16: Event Approval Management
+* UC67 - View Pending Event
+* UC68 - View Pending Event Detail
+* UC69 - Approve Event
+* UC70 - Reject Event
+
+4. Screen List
+Authentication
+1. Landing Page
+2. Login
+3. Register
+4. Forgot Password
+5. Home Dashboard
+6. Change Password
+Event
+7. Event List
+8. Event Detail
+9. Applied Event List
+10. Add Event
+11. Edit Event
+Profile
+13. Profile
+14. Edit Profile
+15. Manage Skills
+16. Volunteer History
+Application
+17. Application List
+18. Application Detail
+19. Approval Screen
+User Management
+20. User List
+21. User Detail
+22. Add User
+23. Edit User
+Category & Skill
+24. Category List
+25. Category Form?
+26. Skill List
+27. Skill Form?
+Organization
+28. Organization List
+29. Organization Detail
+30. Organization Form
+Notification
+31. Notification List
+32. Notification Detail
+33. Create Notification
+Attendance
+34. Attendance Management
+35. Attendance History
+Feedback
+36. Feedback Form
+37. Feedback List
+Certificate
+38. Certificate List
+39. Certificate Detail
+Reports
+40. Dashboard
+41. Event Statistics
+42. Volunteer Statistics
+43. Export Report
+Donation
+44. Donation Page
+45. Payment Result
+46. Payment Gateway
+47. Donation History
+Event Approval
+48. Event Pending List
+49. Event Detail
+50. Approve Event
+51. Reject Event
+________________
+
+
+5. Team Assignment (5 Members)
+Member 1 – Authentication & Profile
+* Landing Page
+* Login
+* Register
+* Forgot Password
+* Reset Password
+* Change Password
+* View Profile
+* Edit Profile
+* Volunteer Skill Management
+________________
+
+
+Member 2 – Volunteer Event Module
+* Home Dashboard
+* Event List (Search/Filter included)
+* Event Detail
+* Applied Event List
+* Volunteer History
+* Attendance History
+* Feedback Form
+* Certificate List
+* Certificate Detail
+________________
+
+
+Member 3 – Staff Module
+* Add Event
+* Edit Event
+* Application List
+* Application Detail (Approve/Reject included)
+* Attendance Management
+* Feedback List
+* Generate Certificate
+________________
+
+
+Member 4 – Manager Module
+* Event Approval Management 
+* Category Management ( địa điểm, thời gian tổ chức, loại hình sự kiện,...)
+* Skill Management (giao tiếp, tiếng anh, powerstrong, …)
+* Organization Management
+________________
+
+
+Member 5 – Admin Module
+* User List
+* User Detail
+* Add User
+* Edit User
+* Dashboard
+* Event Statistics
+* Volunteer Statistics
+* Export Report
+* Notification List
+* Notification Detail
+* Create Notification
+* Donation History
+________________
+
+
+6. Suggested Technology Stack
+* Backend: NodeJS + Javascript
+* Frontend: React + jsx
+* Database: MySQL
+* Send Email: NodeMailer + Gmail service
+* Logging: pino + pino-http + pino-pretty
+* Swagger: swagger-jsdoc + swagger-ui-express
+* ORM: Prisma
+* File + image Storage: Cloudinary
+* Auth: JWT HttpOnly + Cookie + bcryptjs.
+* Testing: Jest + Supertest (cho Backend) và Jest + React Testing Library (cho Frontend)
+* Styling: Bootstrap CSS.
+7. Business Rules
+
+
+* Đăng ký sự kiện: Mỗi Volunteer chỉ được đăng ký 1 lần cho mỗi sự kiện. Không thể đăng ký khi đã qua deadline hoặc sự kiện đã đủ chỗ.
+* Hủy đơn: Volunteer chỉ được hủy đơn khi đơn đang ở trạng thái PENDING. Đơn đã APPROVED không thể tự hủy — phải liên hệ Staff.
+* Xóa/sửa sự kiện: Không được xóa hoặc sửa sự kiện nếu đã có ít nhất 1 đơn được APPROVED và sự kiện đã sắp diễn ra.
+* Điểm danh: Chỉ Volunteer có đơn APPROVED mới được điểm danh. Điểm danh chỉ mở trong thời gian sự kiện diễn ra.
+* Feedback: Volunteer chỉ được gửi feedback sau khi đã điểm danh thành công. Mỗi Volunteer chỉ gửi 1 feedback/sự kiện.
+* Chứng nhận: Staff chỉ được tạo chứng nhận cho Volunteer đã điểm danh. Mỗi Volunteer chỉ có 1 chứng nhận/sự kiện.
+* Quên mật khẩu: Reset token hết hạn sau 1 giờ. Sau khi dùng xong, token bị vô hiệu hóa ngay.
+* Donation: Số tiền tối thiểu là 10.000 VND. Trạng thái giao dịch được cập nhật qua webhook callback từ cổng thanh toán — không tin vào redirect URL từ phía client.
+* Soft delete: User, Event, Organization sử dụng soft delete. Dữ liệu không bị xóa vật lý.
+* Email verify: Tài khoản chưa xác thực email không được phép đăng nhập.
+* Event Status Workflow (PENDING → APPROVED/REJECTED → ONGOING → COMPLETED).
+* Event Approval: Newly created events are initially in PENDING status. Only Manager can approve or reject events. Only APPROVED events are visible to Volunteers for registration.
