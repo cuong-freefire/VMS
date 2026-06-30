@@ -174,7 +174,7 @@ Admin is responsible for:
 
 ## 4. Functional Modules
 
-The system contains 15 functional modules.
+The system contains 16 functional modules.
 
 ---
 
@@ -528,6 +528,25 @@ Integration:
 
 * NodeMailer
 * Gmail service
+
+---
+
+### Module 16: Event Approval Management
+
+Use cases:
+
+* UC67 - View Pending Event
+* UC68 - View Pending Event Detail
+* UC69 - Approve Event
+* UC70 - Reject Event
+
+Purpose:
+
+This module allows Managers to review and approve or reject newly created events before they are visible to Volunteers for registration.
+
+Main actors:
+
+* Manager
 
 ---
 
