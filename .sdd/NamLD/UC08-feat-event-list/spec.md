@@ -1,6 +1,6 @@
-# Feature Specification: Volunteer History
+# Feature Specification: View Event List
 
-**Feature Branch**: `feat/volunteer-history`
+**Feature Branch**: `feat/event-list`
 
 **Created**: 2026-06-27
 
@@ -8,283 +8,167 @@
 
 **Feature Owner**: NamLD (Member 2)
 
-**Input**: User description: "Là Volunteer của VMS, tôi muốn xem lại lịch sử các sự kiện tình nguyện mà tôi đã tham gia hoặc hoàn thành để theo dõi đóng góp, trạng thái điểm danh, số giờ tình nguyện, feedback và certificate nếu có."
+**Input**: User description: "Là Guest hoặc Volunteer, tôi muốn xem danh sách các sự kiện tình nguyện công khai để tìm sự kiện phù hợp trước khi xem chi tiết hoặc đăng ký tham gia."
 
 ---
 
 ## User Scenarios & Testing
 
-### User Story 1 - Volunteer xem lịch sử sự kiện đã tham gia (Priority: P1)
+### User Story 1 - Guest xem danh sách event công khai (Priority: P1)
 
-Là Volunteer đã đăng nhập, tôi muốn xem danh sách các event mà tôi đã thực sự tham gia hoặc đã hoàn thành để theo dõi lịch sử hoạt động tình nguyện của mình.
+Là Guest chưa đăng nhập, tôi muốn xem danh sách các event công khai để tìm hiểu các cơ hội tình nguyện trước khi quyết định đăng nhập hoặc đăng ký tài khoản.
 
-**Why this priority**: Volunteer History là dữ liệu cá nhân quan trọng, giúp Volunteer biết mình đã tham gia những event nào, trạng thái tham gia ra sao và đóng góp được bao nhiêu giờ.
+**Why this priority**: Event List là entry point công khai quan trọng của hệ thống. Guest cần xem được danh sách event mà không bị yêu cầu login chỉ để khám phá nội dung.
 
-**Independent Test**: Có thể test độc lập bằng cách đăng nhập bằng tài khoản Volunteer có history record và mở Volunteer History page.
+**Independent Test**: Có thể test độc lập bằng cách mở Event List khi chưa đăng nhập và kiểm tra rằng chỉ event public/discoverable được hiển thị.
 
 **Acceptance Scenarios**:
 
-1. **Given** người dùng là Volunteer đã đăng nhập, **When** người dùng mở Volunteer History page, **Then** hệ thống hiển thị danh sách event mà Volunteer đã tham gia hoặc đã hoàn thành.
+1. **Given** người dùng chưa đăng nhập, **When** người dùng mở Event List, **Then** hệ thống hiển thị danh sách event công khai.
 
-2. **Given** Volunteer có history record, **When** Volunteer History page được hiển thị, **Then** hệ thống hiển thị từng history item kèm thông tin tóm tắt của event.
+2. **Given** event có trạng thái public/discoverable, **When** Guest mở Event List, **Then** event đó có thể xuất hiện trong danh sách.
 
-3. **Given** Volunteer chưa có history record nào, **When** Volunteer mở Volunteer History page, **Then** hệ thống hiển thị empty state rõ ràng.
+3. **Given** event ở trạng thái draft, archived, cancelled, completed hoặc soft-deleted, **When** Guest mở Event List, **Then** event đó không xuất hiện trong danh sách public ban đầu.
 
-4. **Given** Volunteer đã điểm danh thành công ở một event, **When** dữ liệu history được tải, **Then** event đó xuất hiện trong Volunteer History.
+4. **Given** Guest đang xem Event List, **When** Guest muốn apply event, **Then** UC08 không submit application và flow apply thuộc UC12.
 
 ---
 
-### User Story 2 - Bảo vệ quyền truy cập Volunteer History (Priority: P1)
+### User Story 2 - Volunteer xem danh sách event công khai (Priority: P1)
 
-Là hệ thống, tôi cần đảm bảo chỉ Volunteer đã đăng nhập mới được xem Volunteer History của chính mình.
+Là Volunteer đã đăng nhập, tôi muốn xem danh sách các event công khai để chọn event phù hợp và đi tiếp sang trang chi tiết nếu quan tâm.
 
-**Why this priority**: Volunteer History là dữ liệu cá nhân. Guest, user không phải Volunteer, hoặc Volunteer khác không được xem lịch sử của người khác.
+**Why this priority**: Volunteer là actor chính của nhóm use case NamLD. Volunteer cần có cùng khả năng xem public Event List như Guest, nhưng có thể tiếp tục sang các flow khác sau khi xem detail.
 
-**Independent Test**: Có thể test độc lập bằng cách mở Volunteer History khi chưa login, khi login bằng role không phải Volunteer, và khi login bằng Volunteer khác.
+**Independent Test**: Có thể test độc lập bằng cách đăng nhập với role `VOLUNTEER`, mở Event List và kiểm tra danh sách event public.
 
 **Acceptance Scenarios**:
 
-1. **Given** người dùng là Guest chưa đăng nhập, **When** người dùng mở Volunteer History page, **Then** hệ thống yêu cầu đăng nhập hoặc điều hướng sang Authentication flow.
+1. **Given** người dùng đã đăng nhập với role `VOLUNTEER`, **When** người dùng mở Event List, **Then** hệ thống hiển thị danh sách event công khai.
 
-2. **Given** người dùng đã đăng nhập nhưng không có role `VOLUNTEER`, **When** người dùng mở Volunteer History page, **Then** hệ thống chặn truy cập và hiển thị forbidden state hoặc message phù hợp.
+2. **Given** Volunteer đang xem Event List, **When** event không còn public hoặc đã bị soft delete, **Then** event đó không được hiển thị.
 
-3. **Given** người dùng là Volunteer đã đăng nhập, **When** người dùng mở Volunteer History page, **Then** hệ thống chỉ hiển thị history của chính Volunteer đó.
+3. **Given** Volunteer thấy một event phù hợp, **When** Volunteer click event item hoặc View Detail, **Then** hệ thống điều hướng sang UC09 - View Event Detail.
 
-4. **Given** có history record của Volunteer khác, **When** Volunteer hiện tại mở Volunteer History page, **Then** hệ thống không hiển thị history record của Volunteer khác.
+4. **Given** Volunteer đang ở UC08, **When** Volunteer muốn apply event, **Then** hệ thống không submit application trong UC08.
 
 ---
 
-### User Story 3 - Phân biệt Volunteer History với Applied Events (Priority: P1)
+### User Story 3 - Hiển thị event card/list item (Priority: P1)
 
-Là Volunteer, tôi muốn hệ thống phân biệt rõ event tôi đã đăng ký với event tôi đã thực sự tham gia để không bị nhầm giữa Applied Events và Volunteer History.
+Là Guest hoặc Volunteer, tôi muốn mỗi event trong danh sách hiển thị thông tin tóm tắt đủ rõ để quyết định có xem chi tiết hay không.
 
-**Why this priority**: Applied Events chỉ là danh sách đơn đăng ký. Volunteer History phải phản ánh lịch sử tham gia thực tế, thường liên quan đến approved application, attendance hoặc completion record.
+**Why this priority**: Event List không phải trang chi tiết. Mỗi item cần hiển thị thông tin ngắn gọn nhưng đủ để người dùng scan, so sánh và chọn event.
 
-**Independent Test**: Có thể test độc lập bằng cách tạo các application có status khác nhau và kiểm tra item nào xuất hiện trong Volunteer History.
+**Independent Test**: Có thể test độc lập bằng cách load Event List với nhiều event có dữ liệu đầy đủ, thiếu ảnh, thiếu optional field và kiểm tra UI vẫn ổn định.
 
 **Acceptance Scenarios**:
 
-1. **Given** application có status `PENDING`, **When** Volunteer mở Volunteer History, **Then** application đó không xuất hiện trong history.
+1. **Given** event có title, **When** event item được hiển thị, **Then** hệ thống hiển thị title rõ ràng.
 
-2. **Given** application có status `REJECTED`, **When** Volunteer mở Volunteer History, **Then** application đó không xuất hiện trong history.
+2. **Given** event có thumbnail hoặc image, **When** event item được hiển thị, **Then** hệ thống hiển thị hình ảnh đó.
 
-3. **Given** application có status `CANCELLED`, **When** Volunteer mở Volunteer History, **Then** application đó không xuất hiện trong history.
+3. **Given** event không có thumbnail hoặc image, **When** event item được hiển thị, **Then** hệ thống hiển thị fallback hoặc placeholder phù hợp.
 
-4. **Given** application có status `APPROVED` nhưng event chưa diễn ra và chưa có attendance/participation record, **When** Volunteer mở Volunteer History, **Then** event đó không xuất hiện trong history.
+4. **Given** event có organization, category, date/time và location, **When** event item được hiển thị, **Then** hệ thống hiển thị các thông tin tóm tắt này nếu dữ liệu có sẵn.
 
-5. **Given** Volunteer đã có attendance hoặc participation record cho event, **When** Volunteer mở Volunteer History, **Then** event đó xuất hiện trong history.
+5. **Given** event có dữ liệu capacity hoặc remaining slots, **When** event item được hiển thị, **Then** hệ thống có thể hiển thị trạng thái sức chứa hoặc số slot còn lại.
+
+6. **Given** event có short description hoặc mô tả tóm tắt, **When** event item được hiển thị, **Then** hệ thống có thể hiển thị đoạn mô tả ngắn nếu phù hợp với layout.
 
 ---
 
-### User Story 4 - Xem thông tin tóm tắt của event trong history (Priority: P1)
+### User Story 4 - Điều hướng sang Event Detail (Priority: P1)
 
-Là Volunteer, tôi muốn mỗi history item hiển thị thông tin tóm tắt của event để biết mình đã tham gia event nào.
+Là Guest hoặc Volunteer, tôi muốn click vào một event item hoặc View Detail để xem thông tin đầy đủ của event đó.
 
-**Why this priority**: Nếu history chỉ hiển thị trạng thái mà không có thông tin event, Volunteer sẽ khó theo dõi đóng góp của mình.
+**Why this priority**: UC08 là danh sách tóm tắt. Full detail thuộc UC09, nên Event List cần có entry point rõ ràng sang View Event Detail.
 
-**Independent Test**: Có thể test độc lập bằng cách mở Volunteer History và kiểm tra từng history item có đủ thông tin chính.
+**Independent Test**: Có thể test độc lập bằng cách click một event item trong Event List và kiểm tra hệ thống điều hướng sang màn UC09.
 
 **Acceptance Scenarios**:
 
-1. **Given** một history item được hiển thị, **When** Volunteer xem item đó, **Then** hệ thống hiển thị event title.
+1. **Given** event item đang hiển thị trong Event List, **When** người dùng click event item, **Then** hệ thống điều hướng sang UC09 - View Event Detail.
 
-2. **Given** event có category, **When** history item được hiển thị, **Then** hệ thống hiển thị category.
+2. **Given** event item có action View Detail, **When** người dùng click View Detail, **Then** hệ thống mở detail của đúng event.
 
-3. **Given** event có organization, **When** history item được hiển thị, **Then** hệ thống hiển thị organization.
+3. **Given** người dùng đang ở UC08, **When** event detail cần hiển thị mô tả đầy đủ, thông tin apply hoặc dữ liệu chi tiết, **Then** nội dung đó thuộc UC09, không thuộc UC08.
 
-4. **Given** event có date/time, **When** history item được hiển thị, **Then** hệ thống hiển thị thời gian event.
-
-5. **Given** event có location, **When** history item được hiển thị, **Then** hệ thống hiển thị địa điểm event.
-
-6. **Given** event có image/thumbnail, **When** history item được hiển thị, **Then** hệ thống hiển thị image/thumbnail.
-
-7. **Given** event không có image/thumbnail, **When** history item được hiển thị, **Then** hệ thống hiển thị placeholder hoặc fallback layout ổn định.
+4. **Given** user click event nhưng event không còn available, **When** hệ thống xử lý điều hướng, **Then** hệ thống hiển thị unavailable/not found state theo rule của UC09 hoặc Event Detail flow.
 
 ---
 
-### User Story 5 - Xem trạng thái tham gia/điểm danh (Priority: P1)
+### User Story 5 - UC08 dùng chung màn với UC10 và UC11 (Priority: P2)
 
-Là Volunteer, tôi muốn xem trạng thái tham gia hoặc điểm danh của từng event trong lịch sử để biết mình đã được ghi nhận như thế nào.
+Là team phát triển, tôi muốn UC08, UC10 và UC11 dùng chung một Event List screen để tránh tạo nhiều màn rời rạc cho cùng một trải nghiệm khám phá event.
 
-**Why this priority**: Attendance là cơ sở quan trọng cho feedback, certificate và volunteer hours. Volunteer History cần hiển thị trạng thái này nếu dữ liệu có sẵn.
+**Why this priority**: Search và filter là hành vi nằm trong Event List screen. Tách UC để rõ tài liệu, nhưng implementation nên dùng chung page, shared list service, search bar và filter panel.
 
-**Independent Test**: Có thể test độc lập bằng cách tạo history record với nhiều trạng thái attendance/participation khác nhau và kiểm tra UI hiển thị đúng.
+**Independent Test**: Có thể review implementation để đảm bảo không tạo ba page riêng biệt không cần thiết cho UC08, UC10 và UC11.
 
 **Acceptance Scenarios**:
 
-1. **Given** Volunteer đã điểm danh thành công, **When** history item được hiển thị, **Then** hệ thống hiển thị trạng thái đã tham gia hoặc đã điểm danh.
+1. **Given** UC08 mô tả base Event List, **When** implementation được tạo, **Then** màn Event List có thể chứa search bar của UC10 và filter panel của UC11.
 
-2. **Given** Volunteer đã hoàn thành event, **When** history item được hiển thị, **Then** hệ thống hiển thị trạng thái completed nếu dữ liệu có sẵn.
+2. **Given** Search Event thuộc UC10, **When** viết spec UC08, **Then** UC08 không mô tả chi tiết search algorithm hoặc search behavior.
 
-3. **Given** Volunteer bị ghi nhận vắng mặt, **When** team chọn hiển thị absent record, **Then** hệ thống hiển thị trạng thái absent phù hợp.
+3. **Given** Filter Event thuộc UC11, **When** viết spec UC08, **Then** UC08 không mô tả chi tiết filter rules ngoài việc xác nhận filter nằm chung màn.
 
-4. **Given** attendance status chưa được ghi nhận rõ, **When** history item được hiển thị, **Then** hệ thống hiển thị trạng thái phù hợp như not recorded hoặc không hiển thị item tùy theo rule cuối cùng.
+4. **Given** Codex hoặc developer implement UC08, UC10 và UC11, **When** cấu trúc UI được tạo, **Then** không nên tạo page riêng cho UC10/UC11 nếu search/filter có thể nằm trong Event List screen.
 
 ---
 
-### User Story 6 - Xem số giờ tình nguyện (Priority: P2)
+### User Story 6 - Loading, empty, error và pagination (Priority: P2)
 
-Là Volunteer, tôi muốn xem số giờ tình nguyện nhận được từ các event đã tham gia để theo dõi đóng góp của mình.
+Là Guest hoặc Volunteer, tôi muốn Event List có trạng thái rõ ràng khi đang tải, không có dữ liệu, lỗi tải dữ liệu hoặc danh sách quá dài.
 
-**Why this priority**: Volunteer hours là dữ liệu hữu ích để Volunteer tự theo dõi thành tích và có thể được dùng trong report/certificate.
+**Why this priority**: Event List là màn có thể tải dữ liệu từ API và có số lượng event lớn. UI cần xử lý trạng thái dữ liệu ổn định để tránh trải nghiệm rỗng hoặc khó hiểu.
 
-**Independent Test**: Có thể test độc lập bằng cách tạo history record có volunteer hours và kiểm tra UI hiển thị đúng.
-
-**Acceptance Scenarios**:
-
-1. **Given** history item có volunteer hours, **When** Volunteer xem item đó, **Then** hệ thống hiển thị số giờ tình nguyện.
-
-2. **Given** history item không có volunteer hours, **When** Volunteer xem item đó, **Then** hệ thống giữ layout ổn định và hiển thị message phù hợp hoặc bỏ qua field.
-
-3. **Given** Volunteer có nhiều history records có volunteer hours, **When** summary được hỗ trợ, **Then** hệ thống có thể hiển thị tổng số giờ tình nguyện.
-
----
-
-### User Story 7 - Xem feedback status từ Volunteer History (Priority: P2)
-
-Là Volunteer, tôi muốn biết event nào đã gửi feedback hoặc chưa gửi feedback để tiếp tục gửi feedback nếu đủ điều kiện.
-
-**Why this priority**: Theo business rule mới, Volunteer chỉ được gửi feedback sau khi điểm danh thành công và mỗi Volunteer chỉ gửi một feedback cho mỗi event. Volunteer History là nơi phù hợp để nhắc user về feedback sau khi tham gia.
-
-**Independent Test**: Có thể test độc lập bằng cách tạo history record đã feedback/chưa feedback và kiểm tra trạng thái hiển thị.
+**Independent Test**: Có thể test độc lập bằng cách mock loading, empty response, API error và nhiều event cần pagination hoặc scalable loading.
 
 **Acceptance Scenarios**:
 
-1. **Given** Volunteer đã điểm danh thành công và chưa gửi feedback, **When** history item được hiển thị, **Then** hệ thống có thể hiển thị trạng thái chưa gửi feedback hoặc entry point sang Feedback Form.
+1. **Given** Event List đang tải dữ liệu, **When** request chưa hoàn tất, **Then** hệ thống hiển thị loading state.
 
-2. **Given** Volunteer đã gửi feedback cho event, **When** history item được hiển thị, **Then** hệ thống hiển thị trạng thái đã feedback nếu dữ liệu có sẵn.
+2. **Given** không có event public nào, **When** Event List tải xong, **Then** hệ thống hiển thị empty state.
 
-3. **Given** Volunteer chưa đủ điều kiện feedback, **When** history item được hiển thị, **Then** hệ thống không hiển thị action gửi feedback.
+3. **Given** load event thất bại, **When** API hoặc data source trả lỗi, **Then** hệ thống hiển thị error state phù hợp.
 
-4. **Given** Volunteer click feedback entry point, **When** Feedback Form feature đã sẵn sàng, **Then** hệ thống điều hướng sang feature `006-volunteer-feedback-form`.
+4. **Given** có nhiều event, **When** người dùng xem Event List, **Then** hệ thống hỗ trợ pagination hoặc scalable loading strategy.
 
----
-
-### User Story 8 - Xem certificate status từ Volunteer History (Priority: P2)
-
-Là Volunteer, tôi muốn biết event nào đã có certificate để có thể xem hoặc tải certificate ở feature Certificate.
-
-**Why this priority**: Theo business rule mới, Staff chỉ tạo certificate cho Volunteer đã điểm danh và mỗi Volunteer chỉ có một certificate cho mỗi event. Volunteer History có thể hiển thị trạng thái certificate để dẫn sang Certificate feature.
-
-**Independent Test**: Có thể test độc lập bằng cách tạo history record có certificate/chưa có certificate và kiểm tra UI hiển thị đúng.
-
-**Acceptance Scenarios**:
-
-1. **Given** event đã có certificate cho Volunteer, **When** history item được hiển thị, **Then** hệ thống có thể hiển thị trạng thái certificate available.
-
-2. **Given** event chưa có certificate, **When** history item được hiển thị, **Then** hệ thống có thể hiển thị trạng thái chưa có certificate hoặc không hiển thị certificate action.
-
-3. **Given** Volunteer click certificate entry point, **When** Certificate feature đã sẵn sàng, **Then** hệ thống điều hướng sang feature `007-volunteer-certificates`.
-
-4. **Given** Volunteer chưa điểm danh thành công, **When** history item được hiển thị, **Then** hệ thống không hiển thị trạng thái certificate available.
-
----
-
-### User Story 9 - Xem lại Event Detail từ Volunteer History (Priority: P2)
-
-Là Volunteer, tôi muốn xem lại thông tin chi tiết của một event trong history để nhớ lại mô tả, thời gian, địa điểm hoặc tổ chức.
-
-**Why this priority**: Sau khi tham gia, Volunteer vẫn có thể cần xem lại thông tin event.
-
-**Independent Test**: Có thể test độc lập bằng cách click View Detail trên history item.
-
-**Acceptance Scenarios**:
-
-1. **Given** history item đang hiển thị, **When** Volunteer click View Detail, **Then** hệ thống điều hướng sang Event Detail của event tương ứng nếu route khả dụng.
-
-2. **Given** Event Detail vẫn public/khả dụng, **When** Volunteer click View Detail, **Then** hệ thống hiển thị Event Detail bình thường.
-
-3. **Given** Event Detail không còn public hoặc event đã archived/soft-deleted, **When** Volunteer click View Detail, **Then** hệ thống xử lý theo rule của Event Detail hoặc hiển thị unavailable state.
-
-4. **Given** event đã archived/soft-deleted sau khi Volunteer tham gia, **When** Volunteer mở Volunteer History, **Then** history record vẫn có thể hiển thị nếu dữ liệu lịch sử còn tồn tại.
-
----
-
-### User Story 10 - Filter và pagination Volunteer History (Priority: P2)
-
-Là Volunteer, tôi muốn lọc Volunteer History theo thời gian hoặc trạng thái tham gia và xem theo từng trang nếu danh sách dài.
-
-**Why this priority**: Khi Volunteer tham gia nhiều event, filter và pagination giúp dễ theo dõi hơn.
-
-**Independent Test**: Có thể test độc lập bằng cách tạo nhiều history records và kiểm tra filter/pagination.
-
-**Acceptance Scenarios**:
-
-1. **Given** Volunteer có nhiều history records, **When** Volunteer chọn time filter, **Then** hệ thống hiển thị history records phù hợp với khoảng thời gian.
-
-2. **Given** Volunteer có nhiều participation statuses khác nhau, **When** Volunteer chọn status filter, **Then** hệ thống hiển thị records phù hợp với status đó.
-
-3. **Given** số lượng history records lớn hơn page size, **When** Volunteer History được hiển thị, **Then** hệ thống phân trang hoặc dùng loading strategy phù hợp.
-
-4. **Given** Volunteer đổi filter, **When** danh sách được cập nhật, **Then** pagination reset về page đầu tiên.
-
----
-
-### User Story 11 - Loading, empty và error states (Priority: P2)
-
-Là Volunteer, tôi muốn hệ thống hiển thị rõ trạng thái đang tải, không có dữ liệu hoặc lỗi để không bị nhầm rằng trang bị hỏng.
-
-**Why this priority**: Volunteer History là trang dữ liệu cá nhân, cần UX rõ ràng khi chưa có lịch sử hoặc khi lỗi tải dữ liệu.
-
-**Independent Test**: Có thể test độc lập bằng cách mô phỏng loading, empty, filter empty và error states.
-
-**Acceptance Scenarios**:
-
-1. **Given** Volunteer History đang tải dữ liệu, **When** Volunteer mở page, **Then** hệ thống hiển thị loading state.
-
-2. **Given** Volunteer chưa có history record nào, **When** Volunteer History được hiển thị, **Then** hệ thống hiển thị empty state.
-
-3. **Given** không có history record nào phù hợp với filter hiện tại, **When** danh sách được cập nhật, **Then** hệ thống hiển thị filter empty state.
-
-4. **Given** dữ liệu Volunteer History không tải được, **When** hệ thống gặp lỗi, **Then** hệ thống hiển thị error state dễ hiểu và không làm crash trang.
+5. **Given** người dùng thay đổi search/filter trong màn chung, **When** danh sách được tải lại bởi UC10/UC11, **Then** UC08 vẫn chỉ chịu trách nhiệm hiển thị base list state.
 
 ---
 
 ## Edge Cases
 
-* **Guest mở Volunteer History**: WHEN Guest mở Volunteer History page, THE system SHALL yêu cầu đăng nhập hoặc điều hướng sang Authentication flow.
+* **Guest mở Event List**: Hệ thống cho phép xem public Event List mà không yêu cầu login.
 
-* **User không phải Volunteer mở Volunteer History**: WHEN authenticated user không có role `VOLUNTEER` mở Volunteer History, THE system SHALL chặn truy cập.
+* **Volunteer mở Event List**: Hệ thống cho phép Volunteer đã đăng nhập xem public Event List.
 
-* **Volunteer xem history của người khác**: WHERE có history record của Volunteer khác, THE system SHALL không hiển thị cho Volunteer hiện tại.
+* **Không có event public**: Hệ thống hiển thị empty state rõ ràng.
 
-* **Volunteer chưa có history**: WHEN Volunteer chưa từng tham gia event nào, THE system SHALL hiển thị empty state.
+* **Event bị draft**: Event không xuất hiện trong public Event List.
 
-* **Application PENDING**: WHERE application chỉ đang `PENDING`, THE system SHALL not show it as Volunteer History.
+* **Event bị soft-deleted**: Event không xuất hiện trong public Event List.
 
-* **Application REJECTED**: WHERE application bị `REJECTED`, THE system SHALL not show it as Volunteer History.
+* **Event bị archived/cancelled/completed**: Event không xuất hiện trong public Event List bản đầu.
 
-* **Application CANCELLED**: WHERE application bị `CANCELLED`, THE system SHALL not show it as Volunteer History.
+* **Event thiếu thumbnail**: Hệ thống hiển thị fallback hoặc placeholder.
 
-* **Application APPROVED nhưng event chưa diễn ra**: WHERE application đã `APPROVED` nhưng event chưa diễn ra/chưa có attendance, THE system SHALL not show it as completed Volunteer History.
+* **Event thiếu optional field**: Hệ thống vẫn hiển thị item ổn định, không crash layout.
 
-* **Volunteer đã điểm danh thành công**: WHERE Volunteer có successful attendance, THE system SHALL show the event in Volunteer History.
+* **Load event thất bại**: Hệ thống hiển thị error state và không hiển thị dữ liệu sai.
 
-* **Volunteer hoàn thành event**: WHERE Volunteer có completion/participation record, THE system SHALL show the event in Volunteer History.
+* **User click event không còn available**: Hệ thống xử lý unavailable/not found state ở Event Detail flow.
 
-* **Volunteer vắng mặt**: WHERE Volunteer có absent record, THE system MAY show absent status if team chooses to include absence records.
+* **Search/filter được hiển thị trên cùng màn**: Search thuộc UC10 và filter thuộc UC11, không phải core behavior của UC08.
 
-* **Attendance chưa ghi nhận**: WHERE attendance data is unclear, THE system SHALL show stable state and avoid treating it as successful participation.
+* **Guest hoặc Volunteer muốn apply từ Event List**: UC08 không submit application; Apply Event thuộc UC12.
 
-* **Event bị archived/soft-deleted sau khi tham gia**: WHERE event is archived or soft-deleted after participation, THE system MAY still show history record if historical data exists.
+* **Event full**: Event có thể vẫn hiển thị nếu còn public, nhưng cần thể hiện rõ trạng thái full hoặc không còn apply được nếu dữ liệu có sẵn.
 
-* **Event image missing**: WHERE event image/thumbnail missing, THE system SHALL show placeholder or fallback layout.
-
-* **Volunteer hours missing**: WHERE volunteer hours data missing, THE system SHALL keep layout stable and show fallback or omit the field.
-
-* **Feedback already submitted**: WHERE feedback exists, THE system MAY show feedback submitted status.
-
-* **Feedback not yet submitted but eligible**: WHERE Volunteer attended successfully and no feedback exists, THE system MAY show feedback entry point.
-
-* **Certificate available**: WHERE certificate exists, THE system MAY show certificate available status or entry point.
-
-* **Certificate not available**: WHERE no certificate exists, THE system SHALL avoid showing download action.
-
-* **Filter không có kết quả**: WHEN selected filter returns no history records, THE system SHALL show filter empty state.
-
-* **Pagination sau khi đổi filter**: WHEN Volunteer changes filter, THE system SHALL reset pagination to first page.
-
-* **Data loading failed**: WHEN Volunteer History data cannot be loaded, THE system SHALL show error state.
+* **Event đã qua application deadline**: UC08 có thể hiển thị trạng thái không còn apply được nếu dữ liệu có sẵn; rule chặn apply thuộc UC12.
 
 ---
 
@@ -292,129 +176,99 @@ Là Volunteer, tôi muốn hệ thống hiển thị rõ trạng thái đang t�
 
 ### Functional Requirements
 
-* **FR-001**: THE system SHALL allow only authenticated users with role `VOLUNTEER` to view Volunteer History.
+- **FR-001**: THE system SHALL allow Guest users to view the public Event List.
 
-* **FR-002**: WHEN Guest attempts to open Volunteer History, THE system SHALL require login/register or redirect to Authentication flow.
+- **FR-002**: THE system SHALL allow authenticated users with role `VOLUNTEER` to view the public Event List.
 
-* **FR-003**: WHEN authenticated user is not `VOLUNTEER`, THE system SHALL block access to Volunteer History.
+- **FR-003**: THE system SHALL NOT require login only to view the Event List.
 
-* **FR-004**: THE system SHALL show only history records that belong to the current authenticated Volunteer.
+- **FR-004**: THE system SHALL display only public/discoverable events in the Event List.
 
-* **FR-005**: THE system SHALL NOT show history records of other Volunteers.
+- **FR-005**: THE system SHALL NOT display draft events in the public Event List.
 
-* **FR-006**: Volunteer History SHALL be separated from Applied Events.
+- **FR-006**: THE system SHALL NOT display archived events in the public Event List in the first version.
 
-* **FR-007**: THE system SHALL NOT treat `PENDING` application as Volunteer History.
+- **FR-007**: THE system SHALL NOT display cancelled events in the public Event List in the first version.
 
-* **FR-008**: THE system SHALL NOT treat `REJECTED` application as Volunteer History.
+- **FR-008**: THE system SHALL NOT display completed events in the public Event List in the first version.
 
-* **FR-009**: THE system SHALL NOT treat `CANCELLED` application as Volunteer History.
+- **FR-009**: THE system SHALL NOT display soft-deleted events in the public Event List.
 
-* **FR-010**: THE system SHALL NOT automatically treat future `APPROVED` application as Volunteer History.
+- **FR-010**: EACH event item SHALL display the event title.
 
-* **FR-011**: THE system SHOULD show event in Volunteer History when Volunteer has successful attendance record.
+- **FR-011**: EACH event item SHOULD display event thumbnail/image when available.
 
-* **FR-012**: THE system SHOULD show event in Volunteer History when Volunteer has completion/participation record.
+- **FR-012**: WHEN event thumbnail/image is missing, THE system SHALL display fallback or placeholder content.
 
-* **FR-013**: THE system MAY show absent record if attendance data includes absence and team chooses to display it.
+- **FR-013**: EACH event item SHOULD display organization information when available.
 
-* **FR-014**: EACH history item SHALL display event summary.
+- **FR-014**: EACH event item SHOULD display category information when available.
 
-* **FR-015**: Event summary SHALL include event title.
+- **FR-015**: EACH event item SHALL display event date/time.
 
-* **FR-016**: Event summary SHOULD include category if available.
+- **FR-016**: EACH event item SHALL display event location.
 
-* **FR-017**: Event summary SHOULD include organization if available.
+- **FR-017**: EACH event item SHOULD display capacity or remaining slots when available.
 
-* **FR-018**: Event summary SHALL include event date/time.
+- **FR-018**: EACH event item MAY display short description when available and suitable for the list layout.
 
-* **FR-019**: Event summary SHALL include location.
+- **FR-019**: THE system SHALL provide a View Detail action or clickable event item.
 
-* **FR-020**: Event summary SHOULD include event image/thumbnail if available.
+- **FR-020**: WHEN user selects View Detail or clicks an event item, THE system SHALL navigate to UC09 - View Event Detail.
 
-* **FR-021**: IF event image/thumbnail is missing, THE system SHALL display placeholder or fallback layout.
+- **FR-021**: THE system SHALL NOT display full event detail inside UC08.
 
-* **FR-022**: History item SHOULD display participation/attendance status if available.
+- **FR-022**: THE system SHALL NOT submit an event application in UC08.
 
-* **FR-023**: History item SHOULD display volunteer hours if available.
+- **FR-023**: THE system SHALL treat Apply Event as UC12.
 
-* **FR-024**: History item MAY display feedback status if data is available.
+- **FR-024**: THE system SHALL treat Search Event as UC10.
 
-* **FR-025**: History item MAY display certificate status if data is available.
+- **FR-025**: THE system SHALL treat Filter Event as UC11.
 
-* **FR-026**: THE system MAY provide View Detail action from history item to Event Detail.
+- **FR-026**: THE system SHOULD implement UC08, UC10 and UC11 on the same Event List screen when practical.
 
-* **FR-027**: IF Event Detail is unavailable, THE system SHALL handle unavailable/not found state without crashing.
+- **FR-027**: THE system SHOULD NOT create separate pages for UC10 and UC11 if search/filter can be handled inside Event List.
 
-* **FR-028**: THE system MAY provide entry point to Feedback Form when Volunteer is eligible.
+- **FR-028**: THE system SHALL display loading state while Event List data is being loaded.
 
-* **FR-029**: THE system MAY provide entry point to Certificate feature when certificate is available.
+- **FR-029**: THE system SHALL display empty state when no public events are available.
 
-* **FR-030**: THE system SHOULD support filter by time range.
+- **FR-030**: THE system SHALL display error state when Event List data cannot be loaded.
 
-* **FR-031**: THE system SHOULD support filter by participation/attendance status if statuses are available.
+- **FR-031**: THE system SHOULD support pagination or another scalable loading strategy when the number of events is large.
 
-* **FR-032**: THE system SHOULD support pagination or scalable loading strategy when history count is large.
+- **FR-032**: THE backend/API SHALL NOT return non-public events for the public Event List.
 
-* **FR-033**: WHEN filter changes, THE system SHALL reset pagination to first page.
+- **FR-033**: THE backend/API SHALL NOT return soft-deleted events for the public Event List.
 
-* **FR-034**: WHEN Volunteer History data is loading, THE system SHALL display loading state.
-
-* **FR-035**: WHEN Volunteer has no history records, THE system SHALL display empty state.
-
-* **FR-036**: WHEN no history records match current filter, THE system SHALL display filter empty state.
-
-* **FR-037**: WHEN Volunteer History data cannot be loaded, THE system SHALL display understandable error state.
-
-* **FR-038**: THE system SHALL NOT create application in this feature.
-
-* **FR-039**: THE system SHALL NOT cancel application in this feature.
-
-* **FR-040**: THE system SHALL NOT approve or reject application in this feature.
-
-* **FR-041**: THE system SHALL NOT perform attendance check-in in this feature.
-
-* **FR-042**: THE system SHALL NOT manage attendance list in this feature.
-
-* **FR-043**: THE system SHALL NOT submit feedback in this feature.
-
-* **FR-044**: THE system SHALL NOT generate, view or download certificate directly in this feature.
-
-* **FR-045**: THE system SHALL NOT rely only on frontend visibility for protected data. Backend/API must enforce authentication, role and ownership.
-
-* **FR-046**: THE system SHALL treat attendance, participation status, volunteer hours, feedback status and certificate status as shared data owned by related modules until final API/data contracts are approved.
-
----
+- **FR-034**: THE system SHALL keep UC08 focused on base list display, not search algorithm, filter rule definition, apply submission or full detail display.
 
 ### Key Entities
 
-* **Guest**: Unauthenticated user. Guest is not stored as a database role and cannot view Volunteer History.
+* **Guest**: Unauthenticated user. Guest is not stored as a database role and can view public Event List.
 
-* **Volunteer**: Authenticated user with role `VOLUNTEER` who can view their own history.
+* **Volunteer**: Authenticated user with role `VOLUNTEER`. Volunteer can view public Event List and navigate to Event Detail.
 
-* **Event**: Volunteer event that may appear in history if Volunteer participated, attended, or completed it.
+* **Event**: Volunteer event record displayed as a public/discoverable item in the list.
 
-* **Volunteer History Record**: Record representing Volunteer’s participation/completion history for an event.
+* **Event List**: Screen or section that displays multiple public event items.
 
-* **Applied Event**: Event that Volunteer applied to. It is not automatically Volunteer History.
+* **Event Card / Event Item**: UI representation of one event in the list, containing summary information and entry point to detail.
 
-* **Event Application**: Volunteer’s application to an event. Only approved application may lead to attendance/history, but approval alone is not always history.
+* **Organization**: Organization associated with an event, displayed when available.
 
-* **Application Status**: Status such as `PENDING`, `APPROVED`, `REJECTED`, and `CANCELLED`.
+* **Category**: Event category displayed when available and used by UC11 for filtering.
 
-* **Attendance Record**: Record showing whether Volunteer attended or checked in for the event.
+* **Skill**: Skill data that may be shown or used by related search/filter features if event-skill data exists.
 
-* **Successful Attendance**: Attendance state showing Volunteer successfully checked in or participated.
+* **Event Status**: State used to decide whether an event is public/discoverable, draft, cancelled, completed or otherwise not shown.
 
-* **Participation Status**: Status such as attended, completed, absent, or not recorded depending on final data design.
+* **Public Event**: Event allowed to appear in public Event List for Guest and Volunteer.
 
-* **Volunteer Hours**: Number of hours credited to Volunteer for participating in event.
+* **Soft-deleted Event**: Event removed from public visibility through soft delete and not shown in Event List.
 
-* **Feedback Status**: Information showing whether Volunteer has submitted feedback for the event.
-
-* **Certificate Status**: Information showing whether certificate is available for the event.
-
-* **History Filter**: Filter used to narrow Volunteer History by time or status.
+* **View Detail Action**: Button or clickable behavior that routes user from UC08 to UC09.
 
 ---
 
@@ -422,31 +276,37 @@ Là Volunteer, tôi muốn hệ thống hiển thị rõ trạng thái đang t�
 
 ### Measurable Outcomes
 
-* **SC-001**: 100% Guest users are blocked from viewing Volunteer History and are asked to login/register.
+* **SC-001**: Guest can open Event List without login.
 
-* **SC-002**: 100% authenticated non-Volunteer users are blocked from viewing Volunteer History.
+* **SC-002**: Volunteer can open Event List after login.
 
-* **SC-003**: 100% Volunteer users can view only their own history records.
+* **SC-003**: Public/discoverable events appear in Event List.
 
-* **SC-004**: 0 history records from other Volunteers are displayed to the current Volunteer.
+* **SC-004**: Non-public, draft, archived, cancelled, completed and soft-deleted events do not appear in the public Event List.
 
-* **SC-005**: Applications with status `PENDING`, `REJECTED`, and `CANCELLED` are not displayed as Volunteer History.
+* **SC-005**: Each event item displays necessary summary information, including title, date/time and location.
 
-* **SC-006**: Future `APPROVED` applications without attendance/participation record are not displayed as completed Volunteer History.
+* **SC-006**: Event item displays thumbnail/image or fallback content.
 
-* **SC-007**: Events with successful attendance or participation record appear in Volunteer History.
+* **SC-007**: Event item displays organization, category, capacity/remaining slots or short description when those data are available.
 
-* **SC-008**: Each history item displays event title, event date/time and location.
+* **SC-008**: Clicking an event item or View Detail navigates to UC09 - View Event Detail.
 
-* **SC-009**: History item displays category, organization, image, attendance status, volunteer hours, feedback status and certificate status when data is available.
+* **SC-009**: UC08 does not create application records.
 
-* **SC-010**: Volunteer without history records sees empty state instead of blank page.
+* **SC-010**: UC08 does not show full event detail.
 
-* **SC-011**: Filter empty state appears when no history records match current filter.
+* **SC-011**: Search and filter are not implemented as unrelated standalone pages when they can share the Event List screen.
 
-* **SC-012**: Loading and error states are displayed clearly.
+* **SC-012**: Loading state appears while events are being loaded.
 
-* **SC-013**: Volunteer History feature does not apply event, cancel application, approve/reject application, check in attendance, submit feedback or generate/download certificates directly.
+* **SC-013**: Empty state appears when no public events are available.
+
+* **SC-014**: Error state appears when event loading fails.
+
+* **SC-015**: Pagination or scalable loading strategy works when the event list is large.
+
+* **SC-016**: Backend/API does not expose non-public or soft-deleted event data through public Event List.
 
 ---
 
@@ -456,85 +316,52 @@ Là Volunteer, tôi muốn hệ thống hiển thị rõ trạng thái đang t�
 
 * **A-002**: Database roles are `VOLUNTEER`, `STAFF`, `MANAGER`, and `ADMIN`.
 
-* **A-003**: Volunteer History belongs to Member 2 — Volunteer Event Module.
+* **A-003**: Guest can view public Event List.
 
-* **A-004**: Volunteer History corresponds to UC21 — View Volunteer History.
+* **A-004**: Volunteer can view public Event List.
 
-* **A-005**: Volunteer History requires authenticated Volunteer.
+* **A-005**: Public event is determined by event status/visibility and active flag according to the database and backend contract.
 
-* **A-006**: Guest cannot view Volunteer History.
+* **A-006**: Draft, archived, cancelled, completed and soft-deleted events are not displayed in the public Event List in the first version.
 
-* **A-007**: Authenticated non-Volunteer user cannot view Volunteer History in this Volunteer flow.
+* **A-007**: Search Event is UC10 and is documented separately.
 
-* **A-008**: Volunteer can view only their own history.
+* **A-008**: Filter Event is UC11 and is documented separately.
 
-* **A-009**: Volunteer History is different from Applied Events.
+* **A-009**: UC08, UC10 and UC11 share the same Event List screen during implementation when practical.
 
-* **A-010**: `PENDING`, `REJECTED`, and `CANCELLED` applications are not Volunteer History.
+* **A-010**: Apply Event starts from UC12, usually after the user views event detail in UC09.
 
-* **A-011**: `APPROVED` application is necessary for attendance but does not automatically mean the event is history.
+* **A-011**: UC08 does not submit application and does not create application records.
 
-* **A-012**: Event should appear in Volunteer History when Volunteer has successful attendance or participation/completion record.
+* **A-012**: UC08 displays summary information only; full event detail belongs to UC09.
 
-* **A-013**: Attendance check-in is handled by Attendance Management, not by Volunteer History.
+* **A-013**: Organization, category and skill data are owned by related modules and consumed by UC08 when available.
 
-* **A-014**: Feedback submission is handled by `006-volunteer-feedback-form`.
+* **A-014**: Mock data may be used temporarily before final API/data contract is ready.
 
-* **A-015**: Certificate viewing/downloading is handled by `007-volunteer-certificates`.
-
-* **A-016**: Certificate generation is handled by Staff Module.
-
-* **A-017**: Volunteer hours may be available from attendance/event completion data.
-
-* **A-018**: Feedback status may be available after Feedback feature is implemented.
-
-* **A-019**: Certificate status may be available after Certificate feature is implemented.
-
-* **A-020**: Event archived or soft-deleted after participation may still appear in Volunteer History if history record exists.
-
-* **A-021**: Backend/API must be the final authority for ownership and history visibility.
-
-* **A-022**: Mock data can be used temporarily if API/data are not ready.
-
-* **A-023**: Mobile app support is out of scope. Feature targets web application.
+* **A-015**: Feature target is the web application.
 
 ---
 
 ## Out of Scope
 
-Các tính năng sau KHÔNG nằm trong phạm vi của Volunteer History và KHÔNG được implement trong feature này:
+The following are NOT in scope for UC08 - View Event List:
 
-* Event List
-* Search Event
-* Filter Event
-* Event Detail full display
-* Apply Event submission
-* Application form
-* Applied Event List
+* Search Event implementation detail
+* Filter Event implementation detail
+* Full Event Detail
+* Apply Event
+* View Applied Events
 * Cancel Application
-* Attendance Check-in
-* Attendance Management
-* Attendance List
-* Staff Application List
-* Staff Application Detail
-* Approve Application
-* Reject Application
-* Feedback Form submission
-* Feedback List
-* Feedback Detail
-* Certificate List full management
-* Certificate Detail full display
+* Submit Feedback
+* View Certificates
 * Download Certificate
-* Generate Certificate
-* Staff Add Event
-* Staff Edit Event
-* Staff Delete Event
-* Category Management
-* Skill Management
-* Organization Management
-* Notification Management
-* Donation and Payment
-* Reporting and Dashboard
+* Staff Add/Edit/Delete Event
+* Staff Application Management
+* Attendance
+* Feedback Management
+* Certificate Generation
 * Database schema design
 * Database migration
 * API endpoint contract

@@ -182,7 +182,7 @@ UC48 — Submit Feedback là use case riêng của Member 2. Tuy nhiên, entry p
 
 ---
 
-## 5. ASSUMPTIONS
+## 5. ASSUMPTIONS (Giả định)
 
 * Guest là trạng thái chưa đăng nhập, không phải role lưu trong database.
 * Role trong database gồm `VOLUNTEER`, `STAFF`, `MANAGER`, `ADMIN`.

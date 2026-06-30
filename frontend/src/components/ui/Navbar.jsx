@@ -7,7 +7,7 @@ export default function Navbar() {
 
     const navItem = [
         { name: 'HomePage', icon: '', link: '/' },
-        { name: 'Draft', icon: '', link: '/' },
+        { name: 'Events', icon: '', link: '/events' },
         { name: 'Draft', icon: '', link: '/' },
         { name: 'Draft', icon: '', link: '/' },
     ]
@@ -27,9 +27,9 @@ export default function Navbar() {
                 </div>
                 <div className="col-6">
                     <ul className="list-unstyled d-flex justify-content-center py-3 gap-3 mb-0">
-                        {navItem?.map(item => {
+                        {navItem?.map((item, index) => {
                             return (
-                                <Link to={item.link} className="text-decoration-none text-light">
+                                <Link to={item.link} className="text-decoration-none text-light" key={`${item.name}-${index}`}>
                                     <li>{item.name}</li>
                                 </Link>
                             )
@@ -44,9 +44,9 @@ export default function Navbar() {
                             </div>
                             :
                             <ul className="list-unstyled d-flex justify-content-center py-3 gap-3 mb-0">
-                                {authItem?.map(item => {
+                                {authItem?.map((item, index) => {
                                     return (
-                                        <Link to={item.link} className="text-decoration-none text-light">
+                                        <Link to={item.link} className="text-decoration-none text-light" key={`${item.name}-${index}`}>
                                             <li>{item.name}</li>
                                         </Link>
                                     )

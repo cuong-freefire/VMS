@@ -20,6 +20,7 @@ dotenv.config();
 import express from 'express';
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
+import eventRoutes from './routes/event.routes.js';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 
@@ -77,10 +78,14 @@ app.use(httpLogger);
  * Tất cả routes API phải có prefix /api/v1 theo chuẩn RESTful
  * Hiện tại chưa thêm prefix, nhưng nên refactor sau
  */
+const apiPrefix = process.env.API_PREFIX || '/api/v1';
+
 // 6.1 Auth routes
 app.use('/auth', authRoutes);
 // 6.2 User routes
 app.use('/user', userRoutes);
+// 6.3 Event Discovery routes
+app.use(`${apiPrefix}/events`, eventRoutes);
 
 
 export default app;

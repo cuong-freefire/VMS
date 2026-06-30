@@ -1,7 +1,10 @@
 import axiosApi from "../api/axiosApi.js";
 
 export const userService = {
-    async getMe() {
-        return axiosApi.get('user/me')
+    async getMe(options = {}) {
+        return axiosApi.get('user/me', {
+            requiresAuth: true,
+            silentAuth: options.silentAuth === true
+        })
     }
 } 

@@ -10,7 +10,7 @@ export function AuthProvider({ children }) {
 
     const initializeUser = async () => {
         try {
-            const res = await userService.getMe();
+            const res = await userService.getMe({ silentAuth: true });
             setUser(res.data)
         }
         catch {

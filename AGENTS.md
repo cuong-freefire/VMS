@@ -177,3 +177,8 @@ Example: `feat(auth): implement volunteer login API`
 - v5.0: Rút gọn Architecture Principles, loại bỏ GitNexus section (chuyển sang CLAUDE.md)
 
 *Tham chiếu: Xem quy trình SDD tại `CONSTITUTION.md`, Kiến trúc chi tiết tại `CLAUDE.md`, Giao kèo API tại `share_context.md`.*
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+<!-- SPECKIT END -->

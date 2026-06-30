@@ -1,0 +1,161 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum RoleName {
+  VOLUNTEER
+  STAFF
+  MANAGER
+  ADMIN
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum CategoryType {
+  LOCATION
+  TIME
+  TYPE
+}
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  name        RoleName @unique
+  description String?  @db.VarChar(255)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  users User[]
+
+  @@map("roles")
+}
+
+model User {
+  id            Int      @id @default(autoincrement())
+  email         String   @unique @db.VarChar(255)
+  passwordHash  String   @map("password_hash") @db.VarChar(255)
+  fullName      String   @map("full_name") @db.VarChar(255)
+  phone         String?  @db.VarChar(20)
+  avatarUrl     String?  @map("avatar_url") @db.VarChar(500)
+  roleId        Int      @map("role_id")
+  isActive      Boolean  @default(true) @map("is_active")
+  emailVerified Boolean  @default(false) @map("email_verified")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  role                  Role          @relation(fields: [roleId], references: [id])
+  applications          Application[] @relation("ApplicationUser")
+  processedApplications Application[] @relation("ApplicationProcessor")
+  createdEvents         Event[]       @relation("EventCreator")
+
+  @@index([roleId], map: "idx_users_role_id")
+  @@index([isActive], map: "idx_users_is_active")
+  @@index([emailVerified], map: "idx_users_email_verified")
+  @@map("users")
+}
+
+model Organization {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(255)
+  email       String?  @db.VarChar(255)
+  phone       String?  @db.VarChar(20)
+  address     String?  @db.Text
+  website     String?  @db.VarChar(500)
+  logoUrl     String?  @map("logo_url") @db.VarChar(500)
+  description String?  @db.Text
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  events Event[]
+
+  @@index([isActive], map: "idx_organizations_is_active")
+  @@map("organizations")
+}
+
+model EventCategory {
+  id           Int          @id @default(autoincrement())
+  name         String       @db.VarChar(255)
+  categoryType CategoryType @map("category_type")
+  description  String?      @db.Text
+  isActive     Boolean      @default(true) @map("is_active")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  events Event[]
+
+  @@unique([name, categoryType], map: "uq_event_categories_name_type")
+  @@index([categoryType, isActive], map: "idx_event_categories_type_active")
+  @@map("event_categories")
+}
+
+model Event {
+  id                   Int         @id @default(autoincrement())
+  title                String      @db.VarChar(500)
+  description          String      @db.Text
+  location             String      @db.VarChar(500)
+  startDate            DateTime    @map("start_date")
+  endDate              DateTime    @map("end_date")
+  applicationDeadline  DateTime    @map("application_deadline")
+  maxCapacity          Int         @map("max_capacity")
+  approvedParticipants Int         @default(0) @map("approved_participants")
+  imageUrl             String?     @map("image_url") @db.VarChar(500)
+  organizationId       Int?        @map("organization_id")
+  categoryId           Int?        @map("category_id")
+  createdBy            Int?        @map("created_by")
+  status               EventStatus @default(DRAFT)
+  isActive             Boolean     @default(true) @map("is_active")
+  createdAt            DateTime    @default(now()) @map("created_at")
+  updatedAt            DateTime    @updatedAt @map("updated_at")
+
+  organization Organization?  @relation(fields: [organizationId], references: [id])
+  category     EventCategory? @relation(fields: [categoryId], references: [id])
+  creator      User?          @relation("EventCreator", fields: [createdBy], references: [id])
+  applications Application[]
+
+  @@index([organizationId], map: "idx_events_organization_id")
+  @@index([categoryId], map: "idx_events_category_id")
+  @@index([createdBy], map: "idx_events_created_by")
+  @@index([status, isActive], map: "idx_events_status_active")
+  @@index([startDate], map: "idx_events_start_date")
+  @@index([applicationDeadline], map: "idx_events_application_deadline")
+  @@index([categoryId, status, isActive, startDate], map: "idx_events_category_status_active_date")
+  @@map("events")
+}
+
+model Application {
+  id          Int               @id @default(autoincrement())
+  userId      Int               @map("user_id")
+  eventId     Int               @map("event_id")
+  status      ApplicationStatus @default(PENDING)
+  message     String?           @db.Text
+  processedBy Int?              @map("processed_by")
+  processedAt DateTime?         @map("processed_at")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  user      User  @relation("ApplicationUser", fields: [userId], references: [id])
+  event     Event @relation(fields: [eventId], references: [id])
+  processor User? @relation("ApplicationProcessor", fields: [processedBy], references: [id])
+
+  @@unique([userId, eventId], map: "uq_applications_user_event")
+  @@index([userId, status], map: "idx_applications_user_status")
+  @@index([eventId, status], map: "idx_applications_event_status")
+  @@index([processedBy], map: "idx_applications_processed_by")
+  @@map("applications")
+}
