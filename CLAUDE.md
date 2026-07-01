@@ -419,9 +419,129 @@ VMS project được indexed bởi GitNexus để hỗ trợ code intelligence, 
 
 ---
 
-**Version**: 3.0  
-**Last Updated**: 2026-06-25  
+## 9. Active Implementation Plans
+
+<!-- SPECKIT START: Active plans tracked by /speckit-plan -->
+
+### UC15: Add Event (TienTD - Event Management)
+- **Branch**: `UC15-feat-add-event`
+- **Status**: Planning phase completed
+- **Plan**: `.sdd/TienTD/event-management/UC15-feat-add-event/plan.md`
+- **Artifacts**:
+  - Phase 0: `research.md` - Technical research (date validation, auth, image upload, duplicates, status)
+  - Phase 1: `data-model.md` - Event entity schema, validation, constraints, state transitions
+  - Phase 1: `contracts/POST-events.md` - Complete API contract với examples và tests
+  - Phase 1: `quickstart.md` - Setup guide với troubleshooting
+- **Key Decisions**:
+  - JWT-based identity extraction (organization_id, created_by)
+  - Dual validation (Frontend UX + Backend security)
+  - Prisma transactions for event creation + audit log
+  - Soft delete pattern with is_active flag
+  - Cloudinary sync upload trong transaction
+- **Next Phase**: Generate tasks.md (Phase 2) via `/speckit-tasks`
+
+### UC16: Edit Event (TienTD - Event Management)
+- **Branch**: `UC16-feat-edit-event`
+- **Status**: Planning phase completed
+- **Plan**: `.sdd/TienTD/UC16-feat-edit-event/plan.md`
+- **Artifacts**:
+  - Phase 0: `research.md` - Technical research (state validation, ownership, audit logging, notifications, image replacement)
+  - Phase 1: `data-model.md` - Event update schema, validation, event_audit_log table, cross-module contracts
+  - Phase 1: `contracts/PATCH-events-id.md` - Complete API contract with state-based restrictions and audit logging
+  - Phase 1: `quickstart.md` - Setup guide with migration, implementation, and deployment checklist
+- **Key Decisions**:
+  - 3-tier state validation (DRAFT all fields, PUBLISHED restricted, IN_PROGRESS/COMPLETED/CANCELLED locked)
+  - Hybrid ownership check (Middleware extracts JWT, Service enforces authorization)
+  - Per-field audit logging with event_audit_log table
+  - Async notification trigger for critical field changes (time/location on PUBLISHED events)
+  - Upload-first, delete-after pattern for image replacement with rollback on transaction failure
+- **Next Phase**: Generate tasks.md (Phase 2) via `/speckit-tasks`
+
+### UC17: Delete Event (TienTD - Event Management)
+- **Branch**: `UC17-feat-delete-event`
+- **Status**: Planning phase completed
+- **Plan**: `.sdd/TienTD/UC17-feat-delete-event/plan.md`
+- **Artifacts**:
+  - Phase 0: `research.md` - Technical research (soft delete pattern, ownership validation, application constraints, status rules, cascade behavior)
+  - Phase 1: `data-model.md` - Soft delete schema with deleted_at column, validation helpers, cross-module contracts
+  - Phase 1: `contracts/DELETE-events-id.md` - Complete API contract with status-based delete rules and application constraint tests
+  - Phase 1: `quickstart.md` - Setup guide with migration, implementation, query filter updates, and deployment checklist
+- **Key Decisions**:
+  - Soft delete with `deleted_at` timestamp (preserve all data for audit trail)
+  - Hybrid ownership validation (reuse UC16 pattern)
+  - Status-based delete rules (allow DRAFT/PUBLISHED/CANCELLED, block IN_PROGRESS/COMPLETED)
+  - Application constraint check (block deletion if any applications exist, regardless of status)
+  - Prisma transaction for atomic delete + audit log
+  - **CRITICAL**: ALL event queries MUST add `deleted_at: null` filter to exclude soft-deleted records
+- **Next Phase**: Generate tasks.md (Phase 2) via `/speckit-tasks`
+
+### UC22: View Application List (TienTD - Application Management)
+- **Branch**: `022-feat-view-application-list`
+- **Status**: Planning phase completed
+- **Plan**: `.sdd/TienTD/UC22-feat-view-application-list/plan.md`
+- **Artifacts**:
+  - Phase 0: `research.md` - Technical research (organization ownership validation, pagination patterns, sensitive data filtering, status filter optimization, frontend state management)
+  - Phase 1: `data-model.md` - Application entity schema with composite indexes, validation rules, DTOs for safe data exposure
+  - Phase 1: `contracts/GET-events-eventId-applications.md` - Complete API contract with pagination, filtering, and organization-based access control
+  - Phase 1: `quickstart.md` - Setup guide with database migration, implementation checklist, testing scenarios, troubleshooting, and deployment procedures
+- **Key Decisions**:
+  - Prisma nested WHERE JOIN for organization ownership validation (single atomic query)
+  - Offset-based pagination with composite indexes (event_id + status + created_at DESC)
+  - Database-level sensitive data filtering via Prisma select (USER_PUBLIC_PROFILE_SELECT)
+  - URL query params for frontend state management (bookmarkable URLs, browser navigation support)
+  - Composite indexes: `idx_applications_event_status_created`, `idx_applications_event_created`, `idx_events_org`
+  - **SECURITY**: MUST NOT expose address, identity_card_number, phone_number, email in API response
+  - Performance target: <1.2s for 50 records, <200ms p95 response time
+- **Next Phase**: Generate tasks.md (Phase 2) via `/speckit-tasks`
+
+### UC46: View Attendance List (TienTD - Attendance Management)
+- **Branch**: `046-feat-view-attendance-list`
+- **Status**: Planning phase completed
+- **Plan**: `.sdd/TienTD/UC46-feat-view-attendance-list/plan.md`
+- **Artifacts**:
+  - Phase 0: `research.md` - Technical research (pagination strategy, real-time refresh, search implementation, query strategy)
+  - Phase 1: `data-model.md` - NO MIGRATION REQUIRED (reuses UC22/UC24/UC45 tables), query patterns for LEFT JOIN applications→attendances
+  - Phase 1: `contracts/GET-attendances-events-eventId.md` - Complete API contract for single GET endpoint with organization-based access control
+  - Phase 1: `quickstart.md` - Setup guide with implementation phases, code snippets, testing scenarios
+- **Key Decisions**:
+  - Client-side pagination (optimal for <300 volunteers per event, Material UI DataGrid built-in support)
+  - Manual refresh button with request deduplication (no auto-polling to avoid unnecessary API calls)
+  - Search by volunteer name + Filter by status (Present/Absent/All) as separate controls
+  - Query `applications` table WITH LEFT JOIN `attendances` to show ALL approved volunteers (checked-in + not-yet-checked-in)
+  - Response includes aggregate counts (total_approved, present_count, absent_count) for dashboard display
+  - **SECURITY**: FR-016 MUST NOT expose PII (address, identity_card_number, phone_number beyond public profile)
+  - Performance target: <1s for 100 volunteers
+- **Next Phase**: Generate tasks.md (Phase 2) via `/speckit-tasks`
+
+### UC47: View Attendance History (TienTD - Attendance Management)
+- **Branch**: `047-feat-view-attendance-history`
+- **Status**: Phase 1 completed (ready for tasks.md generation)
+- **Plan**: `.sdd/TienTD/UC47-feat-view-attendance-history/plan.md` (pending)
+- **Artifacts**:
+  - Phase 0: `research.md` - 4 RQs resolved (COMPLETED events only, two separate endpoints, server-side pagination, smart date defaults)
+  - Phase 1: `data-model.md` - NO MIGRATION REQUIRED (reuses UC15-UC45 tables), Event-First (LEFT JOIN) vs Volunteer-First (INNER JOIN) patterns
+  - Phase 1: `contracts/GET-attendances-events-eventId-history.md` - Event-First endpoint (view volunteers for completed event)
+  - Phase 1: `contracts/GET-attendances-volunteers-volunteerId-history.md` - Volunteer-First endpoint (view events volunteer attended)
+  - Phase 1: `quickstart.md` - Implementation guide with two-tab UI, date range picker, server-side pagination
+- **Key Decisions**:
+  - **COMPLETED events only** (clear separation from UC46 which shows IN_PROGRESS events)
+  - **Two separate endpoints** for different query patterns (Event-First vs Volunteer-First)
+  - **Server-side pagination** (limit/offset) - scalable for growing historical data (vs UC46 client-side)
+  - **Smart date defaults**: Last 6 months if not specified, max range 2 years
+  - **Event-First**: LEFT JOIN (shows all approved volunteers, status PRESENT/ABSENT)
+  - **Volunteer-First**: INNER JOIN (shows only attended events, status always PRESENT)
+  - **SECURITY**: FR-016 PII protection (only id, full_name, avatar_url exposed)
+  - Performance target: <1.5s for 1000 records
+- **Next Phase**: Generate tasks.md (Phase 2) via `/speckit-tasks`
+
+<!-- SPECKIT END -->
+
+---
+
+**Version**: 3.1  
+**Last Updated**: 2026-06-29  
 **Changelog**:
+- v3.1: Added Active Implementation Plans section for UC15 Add Event
 - v3.0: Tái cấu trúc theo bộ khung mới - tập trung vào Architecture, ADRs và Lessons Learned
 - v3.0: Thêm Anti-Patterns section và GitNexus Integration section
 - v3.0: Loại bỏ duplicate content đã có trong AGENTS.md
