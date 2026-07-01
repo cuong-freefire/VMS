@@ -546,11 +546,11 @@ Integration:
 
 ### Event
 
-7. Event List
-8. Event Detail
-9. Applied Event List
-10. Add Event
-11. Edit Event
+1. Event List
+2. Event Detail
+3. Applied Event List
+4. Add Event
+5. Edit Event
 
 Note:
 
@@ -560,10 +560,10 @@ Search Event and Filter Event are included inside Event List. Apply Event is an 
 
 ### Profile
 
-12. Profile
-13. Edit Profile
-14. Manage Skills
-15. Volunteer History
+1. Profile
+2. Edit Profile
+3. Manage Skills
+4. Volunteer History
 
 Note:
 
@@ -573,57 +573,57 @@ Volunteer History belongs to Profile Management and is assigned to Member 1 in t
 
 ### Application
 
-16. Application List
-17. Application Detail
-18. Approval Screen
+1. Application List
+2. Application Detail
+3. Approval Screen
 
 ---
 
 ### User Management
 
-19. User List
-20. User Detail
-21. Add User
-22. Edit User
+1. User List
+2. User Detail
+3. Add User
+4. Edit User
 
 ---
 
 ### Category and Skill
 
-23. Category List
-24. Category Form
-25. Skill List
-26. Skill Form
+1. Category List
+2. Category Form
+3. Skill List
+4. Skill Form
 
 ---
 
 ### Organization
 
-27. Organization List
-28. Organization Detail
-29. Organization Form
+1. Organization List
+2. Organization Detail
+3. Organization Form
 
 ---
 
 ### Notification
 
-30. Notification List
-31. Notification Detail
-32. Create Notification
+1. Notification List
+2. Notification Detail
+3. Create Notification
 
 ---
 
 ### Attendance
 
-33. Attendance Management
-34. Attendance History
+1. Attendance Management
+2. Attendance History
 
 ---
 
 ### Feedback
 
-35. Feedback Form
-36. Feedback List
+1. Feedback Form
+2. Feedback List
 
 Note:
 
@@ -633,8 +633,8 @@ Feedback Form maps to UC48. Feedback List/Detail should be clarified because UC4
 
 ### Certificate
 
-37. Certificate List
-38. Certificate Detail
+1. Certificate List
+2. Certificate Detail
 
 Note:
 
@@ -644,19 +644,19 @@ Download Certificate is an action inside Certificate List or Certificate Detail,
 
 ### Reports
 
-39. Dashboard
-40. Event Statistics
-41. Volunteer Statistics
-42. Export Report
+1. Dashboard
+2. Event Statistics
+3. Volunteer Statistics
+4. Export Report
 
 ---
 
 ### Donation
 
-43. Donation Page
-44. Payment Result
-45. Payment Gateway
-46. Donation History
+1. Donation Page
+2. Payment Result
+3. Payment Gateway
+4. Donation History
 
 ---
 
@@ -933,8 +933,8 @@ Member 5 owns organization, notification, dashboard, reports, donation, and paym
 4. Unauthenticated users can only access public pages.
 5. Only authenticated users can access protected features.
 6. Accounts that have not verified email are not allowed to login.
-7. Forgot password reset token expires after 1 hour.
-8. After a reset token is used, it must be invalidated immediately.
+7. Forgot password OTP expires after 10 minutes (TTL from `created_at` in `email_verifications`).
+8. After a successful password reset, the corresponding `email_verifications` record (`type = RESET_PASSWORD`) must be deleted immediately.
 
 ---
 
