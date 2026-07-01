@@ -38,7 +38,7 @@ Là một Guest đã nhận được mã OTP, tôi muốn nhập mã OTP vào fo
 
 **Acceptance Scenarios**:
 
-1. **Given** Guest có mã OTP hợp lệ (chưa hết hạn 10 phút) trong bảng `email_verifications`, **When** Guest nhập đúng mã OTP cùng toàn bộ thông tin (email, otp, full_name, phone_number, password) vào form Bước 2 và submit, **Then** hệ thống xác thực OTP thành công, tạo tài khoản mới trong bảng `users` với vai trò Volunteer, set `is_active: true`, xóa record trong `email_verifications`, và trả về HTTP 201 với message "Đăng ký thành công. Bạn có thể đăng nhập ngay bây giờ."
+1. **Given** Guest có mã OTP hợp lệ (chưa hết hạn 10 phút) trong bảng `email_verifications`, **When** Guest nhập đúng mã OTP cùng toàn bộ thông tin (email, otp, full_name, phone, password) vào form Bước 2 và submit, **Then** hệ thống xác thực OTP thành công, tạo tài khoản mới trong bảng `users` với vai trò Volunteer, set `is_active: true`, xóa record trong `email_verifications`, và trả về HTTP 201 với message "Đăng ký thành công. Bạn có thể đăng nhập ngay bây giờ."
 
 2. **Given** tài khoản vừa được tạo thành công, **When** Frontend nhận response, **Then** hiển thị toast success, redirect về trang Login với message "Đăng ký thành công. Vui lòng đăng nhập."
 
@@ -52,11 +52,11 @@ Là hệ thống, tôi cần chặn việc đăng ký trùng email để đảm 
 
 **Why this priority**: Đây là yêu cầu bảo mật và toàn vẹn dữ liệu bắt buộc. Email là định danh duy nhất của người dùng trong hệ thống.
 
-**Independent Test**: Có thể test độc lập bằng cách tạo một user với email "existing@vms.com", sau đó thử gọi API gửi OTP với cùng email này và verify hệ thống trả về lỗi 409.
+**Independent Test**: Có thể test độc lập bằng cách tạo một user với email "<existing@vms.com>", sau đó thử gọi API gửi OTP với cùng email này và verify hệ thống trả về lỗi 409.
 
 **Acceptance Scenarios**:
 
-1. **Given** tài khoản với email "existing@vms.com" đã tồn tại trong bảng `users`, **When** Guest thử đăng ký với email "existing@vms.com" ở Bước 1, **Then** hệ thống trả về HTTP 409 với message "Email đã được sử dụng. Vui lòng sử dụng email khác hoặc đăng nhập."
+1. **Given** tài khoản với email "<existing@vms.com>" đã tồn tại trong bảng `users`, **When** Guest thử đăng ký với email "<existing@vms.com>" ở Bước 1, **Then** hệ thống trả về HTTP 409 với message "Email đã được sử dụng. Vui lòng sử dụng email khác hoặc đăng nhập."
 
 2. **Given** email đã tồn tại, **When** Frontend nhận lỗi 409, **Then** hiển thị error message dưới field Email và không chuyển sang Bước 2.
 
@@ -140,11 +140,11 @@ Là Guest đang ở Bước 2 (đã nhận OTP), tôi muốn quay lại Bước 
 
 **Why this priority**: Đây là yêu cầu UX quan trọng để tránh bắt người dùng đợi cooldown 60s khi chỉ muốn sửa thông tin không phải Email.
 
-**Independent Test**: Có thể test độc lập bằng cách gửi OTP cho email "user@vms.com", quay lại Bước 1 sửa Name/Phone/Password ở client state, sau đó verify OTP cũ vẫn hoạt động với thông tin mới.
+**Independent Test**: Có thể test độc lập bằng cách gửi OTP cho email "<user@vms.com>", quay lại Bước 1 sửa Name/Phone/Password ở client state, sau đó verify OTP cũ vẫn hoạt động với thông tin mới.
 
 **Acceptance Scenarios**:
 
-1. **Given** Guest đã nhận OTP cho email "user@vms.com" và đang ở Bước 2, **When** Guest click "Quay lại" để sửa Full Name từ "Nguyễn Văn A" thành "Nguyễn Văn B" nhưng GIỮ NGUYÊN email "user@vms.com", **Then** Frontend cập nhật state của Name ở client-side, KHÔNG gọi API, KHÔNG cập nhật database.
+1. **Given** Guest đã nhận OTP cho email "<user@vms.com>" và đang ở Bước 2, **When** Guest click "Quay lại" để sửa Full Name từ "Nguyễn Văn A" thành "Nguyễn Văn B" nhưng GIỮ NGUYÊN email "<user@vms.com>", **Then** Frontend cập nhật state của Name ở client-side, KHÔNG gọi API, KHÔNG cập nhật database.
 
 2. **Given** Guest vừa sửa Name/Phone/Password ở Bước 1, **When** Guest click "Tiếp theo" và chuyển sang Bước 2, **Then** Frontend chuyển trang với state đã cập nhật, Guest dùng OTP cũ để submit cùng thông tin mới.
 
@@ -158,13 +158,13 @@ Là Guest đang ở Bước 2, tôi muốn quay lại Bước 1 để thay đổ
 
 **Why this priority**: Đây là yêu cầu UX quan trọng khi người dùng nhận ra đã nhập sai email.
 
-**Independent Test**: Có thể test độc lập bằng cách gửi OTP cho "old@vms.com", quay lại đổi thành "new@vms.com", và verify hệ thống xử lý như một request OTP hoàn toàn mới.
+**Independent Test**: Có thể test độc lập bằng cách gửi OTP cho "<old@vms.com>", quay lại đổi thành "<new@vms.com>", và verify hệ thống xử lý như một request OTP hoàn toàn mới.
 
 **Acceptance Scenarios**:
 
-1. **Given** Guest đã nhận OTP cho email "old@vms.com" và đang ở Bước 2, **When** Guest click "Quay lại" và đổi email thành "new@vms.com", **Then** Frontend clear OTP state, coi như một luồng đăng ký mới.
+1. **Given** Guest đã nhận OTP cho email "<old@vms.com>" và đang ở Bước 2, **When** Guest click "Quay lại" và đổi email thành "<new@vms.com>", **Then** Frontend clear OTP state, coi như một luồng đăng ký mới.
 
-2. **Given** Guest vừa đổi email từ "old@vms.com" sang "new@vms.com", **When** Guest click "Tiếp theo", **Then** hệ thống xử lý như một request OTP hoàn toàn mới: sinh OTP mới, tạo record mới trong `email_verifications` cho "new@vms.com", gửi email mới, áp dụng cooldown độc lập.
+2. **Given** Guest vừa đổi email từ "<old@vms.com>" sang "<new@vms.com>", **When** Guest click "Tiếp theo", **Then** hệ thống xử lý như một request OTP hoàn toàn mới: sinh OTP mới, tạo record mới trong `email_verifications` cho "<new@vms.com>", gửi email mới, áp dụng cooldown độc lập.
 
 ---
 
@@ -214,13 +214,13 @@ Là Guest, tôi muốn thấy trạng thái loading khi submit form, validation 
 
 - **FR-004**: WHERE tất cả validation pass và email không bị khóa, THE system SHALL kiểm tra cooldown: nếu email này đã gửi OTP trong vòng 60 giây trước, trả về HTTP 429.
 
-- **FR-005**: WHERE cooldown pass và email không bị khóa, THE system SHALL sinh mã OTP ngẫu nhiên 6 chữ số, lưu hoặc cập nhật record trong bảng `email_verifications` với các field: email, otp_hash, created_at, last_sent_at, attempts = 0, is_locked = false, locked_until = null.
+- **FR-005**: WHERE cooldown pass và email không bị khóa, THE system SHALL sinh mã OTP ngẫu nhiên 6 chữ số, lưu hoặc cập nhật record trong bảng `email_verifications` với các field: email, type = 'REGISTER', otp_hash, created_at, last_sent_at, attempts = 0, is_locked = false, locked_until = null.
 
 - **FR-006**: WHEN lưu OTP thành công, THE system SHALL gửi email chứa mã OTP 6 số, subject "Mã xác thực đăng ký VMS", body chứa OTP và thông báo "Mã có hiệu lực trong 10 phút".
 
 - **FR-007**: WHERE email gửi thành công, THE system SHALL trả về HTTP 200 với message "Mã OTP đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư."
 
-- **FR-008**: WHEN Guest submit OTP ở Bước 2, THE system SHALL nhận toàn bộ payload bao gồm: email, otp, full_name, phone_number, password.
+- **FR-008**: WHEN Guest submit OTP ở Bước 2, THE system SHALL nhận toàn bộ payload bao gồm: email, otp, full_name, phone, password.
 
 - **FR-009**: WHERE email không tồn tại trong `email_verifications`, THE system SHALL trả về HTTP 400 với message "Không tìm thấy yêu cầu xác thực. Vui lòng bắt đầu lại từ Bước 1."
 
@@ -232,7 +232,7 @@ Là Guest, tôi muốn thấy trạng thái loading khi submit form, validation 
 
 - **FR-013**: WHERE số lần thử sai đạt 5, THE system SHALL khóa email trong 15 phút và trả về HTTP 429 với message "Bạn đã nhập sai mã OTP quá nhiều lần. Email này đã bị khóa trong 15 phút."
 
-- **FR-014**: WHERE OTP hợp lệ và record hợp lệ, THE system SHALL tạo user mới trong bảng `users` với thông tin từ payload (full_name, email, phone_number), mã hóa password, gán role_id tương ứng với vai trò Volunteer, set is_active = true.
+- **FR-014**: WHERE OTP hợp lệ và record hợp lệ, THE system SHALL tạo user mới trong bảng `users` với thông tin từ payload (full_name, email, phone), mã hóa password, gán role_id tương ứng với vai trò Volunteer, set is_active = true, set email_verified = true.
 
 - **FR-015**: WHEN user được tạo thành công, THE system SHALL xóa record tương ứng trong bảng `email_verifications` và trả về HTTP 201 với message "Đăng ký thành công. Bạn có thể đăng nhập ngay bây giờ."
 
@@ -248,7 +248,7 @@ Là Guest, tôi muốn thấy trạng thái loading khi submit form, validation 
 
 ### Key Entities
 
-- **User (users table)**: Đại diện cho tài khoản người dùng trong hệ thống. Thuộc tính nghiệp vụ: định danh duy nhất, họ tên đầy đủ, email (unique), số điện thoại, mật khẩu đã mã hóa, vai trò (role_id), trạng thái kích hoạt, thời gian tạo.
+- **User (users table)**: Đại diện cho tài khoản người dùng trong hệ thống. Thuộc tính nghiệp vụ: định danh duy nhất, họ tên đầy đủ, email (unique), số điện thoại, mật khẩu đã mã hóa, vai trò (role_id), trạng thái kích hoạt, trạng thái xác thực email, thời gian tạo.
 
 - **Role**: Đại diện cho vai trò/phân quyền. Tài khoản mới đăng ký được gán vai trò "Volunteer" mặc định.
 
@@ -284,11 +284,11 @@ Là Guest, tôi muốn thấy trạng thái loading khi submit form, validation 
 
 ## Assumptions
 
-- **A-001**: Database đã có bảng `users` với các cột full_name, email (unique), phone_number, password_hash, role_id, is_active, created_at.
+- **A-001**: Database đã có bảng `users` với các cột full_name, email (unique), phone, password_hash, role_id, is_active, email_verified, created_at.
 
 - **A-002**: Database đã có bảng `roles` với dữ liệu seed chứa role "Volunteer".
 
-- **A-003**: Database đã có bảng `email_verifications` với các cột: email (PK hoặc unique), otp_hash, created_at, last_sent_at, attempts, is_locked, locked_until.
+- **A-003**: Database đã có bảng `email_verifications` với các cột: id (PK), email, type, otp_hash, created_at, last_sent_at, attempts, is_locked, locked_until.
 
 - **A-004**: SMTP service đã được cấu hình với các biến môi trường cần thiết trong file `.env`.
 

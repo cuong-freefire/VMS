@@ -372,11 +372,9 @@ DATABASE_URL=mysql://user:pass@localhost:3306/vms
 
 AUTH_SECRET=your-jwt-secret-key
 COOKIE_ACCESS_NAME=vms_access_token
-COOKIE_REFRESH_NAME=vms_refresh_token
-JWT_ACCESS_EXPIRES_IN=15m
-JWT_REFRESH_EXPIRES_IN=7d
+JWT_ACCESS_EXPIRES_IN=7d
 
-BCRYPT_SALT_ROUNDS=10
+BCRYPT_SALT_ROUNDS=12
 
 # Future: Cloudinary integration
 CLOUDINARY_CLOUD_NAME=your-cloud
@@ -501,6 +499,19 @@ VMS project được indexed bởi GitNexus để hỗ trợ code intelligence, 
 | Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
 
 **Note**: Nếu môi trường không có GitNexus tooling, agent phải báo rõ không thể thực thi automation này trước khi tiếp tục các thay đổi thủ công.
+
+---
+
+<!-- SPECKIT START -->
+## Current Feature Plans
+
+### Member 1 - CuongLH (Authentication + Profile + Email)
+
+- **UC06 - Change Password**: [plan.md](.sdd/CuongLH/UC06-feat-auth-change-password/plan.md)
+- **UC07 - Forgot Password**: [plan.md](.sdd/CuongLH/UC07-feat-auth-forgot-password/plan.md)
+- **MD15 - Email Services**: [plan.md](.sdd/CuongLH/MD15-email-service/plan.md)
+
+<!-- SPECKIT END -->
 
 ---
 

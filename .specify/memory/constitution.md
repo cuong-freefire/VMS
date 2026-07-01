@@ -1,50 +1,214 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# CONSTITUTION — Nguyên tắc cốt lõi dự án VMS v4.0
 
-## Core Principles
+## 1. Quy trình Spec-Driven Development (SDD) 5 pha
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### Tổng quan quy trình
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+Mọi tính năng BẮT BUỘC phải đi qua các pha sau:
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+1. **Pha 0 — Context**: Human viết `CONTEXT.md` với problem, domain, stakeholders, constraints, assumptions và open questions.
+2. **Pha 1 — Spec**: Human viết `SPEC.md` đủ 8 phần, dùng EARS notation và chỉ chuyển tiếp khi đã được review/approve. **Nếu có API changes, phải có API documentation (endpoint, method, request/response, auth) trong Spec và cập nhật `share_context.md` TRƯỚC KHI code.**
+3. **Pha 2 — Plan**: AI đọc `SPEC.md` để tạo `PLAN.md`; chỉ lập kế hoạch, không viết code. Con người phê duyệt.
+4. **Pha 3 — Tasks**: AI đọc `PLAN.md` và `SPEC.md` để tạo `TASKS.md` dạng bảng task atomic, independent, verifiable.
+5. **Pha 4 — Implementation**: AI/code agent implement theo `TASKS.md`, mỗi task phải có done criteria rõ ràng.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+**Trước mọi pha**: AI agent SHALL đọc `AGENTS.md` và `CLAUDE.md`.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### 1.1. Chuẩn `CONTEXT.md`
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+Mỗi feature context phải có đúng **6 phần**:
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+1. **PROBLEM STATEMENT**: Vấn đề cần giải quyết và tại sao cần feature này
+2. **DOMAIN KNOWLEDGE**: Kiến thức nghiệp vụ liên quan (business rules, workflows)
+3. **STAKEHOLDERS**: Ai sẽ sử dụng và được lợi từ feature này
+4. **CONSTRAINTS**: Các giới hạn kỹ thuật, thời gian, ngân sách
+5. **ASSUMPTIONS**: Các giả định về hệ thống, data, người dùng
+6. **OPEN QUESTIONS**: Các câu hỏi chưa trả lời cần làm rõ trước khi spec
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+### 1.2. Chuẩn `SPEC.md`
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+Mỗi feature spec phải có đúng **8 phần**:
 
-## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
+1. **Context & Goal**: Bối cảnh và mục tiêu của feature
+2. **Actors & Roles**: Các actors tham gia và vai trò của họ (Guest, Volunteer, Staff, Manager, Admin)
+3. **Functional Requirements (EARS Notation)**: Yêu cầu chức năng dùng EARS:
+   - `THE <system> SHALL <action>`
+   - `WHEN <condition>, THE <system> SHALL <action>`
+   - `WHILE <state>, THE <system> SHALL <action>`
+   - `WHERE <feature>, THE <system> SHALL <action>`
+4. **Non-functional Requirements**: Performance, security, usability, scalability
+5. **Data Model**: Entities, relationships, attributes liên quan
+6. **Error Handling**: Các trường hợp lỗi và cách xử lý
+7. **Acceptance Criteria (Given-When-Then)**: Tiêu chí chấp nhận theo BDD format
+8. **Out of Scope**: Rõ ràng những gì KHÔNG nằm trong scope của feature này
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+### 1.3. Chuẩn `PLAN.md`
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+Mỗi implementation plan phải có đúng **13 phần**:
+
+1. **SUMMARY**: Tóm tắt requirement chính từ spec + technical approach từ research
+2. **TECHNICAL CONTEXT**: Tech stack (language, primary dependencies), storage, testing framework, target platform, project type, performance goals, constraints, scale/scope
+3. **CONSTITUTION CHECK**: Gates phải pass trước khi Phase 0 research, re-check sau Phase 1 design
+4. **PROJECT STRUCTURE**: Cấu trúc thư mục documentation (plan.md, research.md, data-model.md, contracts/) + source code structure (backend/frontend hoặc monorepo tùy dự án)
+5. **COMPLEXITY TRACKING**: Table các violations cần justify (nếu design vi phạm constitution)
+6. **IMPLEMENTATION PHASES**: 3 phases của implementation planning:
+   - **Phase 0: Research & Verification** (READ-ONLY): Khảo sát codebase, xác định dependencies, verify technical feasibility. Output: research.md
+   - **Phase 1: Design & Contracts** (READ-ONLY): Thiết kế data models, API contracts, service interfaces, quickstart. Output: data-model.md, contracts/api-contract.md, contracts/service-contract.md, quickstart.md
+   - **Phase 2: Implementation Planning**: Chi tiết hóa atomic tasks. Output: tasks.md (generated bởi `/speckit-tasks`)
+7. **RISK ASSESSMENT**: Phân loại risks (HIGH/MEDIUM/LOW) với impact, mitigation strategies, và contingency plans. Format: Bảng với Risk | Impact | Probability | Mitigation
+8. **SUCCESS CRITERIA REVIEW**: Map từ spec.md acceptance criteria sang implementation deliverables. Format: SC-001, SC-002, ... với test methods
+9. **DEPLOYMENT CHECKLIST**: Pre-merge checklist (unit tests, integration tests, security review, documentation, code review approval, CONSTITUTION compliance)
+10. **NEXT STEPS**: Numbered list các action items sau khi plan được approve (Phase 0 execution, Phase 1 design, `/speckit-tasks`, implementation)
+11. **QUESTIONS FOR STAKEHOLDERS**: Clarification questions cần human decision trước Phase 0 execution
+12. **ESTIMATED EFFORT**: Total hours + breakdown per phase/component
+13. **PRIORITY**: P0 (critical blocker), P1 (core feature), P2 (enhancement), P3 (nice-to-have)
+
+**Lưu ý**: Các phần 6-11 là optional đối với simple features nhưng PHẢI có nếu complexity cao hoặc có technical uncertainty. PLAN.md không phải lúc nào cũng dài 300+ dòng — có thể ngắn 100 dòng cho simple features miễn là 5 phần bắt buộc (SUMMARY, TECHNICAL CONTEXT, CONSTITUTION CHECK, PROJECT STRUCTURE, COMPLEXITY TRACKING) phải có.
+
+### 1.4. Chuẩn `TASKS.md`
+
+`TASKS.md` phải tuân thủ format và workflow trong `.specify/templates/tasks-template.md` (Single Source of Truth).
+
+**Format cơ bản**: Checkbox list theo phases với markers:
+
+```markdown
+- [ ] T001 [P] [US1] [Task description] in [exact/file/path]
+- [ ] T002 [Story] [Task description] in [exact/file/path]
+```
+
+- **T001, T002, ...**: Numbering tuần tự
+- **[P]**: Marker nếu task có thể chạy parallel (khác files, no deps)
+- **[Story]**: Optional label cho user story mapping (US1, US2, US3)
+- **Description**: Bắt đầu bằng động từ rõ ràng (Create, Implement, Write, Update, Setup)
+- **Exact file paths**: Đầy đủ path, không dùng tổng quát
+
+**Phase-based organization bắt buộc**:
+
+1. **Phase 1: Setup** - Project initialization + project structure
+2. **Phase 2: Foundational** - Blocking prerequisites (Authentication, DB, API routing, etc.)
+   - ⚠️ **CRITICAL**: Blocks all user stories - must complete before Phase 3+
+3. **Phase 3+: User Stories** - Organized by priority (P1, P2, P3)
+   - Each story: Tests (optional, test-first) → Models → Services → Endpoints
+   - Each story: **Independently testable & deployable**
+   - Stories can run **in parallel** (if team capacity allows)
+4. **Phase N: Polish** - Cross-cutting concerns (docs, refactoring, performance, hardening)
+
+**Nguyên tắc tasks**:
+
+- **Atomic**: Không thể chia nhỏ hơn mà vẫn có value
+- **Time-boxed**: Mỗi task tối đa **4 giờ**; task lớn hơn PHẢI chia nhỏ. Enforcement: Nếu task estimate > 4h, reject tại code review và require breakdown thành sub-tasks
+- **Independent**: Có thể làm song parallel nếu không có deps (marked with [P])
+- **Verifiable**: Done criteria đo lường được (tests pass, migration applied, API working)
+- **User Story Independence**: Mỗi story phải independently testable + deployable
+- **Dependencies**: Rõ ràng (depends on T001, T002 or `-` nếu independent)
+
+**MVP Strategy**:
+
+1. Complete Phase 1 + Phase 2 (Foundation)
+2. Complete Phase 3 User Story 1 (P1) → Validate independently → Deploy if ready
+3. Add User Story 2 (P2) → Validate independently → Deploy
+4. Add User Story 3 (P3) → Validate independently → Deploy
+5. Each story adds value without breaking previous stories
+
+**Parallel Team Strategy** (if multiple developers):
+
+- After Phase 1 + Phase 2 complete:
+  - Developer A: User Story 1 (P1)
+  - Developer B: User Story 2 (P2)
+  - Developer C: User Story 3 (P3)
+  - Each story completes independently, then integrates
+
+**Xem chi tiết đầy đủ (examples, execution order, parallel opportunities) tại `.specify/templates/tasks-template.md`.**
+
+## 2. Hệ thống ràng buộc (Constraint Layers)
+
+### Layer 1 (Hard Rules) — KHÔNG BAO GIỜ vi phạm
+
+Vi phạm = **Critical security/data integrity issue**. Không có exception.
+
+- ❌ **KHÔNG lưu password plaintext**: SHALL hash bằng bcryptjs.
+- ❌ **KHÔNG SQL Injection**: SHALL dùng parameterized queries hoặc ORM (Prisma).
+- ❌ **KHÔNG hard delete dữ liệu**: SHALL soft delete cho master data. **Chi tiết xem ADR-005 tại `CLAUDE.md` Section 3.**
+- ❌ **KHÔNG leak credentials trong response**: Error SHALL NOT chứa password, JWT secret, API keys, database credentials, stack trace.
+- ❌ **KHÔNG lấy userId từ request body**: SHALL lấy từ JWT token. **Chi tiết xem ADR-002 và Lesson 3 tại `CLAUDE.md`.**
+- ❌ **KHÔNG commit secrets vào Git**: `.env`, private keys SHALL nằm trong `.gitignore`.
+- ❌ **KHÔNG lưu trữ thông tin thẻ/tài khoản ngân hàng**: Mọi giao dịch thanh toán (VNPay, MoMo) SHALL được thực hiện qua Redirect hoặc Iframe của Gateway. Hệ thống CHỈ lưu transaction ID và status.
+- **Input validation**: SHALL validate mọi request input bằng Zod. **Chi tiết xem ADR-003 tại `CLAUDE.md`.**
+- **Authentication**: Protected routes SHALL verify JWT token qua `authMiddleware.authenticate`.
+- **File Upload**: Upload phải validate kích thước (Max 5MB), định dạng (image/jpeg, image/png), và SHALL upload lên Cloudinary.
+
+**Escalation**: Nếu AI Agent phát hiện vi phạm Layer 1, SHALL báo ngay lập tức.
+
+### Layer 2 (Architecture Constraints) — Cần approval để thay đổi
+
+Vi phạm = **Technical debt** hoặc **architectural inconsistency**.
+
+- **Layered Architecture**: SHALL tuân thủ Controller → Service → Repository. **Chi tiết xem `CLAUDE.md` Section 3 (ADR-001) và Section 5 (Anti-Patterns).**
+- **Cross-module access**: Module A SHALL NOT query trực tiếp bảng của Module B. SHALL gọi qua public service/adapter.
+- **Module Ownership**: Agent SHALL NOT thay đổi logic bên trong folder/module của thành viên khác trừ khi:
+  1. Có sự xác nhận của chủ sở hữu module
+  2. Thay đổi được định nghĩa rõ trong Swagger documentation
+- **Database transactions**: Transactions SHALL begin/commit/rollback ở service layer.
+- **Audit Log**: System SHALL log mọi CUD operation trên critical entities: `applications`, `events`, `users`, `donations`, `certificates`.
+  - Format: `{ who: user_id, when: timestamp, what: action, entity_type, entity_id, old_value, new_value, ip_address }`
+  - SHALL NOT log: password, JWT token, credit card, sensitive PII
+
+**Escalation**: Nếu AI Agent muốn vi phạm Layer 2, SHALL raise question trong `PLAN.md` Section 6.
+
+### Layer 3 (Engineering Standards) — Có thể điều chỉnh
+
+Vi phạm = **Code quality issue**. Có thể linh hoạt nếu có lý do documented.
+
+- **Test coverage**: Target 80% cho services, 60% cho controllers.
+- **Performance**: API response time target < 200ms (p95) với 100 concurrent requests.
+- **Linting**: ESLint SHALL have 0 errors (warnings acceptable nếu có lý do documented).
+- **Tests traceability**: Tests SHALL trace được về acceptance criteria trong `SPEC.md`.
+- **API response format**: Tuân thủ chuẩn định dạng tại `CLAUDE.md` (ADR-006).
+
+**Chi tiết checklist hoàn thành (Definition of Done) xem `AGENTS.md` Section 9.**
+
+## 3. Quyền hạn AI Agent
+
+### 3.1 AI Agent ĐƯỢC PHÉP tự động
+
+✅ Đọc files trong project (trừ files bị .gitignore)  
+✅ Tạo/sửa code files (controllers, services, repositories, routes, middlewares, utils)  
+✅ Viết unit tests và integration tests  
+✅ Chạy tests (`npm test`) và build (`npm run build`)  
+✅ Tạo/cập nhật documentation (README, JSDoc, Swagger)  
+✅ Refactor code không thay đổi behavior  
+✅ Fix ESLint và formatting issues  
+
+### 3.2 AI Agent PHẢI XIN PHÉP trước khi
+
+❌ Xóa files (trừ `.tmp`, `.log`)  
+❌ Apply database migrations (tạo file migration: OK, apply lên DB: CẦN PHÉP)  
+❌ Merge vào `main`/`develop`/`master`  
+❌ Deploy lên production/staging/UAT  
+❌ Modify `.env`, `package.json`, `config/*.js`  
+❌ `npm install` packages mới  
+❌ Thay đổi architectural decisions (đổi ORM, framework, database type)  
+
+### 3.3 Permission Request Format
+
+```markdown
+🚨 PERMISSION REQUIRED
+
+Action: [Hành động cụ thể]
+Reason: [Lý do]
+Impact: [Files/data affected, breaking changes]
+Rollback Plan: [Cách rollback]
+Risk: [Low/Medium/High]
+```
+
+---
+
+**Version**: 4.1  
+**Last Updated**: 2026-06-25  
+**Changelog**:
+
+- v4.1: Bỏ Pha 1.5, gộp API documentation vào Pha 1
+- v4.0: Tái cấu trúc theo bộ khung mới - tập trung vào Quy trình SDD, Constraint Layers và AI Agent Authority
+- v4.0: Rút gọn để dễ đọc, loại bỏ các phần chi tiết kỹ thuật sang AGENTS.md và CLAUDE.md
+
+*Tham chiếu: Xem Persona & Tech Stack tại `AGENTS.md`, Architecture & ADRs tại `CLAUDE.md`, API Contracts & Team Status tại `share_context.md`.*

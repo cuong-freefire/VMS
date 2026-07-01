@@ -1,6 +1,6 @@
 # Feature Specification: Quên Mật Khẩu (Forgot Password)
 
-**Feature Branch**: `001-forgot-password`
+**Feature Branch**: `feat/UC07-forgot-password`
 
 **Created**: 2026-06-25
 
@@ -89,7 +89,7 @@ Kẻ tấn công cố gắng dò quét email nào tồn tại trong hệ thống
 
 #### FR-001: Yêu cầu khôi phục mật khẩu
 
-**WHEN** người dùng submit email hợp lệ tại Trang 1, **THE system SHALL** tạo mã OTP gồm 6 chữ số ngẫu nhiên với thời gian sống (TTL) là 10 phút, lưu vào bảng OTP chung với cờ type = 'RESET_PASSWORD', và gửi mã OTP đến địa chỉ email đó qua dịch vụ email.
+**WHEN** người dùng submit email hợp lệ tại Trang 1, **THE system SHALL** tạo mã OTP gồm 6 chữ số ngẫu nhiên với thời gian sống (TTL) là 10 phút, hash và lưu vào bảng `email_verifications` với `type = 'RESET_PASSWORD'`, và gửi mã OTP (plaintext) đến địa chỉ email đó qua dịch vụ email.
 
 #### FR-002: Chống dò quét tài khoản
 
@@ -101,7 +101,7 @@ Kẻ tấn công cố gắng dò quét email nào tồn tại trong hệ thống
 
 #### FR-004: Xác thực OTP
 
-**WHEN** người dùng submit mã OTP tại Trang 2, **THE system SHALL** kiểm tra mã OTP có khớp với bản ghi trong bảng OTP, chưa hết hạn (trong vòng 10 phút từ lúc tạo), không bị khóa (is_locked = false), và thuộc type = 'RESET_PASSWORD'.
+**WHEN** người dùng submit mã OTP tại Trang 2, **THE system SHALL** kiểm tra mã OTP có khớp với `otp_hash` trong bảng `email_verifications`, chưa hết hạn (trong vòng 10 phút từ `created_at`), không bị khóa (`is_locked = false`), và thuộc `type = 'RESET_PASSWORD'`.
 
 #### FR-005: Đếm số lần nhập sai OTP
 
@@ -133,7 +133,7 @@ Kẻ tấn công cố gắng dò quét email nào tồn tại trong hệ thống
 
 #### FR-012: Xóa OTP sau khi đổi mật khẩu thành công
 
-**WHEN** mật khẩu mới được cập nhật thành công, **THE system SHALL** xóa bản ghi OTP tương ứng khỏi bảng OTP.
+**WHEN** mật khẩu mới được cập nhật thành công, **THE system SHALL** hard DELETE bản ghi `email_verifications` tương ứng (`email`, `type = 'RESET_PASSWORD'`).
 
 #### FR-013: Validate mật khẩu mới
 
@@ -151,9 +151,13 @@ Kẻ tấn công cố gắng dò quét email nào tồn tại trong hệ thống
 
 **WHEN** người dùng đổi mật khẩu thành công, **THE system SHALL** hiển thị thông báo thành công và chuyển hướng đến trang đăng nhập, nhưng SHALL NOT tự động đăng nhập người dùng vào hệ thống.
 
+#### FR-017: Ghi audit log cho luồng khôi phục mật khẩu
+
+**WHEN** hệ thống xử lý các bước forgot password, **THE system SHALL** ghi audit log (Pino) cho các sự kiện: OTP sent, OTP verified, password reset success, và lockout triggered. **THE system SHALL NOT** ghi OTP plaintext, mật khẩu plaintext, `password_hash`, hoặc `otp_hash` vào log.
+
 ### Key Entities *(Business Level Only)*
 
-- **OTP Record**: Đại diện cho mã xác thực một lần được tạo ra cho mục đích khôi phục mật khẩu. Bao gồm các thuộc tính: mã OTP (6 chữ số), email liên kết, loại nghiệp vụ (type = 'RESET_PASSWORD'), thời gian tạo, thời gian hết hạn (TTL 10 phút), bộ đếm số lần nhập sai (attempts), trạng thái khóa (is_locked), thời gian khóa đến (locked_until). Bản ghi này được dùng chung với luồng Register để tối ưu thiết kế database (1-Table Design).
+- **Email Verification Record (`email_verifications`)**: Đại diện cho mã xác thực OTP được tạo cho khôi phục mật khẩu. Bao gồm: email, `otp_hash` (bcrypt), `type = 'RESET_PASSWORD'`, `created_at` (TTL 10 phút), `last_sent_at` (cooldown 60s), `attempts`, `is_locked`, `locked_until`. Dùng chung bảng với luồng Register (1-Table Design, phân biệt bằng `type`).
 
 - **User Account**: Tài khoản người dùng trong hệ thống, bao gồm email (định danh duy nhất) và mật khẩu đã được mã hóa một chiều. Mật khẩu sẽ được cập nhật sau khi người dùng hoàn tất luồng khôi phục mật khẩu thành công.
 
@@ -224,9 +228,9 @@ Kẻ tấn công cố gắng dò quét email nào tồn tại trong hệ thống
 
 - Người dùng có quyền truy cập vào email đã đăng ký và có thể đọc email trong vòng 10 phút
 - Dịch vụ gửi email bên thứ ba (SMTP/Nodemailer) đã được cấu hình đúng và hoạt động ổn định với uptime ít nhất 99%
-- Người dùng đã có tài khoản trong hệ thống và email đã được xác thực trước đó
+- Người dùng đã có tài khoản trong hệ thống (`users.email` tồn tại); không yêu cầu `email_verified = true` để reset mật khẩu
 - Frontend được xây dựng bằng React và có khả năng quản lý state giữa các trang mà không cần reload
-- Bảng OTP đã tồn tại trong database và đang được sử dụng chung cho cả luồng Register (thiết kế 1-Table)
+- Bảng `email_verifications` đã tồn tại (UC04) với cột `type` và đang được dùng chung cho Register và Reset Password
 - Múi giờ server và client không ảnh hưởng đến tính toán thời gian hết hạn OTP và lockout (server time là chuẩn)
 
 ---

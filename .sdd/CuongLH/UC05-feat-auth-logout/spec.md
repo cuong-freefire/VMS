@@ -40,20 +40,6 @@ Là Người dùng, tôi muốn hệ thống vẫn xóa thông tin định danh 
 
 ---
 
-### User Story 3 - Đăng xuất không ảnh hưởng phiên làm việc khác (Priority: P3)
-
-Là Người dùng sử dụng nhiều thiết bị/trình duyệt, tôi muốn việc đăng xuất trên một thiết bị không ảnh hưởng đến các phiên làm việc khác của tôi, để tôi có thể quản lý phiên làm việc độc lập trên từng thiết bị.
-
-**Why this priority**: Tính năng này hỗ trợ trải nghiệm người dùng tốt hơn trong các tình huống sử dụng đa thiết bị, nhưng không ảnh hưởng đến chức năng cốt lõi của đăng xuất.
-
-**Independent Test**: Test bằng cách đăng nhập trên hai trình duyệt khác nhau (Chrome và Firefox), đăng xuất trên Chrome, sau đó xác minh rằng phiên làm việc trên Firefox vẫn hoạt động bình thường.
-
-**Acceptance Scenarios**:
-
-1. **Given** người dùng đã đăng nhập trên hai trình duyệt khác nhau (Chrome và Firefox) trên cùng một thiết bị, **When** người dùng đăng xuất trên trình duyệt Chrome, **Then** phiên làm việc trên trình duyệt Firefox vẫn hoạt động bình thường và người dùng vẫn có thể truy cập các trang yêu cầu xác thực trên Firefox.
-
----
-
 ### Edge Cases
 
 - **Người dùng chưa đăng nhập cố gắng đăng xuất**: Hệ thống từ chối yêu cầu với thông báo "Không tìm thấy phiên làm việc hợp lệ".
@@ -87,7 +73,7 @@ Là Người dùng sử dụng nhiều thiết bị/trình duyệt, tôi muốn 
 
 **FR-011 (Access Control)**: WHERE người dùng đã đăng xuất cố gắng truy cập vào trang yêu cầu xác thực, THE system SHALL chuyển hướng về trang đăng nhập với thông báo "Vui lòng đăng nhập để tiếp tục".
 
-**FR-012 (Multi-Device)**: THE system SHALL đảm bảo rằng việc đăng xuất không ảnh hưởng đến các phiên làm việc khác của người dùng trên các thiết bị/trình duyệt khác.
+**FR-012 (Single Session)**: THE system SHALL implement Single Active Session model, nghĩa là khi người dùng đăng nhập trên thiết bị mới, phiên làm việc cũ trên thiết bị khác sẽ tự động bị vô hiệu hóa (theo DATABASE.md - user_sessions có UNIQUE constraint trên user_id).
 
 ### Non-Functional Requirements
 

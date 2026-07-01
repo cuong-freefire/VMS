@@ -37,7 +37,7 @@
 
 **Key Strengths**:
 1. **EARS Notation Compliance**: All 34 functional requirements (FR-001 to FR-034) correctly use EARS notation (WHEN/WHERE/THE system SHALL), with special attention to UNWANTED patterns (WHERE clauses) for error handling scenarios.
-2. **Zero "HOW" Policy**: Specification successfully avoids implementation details (NodeMailer, SMTP libraries, queue systems, JavaScript syntax). Uses business language: "truyền tải thư điện tử", "mã hóa đường dẫn xác thực", "nội dung định dạng HTML".
+2. **Zero "HOW" Policy**: Specification successfully avoids implementation details (NodeMailer, SMTP libraries, queue systems, JavaScript syntax). Uses business language: "truyền tải thư điện tử", "gửi mã OTP xác thực", "nội dung định dạng HTML".
 3. **Complete Coverage**: All 5 use cases (UC62-UC66) are fully specified with prioritized user stories, acceptance scenarios, functional requirements, and measurable success criteria.
 4. **Clear Scope Boundaries**: Out of Scope section explicitly excludes 10+ features that are NOT part of this module (certificate generation, email history, queueing systems, template engines, retry mechanisms, multilingual support, email tracking, marketing campaigns).
 5. **Technology-Agnostic Success Criteria**: All 10 success criteria (SC-001 to SC-010) are measurable and focus on user/business outcomes rather than technical metrics.
