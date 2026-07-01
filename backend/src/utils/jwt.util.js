@@ -6,7 +6,8 @@ import jwt from 'jsonwebtoken';
 export function signAccessToken(payload) {
     const SECRET = process.env.SECRET_KEY
     const option = {
-        expiresIn: '60s' //test 60s
+        // expiresIn: '60s' //test 60s
+        expiresIn: '7d'
     }
     const accessToken = jwt.sign(payload, SECRET, option)
     return accessToken
