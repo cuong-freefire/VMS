@@ -91,11 +91,13 @@ SMTP_FROM_EMAIL=your-email@gmail.com
 **SMTP Setup Options**:
 
 **Option A: Gmail (Development)**
+
 1. Go to Google Account → Security → 2-Step Verification
 2. Generate App Password
 3. Use app password in `SMTP_PASS`
 
 **Option B: Mailtrap (Testing)**
+
 ```env
 SMTP_HOST=smtp.mailtrap.io
 SMTP_PORT=2525
@@ -104,6 +106,7 @@ SMTP_PASS=your-mailtrap-password
 ```
 
 **Option C: SendGrid (Production)**
+
 ```env
 SMTP_HOST=smtp.sendgrid.net
 SMTP_PORT=587
@@ -163,6 +166,7 @@ npx prisma migrate status
 ```
 
 Expected output:
+
 ```
 ✔ Your database is now in sync with your Prisma schema.
 ```
@@ -184,6 +188,7 @@ mysql -u root -p vms -e "SELECT * FROM roles;"
 ```
 
 Expected output:
+
 ```
 +----+-----------+------------------------------------------+
 | id | name      | description                              |
@@ -212,6 +217,7 @@ npm start
 ```
 
 Expected output:
+
 ```
 🚀 Server running on http://localhost:5000
 📚 API Documentation: http://localhost:5000/api-docs
@@ -230,6 +236,7 @@ npm start
 ```
 
 Expected output:
+
 ```
 Compiled successfully!
 
@@ -321,6 +328,7 @@ curl -X POST http://localhost:5000/api/v1/auth/register/send-otp \
 ```
 
 Expected response:
+
 ```json
 {
   "success": true,
@@ -348,6 +356,7 @@ curl -X POST http://localhost:5000/api/v1/auth/register/verify-otp \
 ```
 
 Expected response:
+
 ```json
 {
   "success": true,
@@ -365,6 +374,7 @@ mysql -u root -p vms -e "SELECT id, email, full_name, phone_number, role_id, is_
 ```
 
 Expected output:
+
 ```
 +----+-------------------+------------------+-------------+---------+-----------+
 | id | email             | full_name        | phone_number| role_id | is_active |
@@ -381,10 +391,12 @@ Expected output:
 2. Or manually create requests:
 
 **Request 1: Send OTP**
+
 - Method: POST
 - URL: `http://localhost:5000/api/v1/auth/register/send-otp`
 - Headers: `Content-Type: application/json`
 - Body (raw JSON):
+
 ```json
 {
   "email": "test@example.com"
@@ -392,10 +404,12 @@ Expected output:
 ```
 
 **Request 2: Verify OTP**
+
 - Method: POST
 - URL: `http://localhost:5000/api/v1/auth/register/verify-otp`
 - Headers: `Content-Type: application/json`
 - Body (raw JSON):
+
 ```json
 {
   "email": "test@example.com",
@@ -503,6 +517,7 @@ npm run dev
 ```
 
 Look for:
+
 - OTP generation logs (should NOT show plaintext OTP)
 - Email send success/failure
 - Database query errors
@@ -539,7 +554,8 @@ Error: getaddrinfo ENOTFOUND smtp.gmail.com
 Error: Can't connect to MySQL server on 'localhost'
 ```
 
-**Solution**: 
+**Solution**:
+
 - Verify MySQL is running: `systemctl status mysql` (Linux) or `brew services list` (Mac)
 - Check DATABASE_URL in .env
 - Test connection: `mysql -u root -p`
@@ -553,6 +569,7 @@ Error: P3009 - Migration failed to apply cleanly
 ```
 
 **Solution**:
+
 ```bash
 npx prisma migrate reset --force
 npx prisma migrate deploy

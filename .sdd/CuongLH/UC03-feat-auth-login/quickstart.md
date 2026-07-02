@@ -40,6 +40,7 @@ npm install
 ```
 
 **Key packages cần có**:
+
 - `express` - Web framework
 - `@prisma/client` - ORM client
 - `prisma` (dev) - ORM CLI
@@ -61,6 +62,7 @@ npm install
 ```
 
 **Key packages cần có**:
+
 - `react` - UI library
 - `react-dom` - React DOM renderer
 - `react-router-dom` - Routing
@@ -284,6 +286,7 @@ npx prisma studio
 ```
 
 Browser sẽ mở Prisma Studio → Verify:
+
 - ✅ `roles` table có 4 records
 - ✅ `users` table có test user (dev only)
 - ✅ `user_sessions` table empty
@@ -858,6 +861,7 @@ COOKIE_SECURE=true
 ### Issue: Cookie không được gửi từ Frontend
 
 **Solution**: Check CORS và axios config:
+
 - Backend: `credentials: true` in cors config
 - Frontend: `withCredentials: true` in axios
 - Frontend và Backend phải cùng domain (hoặc CORS allow credentials)
@@ -869,6 +873,7 @@ COOKIE_SECURE=true
 ### Issue: Account bị lock vĩnh viễn
 
 **Solution**: Manual unlock trong database:
+
 ```sql
 DELETE FROM login_attempts WHERE email = 'user@example.com';
 ```

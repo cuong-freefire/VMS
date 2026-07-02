@@ -10,7 +10,7 @@
  */
 
 import { Router } from 'express';
-import authMiddleware from '../middleware/auth.middleware.js';
+import authMiddleware from '../middlewares/auth.middleware.js';
 import { successResponse } from '../utils/response.util.js';
 
 const router = Router();

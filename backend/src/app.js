@@ -24,8 +24,13 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 
 // Nhập logger middleware để log mọi HTTP request/response
-import httpLogger from './middleware/logger.middleware.js';
+import httpLogger from './middlewares/logger.middleware.js';
+import { errorResponse } from './utils/response.util.js';
 
+// Kiểm tra kết nối nodemailer (SMTP) khi server khởi động
+import { verifyTransporter } from './config/transporter.config.js';
+
+verifyTransporter();
 
 const app = express();
 
@@ -78,9 +83,19 @@ app.use(httpLogger);
  * Hiện tại chưa thêm prefix, nhưng nên refactor sau
  */
 // 6.1 Auth routes
-app.use('/auth', authRoutes);
+app.use('/api/v1/auth', authRoutes);
 // 6.2 User routes
-app.use('/user', userRoutes);
+app.use('/api/v1/user', userRoutes);
 
+// Global Error Handler (luôn đặt cuối cùng)
+app.use((err, req, res, next) => {
+  console.error(err);
+
+  res.status(err.status || 500).json(errorResponse(
+    err.message || 'Internal Server Error',
+    err.code || 'INTERNAL_SERVER_ERROR',
+    err.details || null
+  ));
+});
 
 export default app;
