@@ -16,6 +16,24 @@
 import { z } from 'zod';
 
 /**
+ * Schema for POST /api/v1/auth/login (UC03 - Happy Path)
+ * Validates email and password for login
+ */
+export const loginSchema = z.object({
+    body: z.object({
+        email: z
+            .string('Email là bắt buộc')
+            .email('Email không hợp lệ')
+            .max(255, 'Email quá dài (tối đa 255 ký tự)')
+            .toLowerCase()
+            .trim(),
+        password: z
+            .string('Mật khẩu là bắt buộc')
+            .min(1, 'Mật khẩu không được để trống'),
+    }),
+});
+
+/**
  * Schema for POST /api/v1/auth/register/send-otp
  * Validates email format and existence
  */
@@ -91,6 +109,7 @@ export const validate = (schema) => {
 };
 
 export default {
+    loginSchema,
     sendOTPSchema,
     verifyOTPSchema,
     validate,

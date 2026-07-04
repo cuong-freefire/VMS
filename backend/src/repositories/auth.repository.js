@@ -103,13 +103,94 @@ export const deleteVerification = async (email, type = 'REGISTER') => {
 };
 
 /**
- * Find user by email
- * @param {string} email - User email
- * @returns {Promise<Object|null>} User record or null
+ * Find user by email with role
+ * @param {string} email - User email (normalized)
+ * @returns {Promise<Object|null>} User record with role or null
  */
 export const findUserByEmail = async (email) => {
     return prisma.user.findUnique({
         where: { email },
+        include: { role: true }
+    });
+};
+
+/**
+ * Get login attempts record by email
+ * @param {string} email - User email
+ * @returns {Promise<Object|null>} LoginAttempt record or null
+ */
+export const getLoginAttempts = async (email) => {
+    return prisma.loginAttempt.findUnique({
+        where: { email }
+    });
+};
+
+/**
+ * Increment login attempts
+ * @param {string} email - User email
+ * @returns {Promise<Object>} Updated LoginAttempt record
+ */
+export const incrementLoginAttempts = async (email) => {
+    const existing = await prisma.loginAttempt.findUnique({
+        where: { email }
+    });
+
+    if (existing) {
+        const newAttempts = existing.attempts + 1;
+        const updateData = { attempts: newAttempts };
+
+        // Lock account if 5+ attempts
+        if (newAttempts >= 5) {
+            updateData.lockedUntil = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+        }
+
+        return prisma.loginAttempt.update({
+            where: { email },
+            data: updateData
+        });
+    } else {
+        return prisma.loginAttempt.create({
+            data: {
+                email,
+                attempts: 1
+            }
+        });
+    }
+};
+
+/**
+ * Reset login attempts
+ * @param {string} email - User email
+ * @returns {Promise<void>}
+ */
+export const resetLoginAttempts = async (email) => {
+    await prisma.loginAttempt.delete({
+        where: { email }
+    }).catch(() => {
+        // Ignore if record doesn't exist
+    });
+};
+
+/**
+ * Upsert user session (Single Active Session)
+ * @param {number} userId - User ID
+ * @param {string} jti - JWT ID (unique per token)
+ * @param {Date} expiresAt - Session expiry time
+ * @returns {Promise<Object>} Created or updated UserSession
+ */
+export const upsertSession = async (userId, jti, expiresAt) => {
+    return prisma.userSession.upsert({
+        where: { userId },
+        create: {
+            userId,
+            jti,
+            expiresAt
+        },
+        update: {
+            jti,
+            expiresAt,
+            createdAt: new Date()
+        }
     });
 };
 

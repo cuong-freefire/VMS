@@ -11,13 +11,13 @@
 
 import { Router } from 'express';
 import { login, sendOTPController, verifyOTPController } from '../controllers/auth.controller.js';
-import { validate, sendOTPSchema, verifyOTPSchema } from '../middlewares/validators/auth.validator.js';
+import { validate, loginSchema, sendOTPSchema, verifyOTPSchema } from '../middlewares/validators/auth.validator.js';
 
 const router = Router();
 
 /**
  * @swagger
- * /auth/login:
+ * /api/v1/auth/login:
  *   post:
  *     summary: Đăng nhập vào hệ thống
  *     description: |
@@ -95,7 +95,7 @@ const router = Router();
  *               code: INTERNAL_SERVER_ERROR
  *               details: null
  */
-router.post('/login', login);
+router.post('/login', validate(loginSchema), login);
 
 /**
  * @swagger

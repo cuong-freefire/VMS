@@ -8,7 +8,7 @@
 
 ## Research Scope
 
-Phase 0 research giải quyết các NEEDS CLARIFICATION từ Technical Context và investigate best practices cho technical decisions trong UC03.
+Phase 0 research giải quyết các NEEDS CLARIFICATION từ Technical Context và chọn ra best practices cho technical decisions trong UC03.
 
 ### Research Questions
 
@@ -34,7 +34,7 @@ UC03 cần track `jti` (JWT ID) để enforce Single Active Session. Nên lưu `
 
 - Đơn giản, không thêm infrastructure dependency
 - ACID compliance (transaction support)
-- Consistent với phần còn lại của database schema
+- Đồng bộ với phần còn lại của database schema
 - Dễ query và join với `users` table cho analytics
 - Backup và recovery tự động cùng với main database
 
@@ -42,7 +42,7 @@ UC03 cần track `jti` (JWT ID) để enforce Single Active Session. Nên lưu `
 
 - Slower read/write so với in-memory storage (~10-20ms per query)
 - Database load tăng khi scale (mỗi authenticated request cần check jti)
-- Không có built-in TTL, cần manual cleanup job
+- Không có built-in TTL, cần manual cleanup job (MySQL không tự động xóa các bản ghi hết hạn, phải tự tạo một tác vụ (job) để định kỳ xóa các bản ghi cũ.)
 
 **Performance Estimate**:
 
@@ -76,27 +76,27 @@ UC03 cần track `jti` (JWT ID) để enforce Single Active Session. Nên lưu `
 
 **CHỌN Option A: MySQL `user_sessions` table cho UC03 MVP**
 
-**Rationale**:
+**Lý do**:
 
-1. **KISS Principle**: MySQL đủ cho MVP với expected load (~100-500 concurrent users). Premature optimization với Redis không cần thiết.
+1. **KISS Principle(Luôn chọn giải pháp đơn giản nhất Keep it Simple)**: MySQL đủ cho MVP với expected load (~100-500 concurrent users). Không sử dụng với Redis.
 
-2. **Consistency**: Tất cả auth-related data (users, sessions, attempts) cùng 1 nơi, dễ maintain và query.
+2. **Đồng bộ**: Tất cả auth-related data (users, sessions, attempts) cùng 1 nơi, dễ maintain và query.
 
 3. **Transaction Support**: Nếu cần wrap session upsert + other operations trong transaction, MySQL ACID compliance đảm bảo consistency.
 
-4. **Migration Path Clear**: Khi scale cần Redis, có thể migrate dễ dàng:
-   - AuthRepository abstraction đã tách biệt data access
-   - Chỉ cần swap implementation: MySQLSessionRepo → RedisSessionRepo
+4. **Lộ trình chuyển đổi rõ ràng**: Khi scale cần Redis, có thể migrate dễ dàng:
+   - Đã tách riêng phần truy cập dữ liệu (AuthRepository), nên code xử lý nghiệp vụ không phụ thuộc vào MySQL hay Redis.
+   - Chỉ cần thay lớp lưu trữ dữ liệu: đổi từ MySQLSessionRepo sang RedisSessionRepo
    - No business logic changes
 
-**When to Re-evaluate**:
+**Khi nào cần đánh giá lại ?**:
 
-- Concurrent users > 5,000
-- Login API p95 latency > 500ms
-- Session check adds >50ms to authenticated requests
+- Khi có hơn 5.000 người dùng đang sử dụng hệ thống cùng lúc.
+- Khi API đăng nhập phản hồi quá chậm, đa số người dùng phải chờ hơn 500ms mới nhận được kết quả.
+- Khi việc kiểm tra session làm chậm các API đã đăng nhập, mỗi request phải tốn thêm hơn 50ms chỉ để xác thực session.
 
-**Alternatives Considered**:
-Redis rejected vì thêm complexity không justify bởi current scale requirements.
+**Các phương án đã được xem xét (Alternatives considered)**:
+Không chọn Redis vì nó làm hệ thống phức tạp hơn, trong khi quy mô hiện tại chưa đủ lớn để xứng đáng với sự phức tạp đó.
 
 ---
 
@@ -108,11 +108,15 @@ DATABASE.md spec yêu cầu bcrypt salt rounds = 12. Tại sao 12? Trade-off gi�
 
 ### Technical Background
 
-Bcrypt là adaptive hashing algorithm với cost factor (salt rounds). Cost = 2^rounds iterations.
+Bcrypt là adaptive hashing algorithm với cost factor (salt rounds). Mỗi khi tăng cost lên 1, số lần tính toán sẽ tăng gấp đôi.
 
-**Formula**: Time ≈ 2^rounds × base_time
+**Công thức**: Time ≈ 2^rounds × base_time
 
-| Rounds | Iterations | Approx Time (2026 hardware) | Security Level |
+- Time = Thời gian bcrypt mất để hash mật khẩu.
+- 2^rounds = Hệ số tăng theo lũy thừa của 2.
+- base_time = Thời gian cơ bản của một vòng tính toán trên máy hiện tại.
+
+| Rounds | Iterations (lặp lại) | Approx Time (2026 hardware) | Security Level |
 |--------|------------|----------------------------|----------------|
 | 10 | 1,024 | ~65ms | Acceptable (minimum) |
 | 11 | 2,048 | ~130ms | Good |
@@ -132,23 +136,23 @@ Bcrypt là adaptive hashing algorithm với cost factor (salt rounds). Cost = 2^
 
 ### Performance Impact Analysis
 
-**Scenarios**:
+**Kịch bản**:
 
 1. **User Login** (UC03):
    - Frequency: ~2-5 logins/user/week
    - Users: ~1,000 active users
    - Total logins/day: ~300-500
-   - 250ms bcrypt time is ACCEPTABLE (login không frequent)
+   - 250ms bcrypt time is ACCEPTABLE (login không thường xuyên)
 
 2. **Password Change** (UC06):
    - Frequency: ~1 change/user/month
-   - 250ms is NEGLIGIBLE
+   - 250ms là không đáng kể
 
 3. **Register** (UC04):
    - Frequency: ~10-20 new users/day (estimate)
    - 250ms is ACCEPTABLE
 
-**Conclusion**: 250ms bcrypt time với 12 rounds KHÔNG bottleneck cho VMS use cases.
+**Conclusion**: 250ms bcrypt time với 12 rounds **KHÔNG** gây ra bottleneck cho VMS use cases.
 
 ### Decision
 

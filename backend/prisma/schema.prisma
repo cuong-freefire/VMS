@@ -113,7 +113,6 @@ model User {
 
   role                          Role                           @relation(fields: [roleId], references: [id])
   session                       UserSession?
-  loginAttempts                 LoginAttempt[]
   applicationsSubmitted         Application[]                  @relation("applicationSubmittedByUser")
   applicationsProcessed         Application[]                  @relation("applicationProcessedByUser")
   userSkills                    UserSkill[]
@@ -150,6 +149,7 @@ model UserSession {
 
 /// Account lockout tracking (brute-force protection)
 /// Owner: Member 1 (CuongLH)
+/// Note: NO foreign key constraint - tracks email regardless of user existence (prevents user enumeration)
 model LoginAttempt {
   id           Int      @id @default(autoincrement())
   email        String   @unique @db.VarChar(255)
@@ -157,8 +157,6 @@ model LoginAttempt {
   lockedUntil  DateTime? @map("locked_until")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
-
-  user User? @relation(fields: [email], references: [email], onDelete: Cascade)
 
   @@index([lockedUntil])
   @@map("login_attempts")

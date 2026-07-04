@@ -11,7 +11,11 @@
     "start": "node src/server.js",
     "dev": "node src/server.js",
     "start:swagger": "node src/swagger-server.js",
-    "dev:swagger": "node src/swagger-server.js"
+    "dev:swagger": "node src/swagger-server.js",
+    "db:seed": "node prisma/seed.js"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   },
   "author": "CuongLH",
   "license": "ISC",
