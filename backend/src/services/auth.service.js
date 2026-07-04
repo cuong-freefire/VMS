@@ -155,7 +155,7 @@ export const sendOTP = async (email) => {
         const now = new Date();
         const timeSinceLastSend = Math.floor((now - verification.lastSentAt) / 1000); // seconds
         if (timeSinceLastSend < 60) {
-            const remainingSeconds = 60 - timeSinceLastSend;
+            const remainingSeconds = 60 - timeSinceLastSend; // Thời gian phải chờ trước khi gửi lại OTP
             throw new ServiceError(
                 `Vui lòng đợi ${remainingSeconds} giây trước khi gửi lại OTP`,
                 429,
@@ -174,14 +174,6 @@ export const sendOTP = async (email) => {
                 429,
                 "EMAIL_LOCKED"
             );
-        } else {
-            // Lock expired, reset it
-            await authRepository.updateVerification(normalizedEmail, {
-                isLocked: false,
-                attempts: 0,
-                lockedUntil: null,
-            });
-            verification = null;
         }
     }
 

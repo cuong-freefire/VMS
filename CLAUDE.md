@@ -305,6 +305,18 @@ frontend/
 
 **Takeaway**: Non-critical side effects (logging, notifications) nên được decouple khỏi main business logic.
 
+---
+
+### Lesson 5: Audit Log phải được log bất đồng bộ
+
+**What Happened**: AI viết thừa tài liệu swagger vào những file không liên quan (vd: controller, middlware,...).
+
+**Root Cause**: Tài liệu không để cập.
+
+**Fix**: AI chỉ được sinh ra tài liệu swagger ở phạm vi backend\src\routes không được viết sang các folder khác.
+
+**Takeaway**: Không được tự ý sinh swagger ngoài phạm vi backend\src\routes.
+
 ## 5. Anti-Patterns (FORBIDDEN)
 
 ### ❌ Cross-module Repository Import
@@ -364,26 +376,7 @@ await prisma.user.delete({ where: { id: userId } });
 ### Backend `.env` (Example)
 
 ```text
-PORT=5000
-API_PREFIX=/api/v1
-FRONTEND_ORIGIN=http://localhost:3000
-
-DATABASE_URL=mysql://user:pass@localhost:3306/vms
-
-AUTH_SECRET=your-jwt-secret-key
-COOKIE_ACCESS_NAME=vms_access_token
-JWT_ACCESS_EXPIRES_IN=7d
-
-BCRYPT_SALT_ROUNDS=12
-
-# Future: Cloudinary integration
-CLOUDINARY_CLOUD_NAME=your-cloud
-CLOUDINARY_API_KEY=your-key
-CLOUDINARY_API_SECRET=your-secret
-
-# Future: Payment gateway integration
-PAYMENT_GATEWAY_API_KEY=your-key
-PAYMENT_GATEWAY_SECRET=your-secret
+backend\.env.example
 ```
 
 ### Frontend `.env` (Example)
