@@ -36,9 +36,7 @@ Trong hệ thống VMS, việc đăng xuất không chỉ đơn thuần là chuy
 2. **Audit Logging:** Có cần ghi lại nhật ký (Audit log) thời điểm và đối tượng đăng xuất để phục vụ công tác quản lý không?.
 3. **Global Logout:** Người dùng có cần tùy chọn "Đăng xuất khỏi tất cả các thiết bị" (hủy toàn bộ Refresh Tokens) không?
 
-## 7. ANSWERS (Sẽ được cập nhật sau khi thảo luận)
-
-## 7. ANSWERS (Chốt cho SPEC.md)
+## 7. ANSWERS
 
 1. **Server-side Blacklist:**
    - **QUYẾT ĐỊNH:** **KHÔNG SỬ DỤNG.**

@@ -113,3 +113,117 @@ directories captured above]
 |-----------|------------|-------------------------------------|
 | [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
 | [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+
+## Implementation Phases
+
+### Phase 0: Research & Verification (READ-ONLY)
+
+**Objective**: [Describe research scope and verification tasks]
+
+**Tasks**:
+
+1. [Research task 1]
+2. [Research task 2]
+3. [Research task N]
+
+**Output**: `research.md` file with technical findings and architecture decisions
+
+---
+
+### Phase 1: Design & Contracts (READ-ONLY)
+
+**Objective**: [Describe design scope and deliverables]
+
+**Tasks**:
+
+1. **Data Model** - [Describe schema design]
+2. **API Contracts** - [Describe endpoint design]
+3. **Service Contracts** - [Describe business logic interface]
+4. **Quick Start Guide** - [Describe developer guide]
+
+**Output**: 4 files (`data-model.md`, `contracts/api-contract.md`, `contracts/service-contract.md`, `quickstart.md`)
+
+---
+
+### Phase 2: Implementation Planning (READY FOR APPROVAL)
+
+**Objective**: Break down implementation into atomic tasks
+
+**Note**: Phase này sẽ được thực hiện bằng command `/speckit-tasks` sau khi plan được approve
+
+**Expected Output**: `tasks.md` với atomic task breakdown:
+
+- Task 1: [First task]
+- Task 2: [Second task]
+- Task N: [Nth task]
+
+**Dependencies**: [Describe dependency chain and execution order]
+
+---
+
+## Risk Assessment
+
+### HIGH RISK
+
+- **[Risk Title]**: [Description]. Risk: [Impact]. 
+  - **Mitigation**: [How to mitigate]
+
+### MEDIUM RISK
+
+- **[Risk Title]**: [Description]. Risk: [Impact].
+  - **Mitigation**: [How to mitigate]
+
+### LOW RISK
+
+- **[Risk Title]**: [Description]. Risk: [Impact].
+  - **Mitigation**: [How to mitigate]
+
+---
+
+## Success Criteria Review
+
+Mapping từ spec.md Success Criteria sang implementation deliverables:
+
+- **SC-001** [Success Criterion]: [How to verify - test method/acceptance criteria]
+- **SC-002** [Success Criterion]: [How to verify - test method/acceptance criteria]
+- **SC-N** [Success Criterion]: [How to verify - test method/acceptance criteria]
+
+---
+
+## Deployment Checklist
+
+Trước khi merge vào main branch:
+
+- [ ] [Checklist item 1]
+- [ ] [Checklist item 2]
+- [ ] [Checklist item N]
+
+---
+
+## Next Steps
+
+1. [Action item 1 - e.g., Review plan này]
+2. [Action item 2 - e.g., Clarify decision]
+3. [Action item 3 - e.g., Phase 0 execution]
+4. [Action item 4 - e.g., Run /speckit-tasks]
+5. [Action item N]
+
+## Questions for Stakeholders
+
+1. **[Question Title]**: [Question description]
+   - **Context**: [Why this matters]
+   - **Options**: (A) [Option A], (B) [Option B], (C) [Option C]
+   - **Recommendation**: [Suggested choice]
+
+2. **[Question Title]**: [Question description]
+   - **Context**: [Why this matters]
+   - **Options**: (A) [Option A], (B) [Option B]
+   - **Recommendation**: [Suggested choice]
+
+3-N. [Additional questions]
+
+---
+
+**Plan Status**: READY FOR REVIEW  
+**Estimated Effort**: [X-Y hours] ([breakdown: Phase 0: X h, Phase 1: Y h, Phase 2: Z h])  
+**Priority**: [P0/P1/P2/P3]

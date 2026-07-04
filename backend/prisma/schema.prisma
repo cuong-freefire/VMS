@@ -1,0 +1,517 @@
+// Prisma Schema for Volunteer Management System (VMS)
+// Version: 2.0
+// Last Updated: 2026-06-28
+// Reference: DATABASE.md Section 3
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum UserRole {
+  VOLUNTEER
+  STAFF
+  MANAGER
+  ADMIN
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum EventCategoryType {
+  LOCATION
+  TIME
+  TYPE
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+}
+
+enum DonationStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
+enum PaymentGateway {
+  VNPAY
+  MOMO
+}
+
+enum NotificationReferenceType {
+  EVENT
+  APPLICATION
+  CERTIFICATE
+  SYSTEM
+}
+
+enum FeedbackStatus {
+  DRAFT
+  SUBMITTED
+}
+
+enum EmailVerificationType {
+  REGISTER
+  RESET_PASSWORD
+}
+
+// ============================================================================
+// 3.1 Authentication & User Management (Member 1 - CuongLH)
+// ============================================================================
+
+/// Định nghĩa các vai trò trong hệ thống
+/// Owner: Member 1 (CuongLH)
+model Role {
+  id          Int     @id @default(autoincrement())
+  name        String  @unique @db.VarChar(50)
+  description String? @db.VarChar(255)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  users User[]
+
+  @@map("roles")
+}
+
+/// Lưu trữ tài khoản người dùng
+/// Owner: Member 1 (CuongLH)
+/// Soft Delete: Yes (is_active)
+model User {
+  id              Int     @id @default(autoincrement())
+  email           String  @unique @db.VarChar(255)
+  passwordHash    String  @db.VarChar(255) @map("password_hash")
+  fullName        String  @db.VarChar(255) @map("full_name")
+  phone           String? @db.VarChar(20)
+  avatarUrl       String? @db.VarChar(500) @map("avatar_url")
+  roleId          Int     @map("role_id")
+  isActive        Boolean @default(true) @map("is_active")
+  emailVerified   Boolean @default(false) @map("email_verified")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  role                          Role                           @relation(fields: [roleId], references: [id])
+  session                       UserSession?
+  applicationsSubmitted         Application[]                  @relation("applicationSubmittedByUser")
+  applicationsProcessed         Application[]                  @relation("applicationProcessedByUser")
+  userSkills                    UserSkill[]
+  notifications                 Notification[]
+  donations                     Donation[]
+  feedbacks                     Feedback[]
+  eventsCreated                 Event[]                        @relation("createdByStaff")
+  attendancesCheckedIn          Attendance[]                   @relation("checkedInByStaff")
+  certificatesIssued            Certificate[]                  @relation("issuedByStaff")
+  certificatesEarned            Certificate[]                  @relation("certificateEarnedByUser")
+  applicationStatusHistoryCreated ApplicationStatusHistory[]
+
+  @@index([roleId])
+  @@index([isActive])
+  @@index([emailVerified])
+  @@map("users")
+}
+
+/// Single Active Session enforcement (JWT jti tracking)
+/// Owner: Member 1 (CuongLH)
+model UserSession {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique @map("user_id")
+  jti       String   @db.VarChar(255)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([jti])
+  @@index([expiresAt])
+  @@map("user_sessions")
+}
+
+/// Account lockout tracking (brute-force protection)
+/// Owner: Member 1 (CuongLH)
+/// Note: NO foreign key constraint - tracks email regardless of user existence (prevents user enumeration)
+model LoginAttempt {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique @db.VarChar(255)
+  attempts     Int      @default(0)
+  lockedUntil  DateTime? @map("locked_until")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([lockedUntil])
+  @@map("login_attempts")
+}
+
+/// Email verification tokens & Password reset OTP
+/// Owner: Member 1 (CuongLH)
+model EmailVerification {
+  id           Int                   @id @default(autoincrement())
+  email        String                @db.VarChar(255)
+  otpHash      String                @db.VarChar(255) @map("otp_hash")
+  type         EmailVerificationType @default(REGISTER)
+  createdAt    DateTime              @default(now()) @map("created_at")
+  lastSentAt   DateTime?             @map("last_sent_at")
+  attempts     Int                   @default(0)
+  isLocked     Boolean               @default(false) @map("is_locked")
+  lockedUntil  DateTime?             @map("locked_until")
+
+  @@unique([email, type])
+  @@index([email])
+  @@index([createdAt])
+  @@index([lockedUntil])
+  @@map("email_verifications")
+}
+
+// ============================================================================
+// 3.2 Skills Management (Member 4 - AnhND & Member 1 - CuongLH)
+// ============================================================================
+
+/// Danh mục kỹ năng tình nguyện
+/// Owner: Member 4 (AnhND)
+/// Soft Delete: Yes (is_active)
+model Skill {
+  id          Int     @id @default(autoincrement())
+  name        String  @unique @db.VarChar(255)
+  description String? @db.Text
+  isActive    Boolean @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  userSkills UserSkill[]
+
+  @@index([isActive])
+  @@map("skills")
+}
+
+/// Many-to-many: Users ↔ Skills
+/// Owner: Member 1 (CuongLH - profile), Member 4 (AnhND - skills)
+model UserSkill {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  skillId   Int      @map("skill_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skillId])
+  @@index([userId])
+  @@index([skillId])
+  @@map("user_skills")
+}
+
+// ============================================================================
+// 3.3 Organizations (Member 5 - DucNM)
+// ============================================================================
+
+/// Tổ chức chủ quản sự kiện
+/// Owner: Member 5 (DucNM)
+/// Soft Delete: Yes (is_active)
+model Organization {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(255)
+  email       String?  @db.VarChar(255)
+  phone       String?  @db.VarChar(20)
+  address     String?  @db.Text
+  website     String?  @db.VarChar(500)
+  logoUrl     String?  @db.VarChar(500) @map("logo_url")
+  description String?  @db.Text
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  events Event[]
+
+  @@index([isActive])
+  @@map("organizations")
+}
+
+// ============================================================================
+// 3.4 Events & Categories (Member 3 - TienTD & Member 4 - AnhND)
+// ============================================================================
+
+/// Phân loại sự kiện (Location, Time, Type)
+/// Owner: Member 4 (AnhND)
+/// Soft Delete: Yes (is_active)
+model EventCategory {
+  id             Int                @id @default(autoincrement())
+  name           String             @db.VarChar(255)
+  categoryType   EventCategoryType  @map("category_type")
+  description    String?            @db.Text
+  isActive       Boolean            @default(true) @map("is_active")
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
+
+  events Event[]
+
+  @@unique([name, categoryType])
+  @@index([categoryType, isActive])
+  @@map("event_categories")
+}
+
+/// Sự kiện tình nguyện
+/// Owner: Member 3 (TienTD)
+/// Soft Delete: Yes (is_active)
+model Event {
+  id                  Int        @id @default(autoincrement())
+  title               String     @db.VarChar(500)
+  description         String     @db.Text
+  location            String     @db.VarChar(500)
+  startDate           DateTime   @map("start_date")
+  endDate             DateTime   @map("end_date")
+  applicationDeadline DateTime   @map("application_deadline")
+  maxCapacity         Int        @map("max_capacity")
+  approvedParticipants Int        @default(0) @map("approved_participants")
+  imageUrl            String?    @db.VarChar(500) @map("image_url")
+  organizationId      Int        @map("organization_id")
+  categoryId          Int        @map("category_id")
+  createdBy           Int        @map("created_by")
+  status              EventStatus @default(DRAFT)
+  reminderSentAt      DateTime?  @map("reminder_sent_at")
+  isActive            Boolean    @default(true) @map("is_active")
+  createdAt           DateTime   @default(now()) @map("created_at")
+  updatedAt           DateTime   @updatedAt @map("updated_at")
+
+  organization  Organization  @relation(fields: [organizationId], references: [id])
+  category      EventCategory @relation(fields: [categoryId], references: [id])
+  createdByUser User          @relation("createdByStaff", fields: [createdBy], references: [id])
+  applications  Application[]
+  donations     Donation[]
+  feedbacks     Feedback[]
+  certificates  Certificate[]
+
+  @@index([organizationId])
+  @@index([categoryId])
+  @@index([createdBy])
+  @@index([status, isActive])
+  @@index([startDate])
+  @@index([applicationDeadline])
+  @@index([categoryId, status, isActive, startDate])
+  @@map("events")
+}
+
+// ============================================================================
+// 3.5 Applications & Status History (Member 3 - TienTD)
+// ============================================================================
+
+/// Đơn đăng ký tham gia sự kiện
+/// Owner: Member 3 (TienTD)
+model Application {
+  id            Int               @id @default(autoincrement())
+  userId        Int               @map("user_id")
+  eventId       Int               @map("event_id")
+  status        ApplicationStatus @default(PENDING)
+  message       String?           @db.Text
+  processedBy   Int?              @map("processed_by")
+  processedAt   DateTime?         @map("processed_at")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+
+  submittedByUser     User                        @relation("applicationSubmittedByUser", fields: [userId], references: [id])
+  event               Event                       @relation(fields: [eventId], references: [id])
+  processedByUser     User?                       @relation("applicationProcessedByUser", fields: [processedBy], references: [id])
+  attendance          Attendance?
+  statusHistory       ApplicationStatusHistory[]
+  feedback            Feedback?
+
+  @@unique([userId, eventId])
+  @@index([userId, status])
+  @@index([eventId, status])
+  @@index([processedBy])
+  @@map("applications")
+}
+
+/// Audit log cho status transitions
+/// Owner: Member 3 (TienTD)
+model ApplicationStatusHistory {
+  id            Int               @id @default(autoincrement())
+  applicationId Int               @map("application_id")
+  oldStatus     ApplicationStatus?
+  newStatus     ApplicationStatus @map("new_status")
+  changedBy     Int               @map("changed_by")
+  reason        String?           @db.Text
+  changedAt     DateTime          @default(now()) @map("changed_at")
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  changedByUser User       @relation(fields: [changedBy], references: [id])
+
+  @@index([applicationId, changedAt])
+  @@index([changedBy])
+  @@map("application_status_history")
+}
+
+// ============================================================================
+// 3.6 Attendance & Certificates (Member 3 - TienTD)
+// ============================================================================
+
+/// Điểm danh sự kiện
+/// Owner: Member 3 (TienTD)
+model Attendance {
+  id             Int             @id @default(autoincrement())
+  applicationId  Int             @unique @map("application_id")
+  status         AttendanceStatus
+  volunteerHours Decimal?        @db.Decimal(5, 2) @map("volunteer_hours")
+  checkedInBy    Int             @map("checked_in_by")
+  checkedInAt    DateTime        @default(now()) @map("checked_in_at")
+  notes          String?         @db.Text
+
+  application    Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  checkedInByUser User        @relation("checkedInByStaff", fields: [checkedInBy], references: [id])
+
+  @@index([checkedInBy])
+  @@index([checkedInAt])
+  @@map("attendances")
+}
+
+/// Chứng nhận hoàn thành sự kiện
+/// Owner: Member 3 (TienTD)
+model Certificate {
+  id             Int      @id @default(autoincrement())
+  userId         Int      @map("user_id")
+  eventId        Int      @map("event_id")
+  certificateUrl String   @db.VarChar(500) @map("certificate_url")
+  issuedBy       Int      @map("issued_by")
+  issuedAt       DateTime @default(now()) @map("issued_at")
+
+  user         User  @relation("certificateEarnedByUser", fields: [userId], references: [id])
+  event        Event @relation(fields: [eventId], references: [id])
+  issuedByUser User  @relation("issuedByStaff", fields: [issuedBy], references: [id])
+
+  @@unique([userId, eventId])
+  @@index([userId])
+  @@index([eventId])
+  @@index([issuedBy])
+  @@map("certificates")
+}
+
+// ============================================================================
+// 3.7 Feedback (Member 2 - NamLD submit, Member 3 - TienTD view)
+// ============================================================================
+
+/// Đánh giá sự kiện từ volunteers
+/// Owner: Member 2 (NamLD - submit), Member 3 (TienTD - view)
+model Feedback {
+  id            Int            @id @default(autoincrement())
+  applicationId Int            @unique @map("application_id")
+  userId        Int            @map("user_id")
+  eventId       Int            @map("event_id")
+  rating        Int?
+  comment       String         @db.Text
+  status        FeedbackStatus @default(SUBMITTED)
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id])
+  event       Event       @relation(fields: [eventId], references: [id])
+
+  @@index([userId])
+  @@index([eventId, rating, createdAt])
+  @@index([status])
+  @@map("feedbacks")
+}
+
+// ============================================================================
+// 3.8 Notifications (Member 5 - DucNM)
+// ============================================================================
+
+/// Định nghĩa loại thông báo
+/// Owner: Member 5 (DucNM)
+model NotificationType {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @db.VarChar(100)
+  description String?  @db.VarChar(255)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  notifications Notification[]
+
+  @@map("notification_types")
+}
+
+/// Thông báo hệ thống gửi đến users
+/// Owner: Member 5 (DucNM)
+model Notification {
+  id             Int                        @id @default(autoincrement())
+  userId         Int                        @map("user_id")
+  typeId         Int                        @map("type_id")
+  title          String                     @db.VarChar(255)
+  message        String                     @db.Text
+  referenceType  NotificationReferenceType? @map("reference_type")
+  referenceId    Int?                       @map("reference_id")
+  isRead         Boolean                    @default(false) @map("is_read")
+  createdAt      DateTime                   @default(now()) @map("created_at")
+  readAt         DateTime?                  @map("read_at")
+
+  user User               @relation(fields: [userId], references: [id])
+  type NotificationType   @relation(fields: [typeId], references: [id])
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@index([typeId])
+  @@index([referenceType, referenceId])
+  @@map("notifications")
+}
+
+// ============================================================================
+// 3.9 Donations & Payment (Member 5 - DucNM)
+// ============================================================================
+
+/// Quyên góp cho sự kiện
+/// Owner: Member 5 (DucNM)
+model Donation {
+  id          Int            @id @default(autoincrement())
+  userId      Int            @map("user_id")
+  eventId     Int            @map("event_id")
+  amount      Decimal        @db.Decimal(15, 2)
+  status      DonationStatus @default(PENDING)
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  user                User                 @relation(fields: [userId], references: [id])
+  event               Event                @relation(fields: [eventId], references: [id])
+  paymentTransaction  PaymentTransaction?
+
+  @@index([userId, createdAt])
+  @@index([eventId, status])
+  @@index([status, createdAt])
+  @@map("donations")
+}
+
+/// Giao dịch thanh toán qua gateway
+/// Owner: Member 5 (DucNM)
+model PaymentTransaction {
+  id              Int            @id @default(autoincrement())
+  donationId      Int            @unique @map("donation_id")
+  paymentGateway  PaymentGateway @map("payment_gateway")
+  transactionRef  String?        @unique @db.VarChar(255) @map("transaction_ref")
+  gatewayResponse Json?          @map("gateway_response")
+  signatureValid  Boolean?       @map("signature_valid")
+  processedAt     DateTime?      @map("processed_at")
+  createdAt       DateTime       @default(now()) @map("created_at")
+
+  donation Donation @relation(fields: [donationId], references: [id], onDelete: Cascade)
+
+  @@index([paymentGateway])
+  @@index([processedAt])
+  @@map("payment_transactions")
+}

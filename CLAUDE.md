@@ -305,6 +305,18 @@ frontend/
 
 **Takeaway**: Non-critical side effects (logging, notifications) nên được decouple khỏi main business logic.
 
+---
+
+### Lesson 5: Audit Log phải được log bất đồng bộ
+
+**What Happened**: AI viết thừa tài liệu swagger vào những file không liên quan (vd: controller, middlware,...).
+
+**Root Cause**: Tài liệu không để cập.
+
+**Fix**: AI chỉ được sinh ra tài liệu swagger ở phạm vi backend\src\routes không được viết sang các folder khác.
+
+**Takeaway**: Không được tự ý sinh swagger ngoài phạm vi backend\src\routes.
+
 ## 5. Anti-Patterns (FORBIDDEN)
 
 ### ❌ Cross-module Repository Import
@@ -364,28 +376,7 @@ await prisma.user.delete({ where: { id: userId } });
 ### Backend `.env` (Example)
 
 ```text
-PORT=5000
-API_PREFIX=/api/v1
-FRONTEND_ORIGIN=http://localhost:3000
-
-DATABASE_URL=mysql://user:pass@localhost:3306/vms
-
-AUTH_SECRET=your-jwt-secret-key
-COOKIE_ACCESS_NAME=vms_access_token
-COOKIE_REFRESH_NAME=vms_refresh_token
-JWT_ACCESS_EXPIRES_IN=15m
-JWT_REFRESH_EXPIRES_IN=7d
-
-BCRYPT_SALT_ROUNDS=10
-
-# Future: Cloudinary integration
-CLOUDINARY_CLOUD_NAME=your-cloud
-CLOUDINARY_API_KEY=your-key
-CLOUDINARY_API_SECRET=your-secret
-
-# Future: Payment gateway integration
-PAYMENT_GATEWAY_API_KEY=your-key
-PAYMENT_GATEWAY_SECRET=your-secret
+backend\.env.example
 ```
 
 ### Frontend `.env` (Example)
@@ -504,6 +495,19 @@ VMS project được indexed bởi GitNexus để hỗ trợ code intelligence, 
 
 ---
 
+<!-- SPECKIT START -->
+## Current Feature Plans
+
+### Member 1 - CuongLH (Authentication + Profile + Email)
+
+- **UC06 - Change Password**: [plan.md](.sdd/CuongLH/UC06-feat-auth-change-password/plan.md)
+- **UC07 - Forgot Password**: [plan.md](.sdd/CuongLH/UC07-feat-auth-forgot-password/plan.md)
+- **MD15 - Email Services**: [plan.md](.sdd/CuongLH/MD15-email-service/plan.md)
+
+<!-- SPECKIT END -->
+
+---
+
 **Version**: 3.1  
 **Last Updated**: 2026-06-28  
 **Changelog**:
@@ -513,4 +517,49 @@ VMS project được indexed bởi GitNexus để hỗ trợ code intelligence, 
 - v3.1: Cập nhật Environment Variables (loại bỏ VNPAY, thêm generic Payment Gateway)
 - v3.1: Sửa file examples (formatCurrency.js → formatDate.js)
 
-*Tham chiếu: Xem quy trình SDD tại `CONSTITUTION.md`, Tech Stack & Domain Rules tại `AGENTS.md`, Giao kèo API + Hàm phụ thuộc tại `share_context.md`.*
+*Tham chiếu: Xem quy trình SDD tại `.specify/memory/constitution.md`, Tech Stack & Domain Rules tại `AGENTS.md`, Database tại DATABASE.md*
+
+<!-- gitnexus:start -->
+# GitNexus — Code Intelligence
+
+This project is indexed by GitNexus as **VMS** (461 symbols, 590 relationships, 11 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+
+> Index stale? Run `node .gitnexus/run.cjs analyze` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? `npx gitnexus analyze` (npm 11 crash → `npm i -g gitnexus`; #1939).
+
+## Always Do
+
+- **MUST run impact analysis before editing any symbol.** Before modifying a function, class, or method, run `impact({target: "symbolName", direction: "upstream"})` and report the blast radius (direct callers, affected processes, risk level) to the user.
+- **MUST run `detect_changes()` before committing** to verify your changes only affect expected symbols and execution flows. For regression review, compare against the default branch: `detect_changes({scope: "compare", base_ref: "main"})`.
+- **MUST warn the user** if impact analysis returns HIGH or CRITICAL risk before proceeding with edits.
+- When exploring unfamiliar code, use `query({search_query: "concept"})` to find execution flows instead of grepping. It returns process-grouped results ranked by relevance.
+- When you need full context on a specific symbol — callers, callees, which execution flows it participates in — use `context({name: "symbolName"})`.
+- For security review, `explain({target: "fileOrSymbol"})` lists taint findings (source→sink flows; needs `analyze --pdg`).
+
+## Never Do
+
+- NEVER edit a function, class, or method without first running `impact` on it.
+- NEVER ignore HIGH or CRITICAL risk warnings from impact analysis.
+- NEVER rename symbols with find-and-replace — use `rename` which understands the call graph.
+- NEVER commit changes without running `detect_changes()` to check affected scope.
+
+## Resources
+
+| Resource | Use for |
+|----------|---------|
+| `gitnexus://repo/VMS/context` | Codebase overview, check index freshness |
+| `gitnexus://repo/VMS/clusters` | All functional areas |
+| `gitnexus://repo/VMS/processes` | All execution flows |
+| `gitnexus://repo/VMS/process/{name}` | Step-by-step execution trace |
+
+## CLI
+
+| Task | Read this skill file |
+|------|---------------------|
+| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
+| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
+| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
+| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
+| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
+| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
+
+<!-- gitnexus:end -->

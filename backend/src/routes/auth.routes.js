@@ -10,13 +10,14 @@
  */
 
 import { Router } from 'express';
-import { login } from '../controllers/auth.controller.js';
+import { login, sendOTPController, verifyOTPController } from '../controllers/auth.controller.js';
+import { validate, loginSchema, sendOTPSchema, verifyOTPSchema } from '../middlewares/validators/auth.validator.js';
 
 const router = Router();
 
 /**
  * @swagger
- * /auth/login:
+ * /api/v1/auth/login:
  *   post:
  *     summary: Đăng nhập vào hệ thống
  *     description: |
@@ -94,7 +95,136 @@ const router = Router();
  *               code: INTERNAL_SERVER_ERROR
  *               details: null
  */
-router.post('/login', login);
+router.post('/login', validate(loginSchema), login);
+
+/**
+ * @swagger
+ * /api/v1/auth/register/send-otp:
+ *   post:
+ *     summary: Gửi OTP để xác thực email (Bước 1 đăng ký)
+ *     description: |
+ *       Gửi mã OTP 6 chữ số đến email của người dùng.
+ *       - Kiểm tra email chưa được dùng
+ *       - Áp dụng cooldown 60 giây giữa các lần gửi
+ *       - Khóa email sau 5 lần nhập sai (15 phút)
+ *     tags:
+ *       - Registration
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: volunteer@vms.com
+ *             required:
+ *               - email
+ *     responses:
+ *       200:
+ *         description: OTP đã được gửi thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                       example: Mã OTP đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.
+ *                     cooldown_seconds:
+ *                       type: number
+ *                       example: 60
+ *       400:
+ *         description: Email không hợp lệ
+ *       409:
+ *         description: Email đã được sử dụng
+ *       429:
+ *         description: Cooldown chưa qua hoặc email bị khóa
+ *       503:
+ *         description: Dịch vụ email không khả dụng
+ */
+router.post('/register/send-otp', validate(sendOTPSchema), sendOTPController);
+
+/**
+ * @swagger
+ * /api/v1/auth/register/verify-otp:
+ *   post:
+ *     summary: Xác thực OTP và tạo tài khoản (Bước 2 đăng ký)
+ *     description: |
+ *       Xác thực mã OTP và tạo tài khoản mới với vai trò Volunteer.
+ *       - Kiểm tra OTP hợp lệ (6 chữ số, chưa hết hạn 10 phút)
+ *       - Hash mật khẩu với bcryptjs (12 rounds)
+ *       - Tạo user mới trong database
+ *       - Xóa record xác thực
+ *     tags:
+ *       - Registration
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: volunteer@vms.com
+ *               otp:
+ *                 type: string
+ *                 minLength: 6
+ *                 maxLength: 6
+ *                 example: "123456"
+ *               fullName:
+ *                 type: string
+ *                 example: "Nguyễn Văn A"
+ *               phoneNumber:
+ *                 type: string
+ *                 example: "0912345678"
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 description: Min 8 chars, 1 uppercase, 1 lowercase, 1 digit
+ *                 example: "Password123"
+ *             required:
+ *               - email
+ *               - otp
+ *               - fullName
+ *               - phoneNumber
+ *               - password
+ *     responses:
+ *       201:
+ *         description: Tài khoản được tạo thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                       example: Đăng ký thành công. Bạn có thể đăng nhập ngay bây giờ.
+ *                     userId:
+ *                       type: number
+ *                       example: 123
+ *       400:
+ *         description: OTP không hợp lệ, hết hạn, hoặc validation error
+ *       429:
+ *         description: Email bị khóa sau 5 lần nhập sai
+ *       500:
+ *         description: Lỗi server
+ */
+router.post('/register/verify-otp', validate(verifyOTPSchema), verifyOTPController);
 
 export default router;
 

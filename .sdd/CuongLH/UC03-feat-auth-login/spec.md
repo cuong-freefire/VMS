@@ -102,6 +102,20 @@ Là Admin, khi tôi vô hiệu hóa một tài khoản (`is_active: false`), tà
 
 ---
 
+### User Story 5b - Chặn tài khoản chưa xác thực Email (Priority: P1)
+
+Là hệ thống, tôi không cho phép các tài khoản chưa xác thực email (`email_verified: false`) đăng nhập để đảm bảo tính xác thực của thông tin liên lạc.
+
+**Why this priority**: Yêu cầu nghiệp vụ bắt buộc (Business Rule 8.1.6).
+
+**Independent Test**: Có thể test độc lập bằng cách set `email_verified: false` cho một tài khoản trong database, sau đó thử đăng nhập và verify hệ thống từ chối.
+
+**Acceptance Scenarios**:
+
+1. **Given** tài khoản "<user@vms.com>" có `email_verified: false` trong database, **When** người dùng nhập đúng email và password của tài khoản này, **Then** hệ thống trả về HTTP 403 với message "Email chưa được xác thực. Vui lòng kiểm tra hộp thư để xác thực tài khoản."
+
+---
+
 ### User Story 6 - Frontend UX: Loading state và chống double-submit (Priority: P2)
 
 Là người dùng, khi tôi click nút Đăng nhập, tôi muốn thấy trạng thái loading và nút bị disable để tránh gửi request nhiều lần, đồng thời được thông báo rõ ràng kết quả thành công hay thất bại.
@@ -152,7 +166,9 @@ Là người dùng, khi tôi click nút Đăng nhập, tôi muốn thấy trạn
 
 - **FR-005**: WHERE tài khoản có `is_active: false`, THE system SHALL trả về HTTP 403 với message "Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên."
 
-- **FR-006**: WHERE tài khoản hợp lệ và password đúng, THE system SHALL tạo JWT token chứa payload `{user_id, email, role_id, jti}` với thời gian sống 7 ngày.
+- **FR-005b**: WHERE tài khoản có `is_active: true` nhưng `email_verified: false`, THE system SHALL trả về HTTP 403 với message "Email chưa được xác thực. Vui lòng kiểm tra hộp thư để xác thực tài khoản."
+
+- **FR-006**: WHERE tài khoản hợp lệ (is_active: true và email_verified: true) và password đúng, THE system SHALL tạo JWT token chứa payload `{user_id, email, role_id, jti}` với thời gian sống 7 ngày.
 
 - **FR-007**: WHEN tạo JWT token mới, THE system SHALL sinh unique `jti` (JWT ID) và lưu vào storage với TTL 7 ngày.
 

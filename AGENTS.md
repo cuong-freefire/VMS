@@ -175,5 +175,3 @@ Example: `feat(auth): implement volunteer login API`
 - v5.0: Tái cấu trúc theo bộ khung mới - tập trung vào Persona, Tech Stack, Domain Rules và Naming Conventions
 - v5.0: Thêm Module Ownership chi tiết cho 5 members dựa trên team.docx
 - v5.0: Rút gọn Architecture Principles, loại bỏ GitNexus section (chuyển sang CLAUDE.md)
-
-*Tham chiếu: Xem quy trình SDD tại `CONSTITUTION.md`, Kiến trúc chi tiết tại `CLAUDE.md`, Giao kèo API tại `share_context.md`.*

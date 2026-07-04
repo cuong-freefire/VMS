@@ -38,7 +38,7 @@ Hệ thống VMS có 5 nhóm người dùng phân quyền rõ rệt (Guest, Volu
 
 ## 7. ANSWERS (Đã chốt nghiệp vụ)
 
-- **A1:** Hệ thống sử dụng một Access Token duy nhất có TTL 7 ngày. Token được lưu trong HttpOnly Cookie với maxAge = 7 ngày. Sau khi hết hạn, người dùng phải đăng nhập lại.Không sử dụng Refresh Token.
+- **A1:** Hệ thống sử dụng một Access Token duy nhất có TTL 7 ngày. Token được lưu trong HttpOnly Cookie với maxAge = 7 ngày. Sau khi hết hạn, người dùng phải đăng nhập lại. Không sử dụng Refresh Token.
 - **A2:** Nếu một tài khoản nhập sai mật khẩu 5 lần liên tiếp, hệ thống sẽ khóa đăng nhập tài khoản đó trong 15 phút.
 Sau thời gian khóa, người dùng có thể thử đăng nhập lại.
 - **A3:** Mỗi tài khoản chỉ được phép có một phiên đăng nhập (active session) tại một thời điểm.
@@ -46,7 +46,7 @@ Sau thời gian khóa, người dùng có thể thử đăng nhập lại.
    Khi người dùng đăng nhập thành công:
 
   - Hệ thống tạo JWT chứa jti mới.
-  - jti mới được lưu vào Redis.
+  - jti mới được lưu vào database (bảng user_sessions).
   - jti cũ của tài khoản bị ghi đè.
 
-Các request sử dụng JWT có jti không khớp với Redis sẽ bị từ chối với HTTP 401 Unauthorized.
+Các request sử dụng JWT có jti không khớp với cơ sở dữ liệu sẽ bị từ chối với HTTP 401 Unauthorized.
