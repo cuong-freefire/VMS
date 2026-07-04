@@ -8,7 +8,7 @@
 
 ## Summary
 
-Admin cần thêm tổ chức mới vào hệ thống VMS để mở rộng danh sách đối tác. Backend xây dựng endpoint `POST /api/v1/organizations` với validation (name required + unique, contact_email format nếu có), hỗ trợ upload logo lên Cloudinary (max 2MB, .jpg/.png/.webp). Chỉ Admin mới có quyền; Manager/Staff/Volunteer bị 403, Guest bị 401. Kế thừa Organization infrastructure từ UC37 (model, repository pattern). Pattern tương tự Add User (UC28) và Add Category (UC32).
+Manager/Admin cần thêm tổ chức mới vào hệ thống VMS để mở rộng danh sách đối tác. Backend xây dựng endpoint `POST /api/v1/organizations` với validation (name required + unique, contact_email format nếu có), hỗ trợ upload logo lên Cloudinary (max 2MB, .jpg/.png/.webp). Chỉ Manager và Admin mới có quyền; Staff/Volunteer bị 403, Guest bị 401. Kế thừa Organization infrastructure từ UC37 (model, repository pattern). Pattern tương tự Add User (UC28) và Add Category (UC32).
 
 ## Technical Context
 
@@ -31,7 +31,7 @@ Admin cần thêm tổ chức mới vào hệ thống VMS để mở rộng danh
 **Performance Goals**: Response < 2 giây (bao gồm thời gian upload logo lên Cloudinary nếu có)
 
 **Constraints**: 
-- Chỉ Admin mới có quyền tạo (Manager/Staff/Volunteer → HTTP 403, Guest → HTTP 401)
+- Chỉ Manager và Admin mới có quyền tạo (Staff/Volunteer → HTTP 403, Guest → HTTP 401)
 - `name` là bắt buộc, unique — nếu trùng → HTTP 409 Conflict
 - `contact_email` (nếu có) phải đúng email format
 - Logo upload: max 2MB, chỉ .jpg/.png/.webp, upload lên Cloudinary

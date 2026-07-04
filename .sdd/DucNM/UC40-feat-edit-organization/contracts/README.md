@@ -1,4 +1,4 @@
-# API Contracts: Add Organization (UC39)
+# API Contracts: Edit Organization (UC40)
 
 **Phase**: 1 — Design & Contracts
 
@@ -8,13 +8,13 @@
 
 ## Overview
 
-This directory contains the API contracts for the UC39 feature.
+This directory contains the API contracts for the UC40 feature.
 
 ### Contracts
 
 | File | Description |
 |------|-------------|
-| [api-create-organization.md](api-create-organization.md) | `POST /api/v1/organizations` — Create a new organization |
+| [api-update-organization.md](api-update-organization.md) | `PUT /api/v1/organizations/:id` — Update organization information |
 
 ### Base URL
 
@@ -26,7 +26,7 @@ http://localhost:5000/api/v1
 
 - **Method**: JWT HttpOnly Cookie
 - **Required**: Yes
-- **Authorization**: Only `ADMIN` and `MANAGER` roles are allowed
+- **Authorization**: Only `MANAGER` and `ADMIN` roles are allowed
 
 ### Standard Response Format
 
@@ -45,9 +45,12 @@ http://localhost:5000/api/v1
 | Code | HTTP Status | Description |
 |------|-------------|-------------|
 | `UNAUTHORIZED` | 401 | Missing or invalid JWT token |
-| `FORBIDDEN` | 403 | Insufficient permissions (not ADMIN/MANAGER) |
+| `FORBIDDEN` | 403 | Insufficient permissions (not MANAGER/ADMIN) |
 | `VALIDATION_ERROR` | 400 | Request body validation failed |
 | `FILE_TOO_LARGE` | 400 | Uploaded file exceeds 2MB limit |
 | `INVALID_FILE_FORMAT` | 400 | Uploaded file is not .jpg/.png/.webp |
+| `ALREADY_INACTIVE` | 400 | Organization is already inactive |
+| `ORGANIZATION_NOT_FOUND` | 404 | Organization ID does not exist |
 | `ORGANIZATION_EXISTS` | 409 | Organization name already exists |
+| `ACTIVE_EVENTS_EXIST` | 409 | Cannot deactivate — active events exist |
 | `INTERNAL_SERVER_ERROR` | 500 | Unexpected server error |

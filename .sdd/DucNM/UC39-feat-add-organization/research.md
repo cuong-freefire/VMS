@@ -44,10 +44,10 @@
 - **Decision**: Dùng Pino logger để ghi log sau khi tạo organization thành công.
 - **Rationale**: Lesson 4 từ CLAUDE.md — audit log phải bất đồng bộ, không block main flow.
 
-## 5. Authorization: Admin Only
+## 5. Authorization: Admin và Manager
 
-- **Decision**: Dùng `authorize('ADMIN')` middleware — chỉ Admin mới có quyền.
-- **Rationale**: Spec yêu cầu Admin-only.
+- **Decision**: Dùng `authorize('ADMIN', 'MANAGER')` middleware — cả Admin và Manager đều có quyền.
+- **Rationale**: Spec yêu cầu Manager/Admin có quyền thêm tổ chức mới.
 
 ## 6. Frontend: Form Validation + Logo Upload
 
@@ -63,5 +63,5 @@
 | Logo upload | Multer + Cloudinary SDK | ADR-004 |
 | File validation | 2MB max, .jpg/.png/.webp | Spec constraint |
 | Audit log | Pino async log | Lesson 4 |
-| Authorization | authorize('ADMIN') | Spec Admin-only |
+| Authorization | authorize('ADMIN', 'MANAGER') | Spec Manager/Admin |
 | Frontend form | React Hook Form + Zod resolver | Pattern chuẩn VMS |

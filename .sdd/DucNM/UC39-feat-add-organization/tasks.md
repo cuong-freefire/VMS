@@ -51,7 +51,7 @@
 - [ ] T009 [US1] Implement `createOrganization` trong `backend/src/repositories/organization.repository.js` — Prisma `create` với is_active: true
 - [ ] T010 [US1] Implement `createOrganizationService` trong `backend/src/services/organization.service.js` — validation → unique check → Cloudinary upload (nếu có) → create → audit log
 - [ ] T011 [US1] Implement `createOrganizationHandler` trong `backend/src/controllers/organization.controller.js` — gọi service + trả về 201
-- [ ] T012 [US1] Thêm route `POST /` trong `backend/src/routes/organization.routes.js` — middleware chain: authMiddleware → authorize('ADMIN') → uploadLogo → createOrganizationHandler
+- [ ] T012 [US1] Thêm route `POST /` trong `backend/src/routes/organization.routes.js` — middleware chain: authMiddleware → authorize('ADMIN', 'MANAGER') → uploadLogo → createOrganizationHandler
 - [ ] T013 [US1] Thêm Swagger JSDoc cho endpoint `POST /api/v1/organizations` trong `backend/src/routes/organization.routes.js`
 
 **Checkpoint**: User Story 1 hoàn thành — Admin tạo được organization mới (có/không logo).
@@ -60,22 +60,22 @@
 
 ## Phase 3: User Story 2 - Chặn thêm tổ chức khi không có quyền (Priority: P1)
 
-**Goal**: Manager/Staff/Volunteer nhận 403, Guest nhận 401 khi gọi `POST /api/v1/organizations`.
+**Goal**: Staff/Volunteer nhận 403, Guest nhận 401 khi gọi `POST /api/v1/organizations`. Manager được phép tạo tổ chức.
 
-**Independent Test**: Gọi `POST /api/v1/organizations` với token Manager → 403. Không token → 401.
+**Independent Test**: Gọi `POST /api/v1/organizations` với token Manager → 201 (Manager được phép). Gọi với token Staff → 403. Không token → 401.
 
 ### Tests cho User Story 2 ⚠️
 
-- [ ] T014 [P] [US2] Integration test — Manager token → HTTP 403 trong `backend/tests/organization/organization.api.test.js`
+- [ ] T014 [P] [US2] Integration test — Manager token → HTTP 201 (Manager được phép tạo) trong `backend/tests/organization/organization.api.test.js`
 - [ ] T015 [P] [US2] Integration test — Staff token → HTTP 403
 - [ ] T016 [P] [US2] Integration test — Volunteer token → HTTP 403
 - [ ] T017 [US2] Integration test — không token → HTTP 401
 
 ### Implementation cho User Story 2
 
-- [ ] T018 [US2] Middleware chain đã implement ở T012 — `authorize('ADMIN')` xử lý 403, `authMiddleware` xử lý 401. **(Không cần code mới)**
+- [ ] T018 [US2] Middleware chain đã implement ở T012 — `authorize('ADMIN', 'MANAGER')` xử lý 403, `authMiddleware` xử lý 401. **(Không cần code mới)**
 
-**Checkpoint**: User Story 2 hoàn thành — endpoint được bảo vệ đúng phân quyền.
+**Checkpoint**: User Story 2 hoàn thành — endpoint được bảo vệ đúng phân quyền. Manager được phép tạo tổ chức.
 
 ---
 

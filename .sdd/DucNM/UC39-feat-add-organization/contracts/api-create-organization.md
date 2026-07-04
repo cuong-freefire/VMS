@@ -2,7 +2,7 @@
 
 ## Summary
 
-Tạo một tổ chức mới. Chỉ Admin mới có quyền truy cập. Hỗ trợ upload logo lên Cloudinary.
+Tạo một tổ chức mới. Chỉ Manager và Admin mới có quyền truy cập. Hỗ trợ upload logo lên Cloudinary.
 
 ## Endpoint
 
@@ -13,7 +13,7 @@ POST /api/v1/organizations
 ## Authentication
 
 - **Required**: Yes (JWT HttpOnly Cookie)
-- **Authorization**: Only `ADMIN` role
+- **Authorization**: Only `ADMIN` and `MANAGER` roles
 
 ## Request Body (multipart/form-data)
 
@@ -113,7 +113,7 @@ logo: [file upload]
 }
 ```
 
-### 403 Forbidden — Not Admin
+### 403 Forbidden — Not Manager/Admin
 
 ```json
 {
@@ -153,9 +153,9 @@ logo: [file upload]
  * @swagger
  * /api/v1/organizations:
  *   post:
- *     summary: Tạo tổ chức mới (Admin only)
+ *     summary: Tạo tổ chức mới (Manager/Admin only)
  *     description: |
- *       Tạo một tổ chức mới. Chỉ Admin mới có quyền.
+ *       Tạo một tổ chức mới. Chỉ Manager và Admin mới có quyền.
  *       Hỗ trợ upload logo lên Cloudinary (max 2MB, .jpg/.png/.webp).
  *       Tên tổ chức phải unique.
  *     tags: [Organization Management]

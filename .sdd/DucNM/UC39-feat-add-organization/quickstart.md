@@ -203,8 +203,8 @@ const router = Router();
 router.get('/', optionalAuth, getOrganizationsHandler);
 router.get('/:id', optionalAuth, getOrganizationByIdHandler);
 
-// Route mới cho UC39 — Admin only, multipart/form-data
-router.post('/', authMiddleware, authorize('ADMIN'), uploadLogo, createOrganizationHandler);
+// Route mới cho UC39 — Manager/Admin only, multipart/form-data
+router.post('/', authMiddleware, authorize('ADMIN', 'MANAGER'), uploadLogo, createOrganizationHandler);
 
 export default router;
 ```
@@ -225,7 +225,7 @@ export default router;
 // Test cases bổ sung cho UC39:
 // 1. POST /api/v1/organizations với dữ liệu hợp lệ + Admin token → 201
 // 2. POST /api/v1/organizations với tên đã tồn tại → 409
-// 3. POST /api/v1/organizations với Manager token → 403
+// 3. POST /api/v1/organizations với Manager token → 201 (Manager được phép tạo)
 // 4. POST /api/v1/organizations không token → 401
 ```
 
@@ -369,7 +369,7 @@ import AddOrganizationPage from './components/pages/AddOrganizationPage';
 
 1. **API**: `POST /api/v1/organizations` với dữ liệu hợp lệ + Admin token → 201
 2. **API**: `POST /api/v1/organizations` với tên đã tồn tại → 409
-3. **API**: `POST /api/v1/organizations` với Manager token → 403
+3. **API**: `POST /api/v1/organizations` với Manager token → 201 (Manager được phép tạo)
 4. **API**: `POST /api/v1/organizations` không token → 401
 5. **API**: `POST /api/v1/organizations` với logo file → 201 + logo_url từ Cloudinary
 6. **Frontend**: Navigate to `/organizations/add` → fill form → upload logo → submit → verify success

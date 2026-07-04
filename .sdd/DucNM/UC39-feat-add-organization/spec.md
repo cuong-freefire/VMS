@@ -28,16 +28,17 @@ Admin muốn thêm một tổ chức mới với đầy đủ thông tin (tên, 
 
 ### User Story 2 - Chặn thêm tổ chức khi không có quyền (Priority: P1)
 
-Manager, Staff, và Volunteer không được phép thêm tổ chức mới vào hệ thống.
+Staff và Volunteer không được phép thêm tổ chức mới vào hệ thống. Manager có quyền thêm tổ chức.
 
 **Why this priority**: Phân quyền nghiêm ngặt bảo vệ dữ liệu tổ chức khỏi bị thao túng trái phép.
 
-**Independent Test**: Gọi `POST /api/v1/organizations` với token Manager, kiểm tra HTTP 403.
+**Independent Test**: Gọi `POST /api/v1/organizations` với token Staff, kiểm tra HTTP 403.
 
 **Acceptance Scenarios**:
 
-1. **Given** Manager đã đăng nhập, **When** Manager gửi request tạo tổ chức, **Then** hệ thống trả về HTTP 403 Forbidden.
-2. **Given** Guest chưa đăng nhập, **When** Guest gửi request, **Then** hệ thống trả về HTTP 401 Unauthorized.
+1. **Given** Staff đã đăng nhập, **When** Staff gửi request tạo tổ chức, **Then** hệ thống trả về HTTP 403 Forbidden.
+2. **Given** Volunteer đã đăng nhập, **When** Volunteer gửi request, **Then** hệ thống trả về HTTP 403 Forbidden.
+3. **Given** Guest chưa đăng nhập, **When** Guest gửi request, **Then** hệ thống trả về HTTP 401 Unauthorized.
 
 ---
 
@@ -52,7 +53,7 @@ Manager, Staff, và Volunteer không được phép thêm tổ chức mới vào
 
 ### Functional Requirements
 
-- **FR-001**: System MUST cho phép Admin tạo tổ chức mới qua `POST /api/v1/organizations`.
+- **FR-001**: System MUST cho phép Manager/Admin tạo tổ chức mới qua `POST /api/v1/organizations`.
 - **FR-002**: System MUST yêu cầu trường `name` là bắt buộc, không được rỗng.
 - **FR-003**: System MUST kiểm tra tính duy nhất của `name` — nếu trùng, trả về HTTP 409.
 - **FR-004**: System MUST validate `contact_email` (nếu có) đúng định dạng email.
@@ -60,7 +61,7 @@ Manager, Staff, và Volunteer không được phép thêm tổ chức mới vào
 - **FR-006**: System MUST tự động set `is_active: true` khi tạo tổ chức mới.
 - **FR-007**: System MUST trả về HTTP 201 khi tạo thành công.
 - **FR-008**: System MUST ghi audit log sau khi tạo tổ chức thành công.
-- **FR-009**: System MUST từ chối non-Admin với HTTP 403.
+- **FR-009**: System MUST từ chối Staff/Volunteer với HTTP 403 và Guest với HTTP 401.
 
 ### Key Entities *(Business Level Only)*
 
@@ -87,6 +88,6 @@ Manager, Staff, và Volunteer không được phép thêm tổ chức mới vào
 Các tính năng sau KHÔNG nằm trong phạm vi của UC39 và KHÔNG được implement:
 
 - **Gửi email xác nhận khi tạo tổ chức**: Không cần thiết cho thao tác nội bộ.
-- **Tạo tổ chức từ Manager/Staff**: Chỉ Admin mới có quyền.
+- **Tạo tổ chức từ Staff**: Chỉ Admin và Manager mới có quyền.
 - **Import tổ chức từ file**: Thuộc UC57 (Export Reports).
 - **Tự động tạo organization cho Staff khi đăng ký**: Không có trong scope v1.
