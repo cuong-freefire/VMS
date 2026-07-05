@@ -4,7 +4,7 @@
 
 ## 1. PROBLEM STATEMENT
 
-Trong hệ thống VMS, việc đăng xuất không chỉ đơn thuần là chuyển hướng trang. Để đảm bảo an toàn bảo mật, hệ thống cần một cơ chế hủy phiên làm việc (Session Termination) hiệu quả. Yêu cầu cốt lõi là phải xóa bỏ hoàn toàn mã định danh (JWT Token) đang được lưu trữ trong trình duyệt, đồng thời xóa các trạng thái hiển thị của người dùng ở phía giao diện để ngăn chặn việc truy cập trái phép hoặc rò rỉ thông tin cá nhân trên các thiết bị dùng chung [1, Conversation].
+Trong hệ thống VMS, việc đăng xuất không chỉ đơn thuần là chuyển hướng trang. Để đảm bảo an toàn bảo mật, hệ thống cần một cơ chế hủy phiên làm việc (Session Termination) hiệu quả. Yêu cầu cốt lõi là phải xóa bỏ hoàn toàn mã định danh (JWT Token) đang được lưu trữ trong trình duyệt, đồng thời xóa các trạng thái hiển thị của người dùng ở phía giao diện để ngăn chặn việc truy cập trái phép hoặc rò rỉ thông tin cá nhân trên các thiết bị dùng chung.
 
 ## 2. DOMAIN KNOWLEDGE
 
