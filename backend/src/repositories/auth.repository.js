@@ -240,10 +240,22 @@ const getJtiByUserId = async (userId) => {
     const response = await prisma.userSession.findUnique({
         where: { userId },
         select: {
-            jti: true
+            jti: true,
+            expiresAt: true
         }
     })
-    return response.jti || null;
+    return { jti: response.jti, expiresAt: response.expiresAt };
+}
+
+const deleteSessionByUserId = async (userId) => {
+    const response = await prisma.userSession.delete({
+        where: { userId },
+        select: {
+            jti: true,
+            expiresAt: true
+        }
+    })
+    return { jti: response.jti, expiresAt: response.expiresAt };
 }
 
 export default {
@@ -259,5 +271,6 @@ export default {
     getLoginAttempts,
     incrementLoginAttempts,
     resetLoginAttempts,
-    upsertSession
+    upsertSession,
+    deleteSessionByUserId
 };

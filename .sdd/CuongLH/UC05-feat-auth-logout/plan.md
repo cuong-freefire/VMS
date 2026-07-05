@@ -1,4 +1,4 @@
-# **LANGUAGE**: This specification must be written in Vietnamese with technical terms kept in English (e.g., upload, API, endpoint, authentication, OAuth, cache, session, commit, merge, rollback, validate, etc.)
+﻿# **LANGUAGE**: This specification must be written in Vietnamese with technical terms kept in English (e.g., upload, API, endpoint, authentication, OAuth, cache, session, commit, merge, rollback, validate, etc.)
 
 # Implementation Plan: Đăng xuất (Logout) - UC05
 
@@ -67,7 +67,7 @@ Technical approach: Sử dụng kiến trúc Stateless JWT, việc đăng xuất
 - ✅ KHÔNG commit secrets vào Git: N/A (không tạo .env mới)
 - ✅ KHÔNG lưu trữ thông tin thẻ/tài khoản ngân hàng: N/A
 - ✅ Input validation: Logout không cần validate body (POST endpoint không nhận params)
-- ✅ Authentication: Route được protect bằng `authMiddleware.authenticate`
+- ✅ Authentication: Route được protect bằng `authenticate (middleware NOT required for idempotent logout)`
 - ✅ File Upload: N/A
 
 ### Layer 2 (Architecture Constraints) — Status: ✅ PASS
@@ -94,13 +94,13 @@ Technical approach: Sử dụng kiến trúc Stateless JWT, việc đăng xuất
 ```text
 .sdd/CuongLH/UC05-feat-auth-logout/
 ├── spec.md              # Feature specification (DONE)
-├── plan.md              # This file (IN PROGRESS)
-├── research.md          # Phase 0 output (PENDING)
-├── data-model.md        # Phase 1 output (PENDING)
-├── quickstart.md        # Phase 1 output (PENDING)
-├── contracts/           # Phase 1 output (PENDING)
+├── plan.md              # This file (UPDATED 2026-07-05)
+├── research.md          # Phase 0 output (DONE)
+├── data-model.md        # Phase 1 output (DONE)
+├── quickstart.md        # Phase 1 output (DONE)
+├── contracts/           # Phase 1 output (DONE)
 │   └── logout-api.md    # API contract for POST /api/v1/auth/logout
-└── tasks.md             # Phase 2 output (/speckit-tasks command)
+└── tasks.md             # Phase 2 output (DONE - generated 2026-07-05)
 ```
 
 ### Source Code (repository root)
@@ -125,17 +125,17 @@ backend/
 frontend/
 ├── src/
 │   ├── api/
-│   │   └── authApi.js                  # [MODIFY] Add logout() function
+│   │   └── auth.service.js                  # [MODIFY] Add logout() function
 │   ├── contexts/
 │   │   └── authContext.context.js      # [MODIFY] Add logout() to context
 │   ├── components/
 │   │   └── layouts/
-│   │       └── Header.jsx              # [MODIFY] Add logout button handler
+│   │       └── Navbar.jsx              # [MODIFY] Add logout button handler
 │   └── pages/
 │       └── LandingPage.jsx             # [READ ONLY] Redirect target
 └── tests/
     └── components/
-        └── Header.test.jsx             # [CREATE] Component tests
+        └── Navbar.test.jsx             # [CREATE] Component tests
 ```
 
 **Structure Decision**: Chọn Option 2 (Web application) vì VMS là full-stack web app với Backend (REST API) và Frontend (React SPA). Logout feature sẽ modify các file auth hiện có và thêm integration/component tests mới. Không cần tạo table mới trong database vì logout sử dụng Stateless JWT pattern.
@@ -150,7 +150,7 @@ N/A — Không có vi phạm cần justify.
 
 ## Phase 0: Research & Technical Decisions
 
-*PENDING — Sẽ được generate trong research.md*
+COMPLETE - Da generate trong [research.md](./research.md)
 
 ### Research Tasks
 
@@ -183,7 +183,7 @@ N/A — Không có vi phạm cần justify.
 
 ## Phase 1: Design & Contracts
 
-*PENDING — Sẽ được generate trong data-model.md, contracts/, quickstart.md*
+COMPLETE - Da generate: [data-model.md](./data-model.md), [contracts/logout-api.md](./contracts/logout-api.md), [quickstart.md](./quickstart.md)
 
 ### Data Model
 
@@ -202,7 +202,7 @@ N/A — Không có vi phạm cần justify.
 // Request
 POST /api/v1/auth/logout
 Headers:
-  Cookie: access_token=<JWT>
+  Cookie: token=<JWT>
 Body: (empty)
 
 // Response Success
@@ -211,20 +211,15 @@ Status: 200 OK
   "success": true,
   "message": "Đăng xuất thành công"
 }
-Set-Cookie: access_token=; HttpOnly; Secure; SameSite=Strict; Max-Age=0; Path=/
+Set-Cookie: token=; HttpOnly; Secure; SameSite=Lax; Max-Age=0; Path=/
 
-// Response Error (User not authenticated)
-Status: 401 Unauthorized
-{
-  "success": false,
-  "message": "Không tìm thấy phiên làm việc hợp lệ"
-}
+// Note: Idempotent design - always returns 200 OK (see research.md)
 ```
 
 **Frontend Service Contract**:
 
 ```javascript
-// authApi.js
+// auth.service.js
 export const logout = async () => {
   const response = await axiosInstance.post('/auth/logout');
   return response.data;
@@ -250,7 +245,7 @@ Plan reference sẽ được update trong `CLAUDE.md` giữa markers:
 
 ```markdown
 <!-- SPECKIT START -->
-**Active Plans**:
+**Active Tasks**:
 - [UC05-feat-auth-logout](.sdd/CuongLH/UC05-feat-auth-logout/plan.md) - Logout Feature
 <!-- SPECKIT END -->
 ```
@@ -267,7 +262,7 @@ Logout sử dụng **Stateless JWT Pattern**:
 
 1. **Backend**: Xóa JWT cookie bằng cách set `Max-Age=0`
 2. **Frontend**: Clear AuthContext và redirect về Landing Page
-3. **No Server-Side Session Invalidation**: Token tự hết hạn sau thời gian định trước (15 phút cho access token)
+3. **No Server-Side Session Invalidation**: Token tự hết hạn sau thời gian định trước (7 ngày (jwt.util.js config) - accepted risk for v1)
 
 ### Design Patterns
 
@@ -285,7 +280,7 @@ Logout sử dụng **Stateless JWT Pattern**:
 
 **Decision**: Dùng Stateless JWT vì:
 
-- Access token hết hạn nhanh (15 phút)
+- Access token hết hạn trong 7 ngày (jwt.util.js expiresIn)
 - Đơn giản hơn cho v1
 - Spec rõ ràng Out of Scope cho Blacklist
 
@@ -307,15 +302,15 @@ Logout sử dụng **Stateless JWT Pattern**:
 
 | Component | Type | Description | Changes |
 |-----------|------|-------------|---------|
-| `authApi.js` | API Client | Gọi logout endpoint | ADD logout() |
+| `auth.service.js` | Service | Gọi logout endpoint (axiosApi.post) | ADD logout() |
 | `authContext.context.js` | Context | Quản lý auth state | ADD logout() |
-| `Header.jsx` | Component | Hiển thị logout button | MODIFY handler |
+| `Navbar.jsx` | Component | Hiển thị logout button | MODIFY handler |
 | `LandingPage.jsx` | Page | Redirect target | READ ONLY |
 
 ### New Test Files
 
-- `backend/tests/integration/auth.logout.test.js`: Test API endpoint
-- `frontend/tests/components/Header.test.jsx`: Test logout button
+- `backend/tests/auth.logout.test.js`: Test API endpoint
+- `frontend/src/__tests__/Navbar.test.jsx`: Test logout button
 
 ---
 
@@ -411,7 +406,7 @@ User                 Frontend              Backend
 
 | Dependency | Location | Usage | Risk |
 |------------|----------|-------|------|
-| `authMiddleware.authenticate` | `backend/src/middlewares/auth.middleware.js` | Verify JWT trước khi logout | Low - Existing |
+| `authenticate (middleware NOT required for idempotent logout)` | `backend/src/middlewares/auth.middleware.js` | Verify JWT trước khi logout | Low - Existing |
 | `response.util.success()` | `backend/src/utils/response.util.js` | Format API response | Low - Existing |
 | `AuthContext` | `frontend/src/contexts/authContext.context.js` | Manage auth state | Medium - Modify |
 | `axiosInstance` | `frontend/src/api/axiosApi.js` | HTTP client với credentials | Low - Existing |
@@ -426,13 +421,13 @@ User                 Frontend              Backend
 
 ### Execution Order
 
-1. **Phase 0**: Research JWT logout patterns → Generate `research.md`
+1. **Phase 0**: Research JWT logout patterns → `research.md` done
 2. **Phase 1**: Design API contract → Generate `contracts/logout-api.md`
 3. **Phase 1**: Design data model → Generate `data-model.md` (minimal, no new entities)
 4. **Phase 1**: Write quickstart → Generate `quickstart.md`
 5. **Phase 2**: Generate tasks → Run `/speckit-tasks`
 6. **Phase 3**: Implement backend → Auth route → Middleware → Controller → Service
-7. **Phase 4**: Implement frontend → authApi → AuthContext → Header component
+7. **Phase 4**: Implement frontend → auth.service.js → AuthContext → Navbar component (per tasks.md T015-T017)
 8. **Phase 5**: Write tests → Integration tests → Component tests
 9. **Phase 6**: Update documentation → Update `share_context.md` with API contract
 
@@ -444,13 +439,13 @@ User                 Frontend              Backend
 
 ### Risk 1: JWT còn valid sau khi logout (HIGH)
 
-**Mô tả**: Vì Stateless JWT, token vẫn hợp lệ cho đến khi hết hạn (15 phút). Attacker có thể reuse token sau khi user logout.
+**Mô tả**: Vì Stateless JWT, token vẫn hợp lệ cho đến khi hết hạn (7 ngày cookie / 7 ngày JWT). Attacker có thể reuse token sau khi user logout.
 
 **Impact**: Security vulnerability nếu token bị đánh cắp sau logout.
 
 **Mitigation**:
 
-- ✅ **Accepted Risk for v1**: Access token hết hạn nhanh (15 phút)
+- ✅ **Accepted Risk for v1**: Access token hết hạn trong 7 ngày (jwt.util.js expiresIn)
 - ✅ Refresh token không bị xóa khỏi DB (Out of Scope)
 - 📋 **Future**: Implement token blacklist trong v2 nếu security review yêu cầu
 
@@ -479,7 +474,7 @@ User                 Frontend              Backend
 **Mitigation**:
 
 - ✅ **Accepted Design**: Stateless JWT không track server-side sessions
-- ✅ Token tự hết hạn sau 15 phút
+- ✅ Cookie tự hết hạn sau 1 ngày (jwt.util.js maxAge: 24h)
 - ✅ FR-007 đảm bảo client luôn clear local state
 
 **Status**: ACCEPTED — By design (Stateless JWT pattern).
@@ -511,7 +506,7 @@ User                 Frontend              Backend
 - **A**: Không có confirmation (theo spec) ✅ RECOMMENDED
 - **B**: Thêm confirmation modal
 
-**Recommendation**: Chọn A vì spec rõ ràng Out of Scope và logout có thể hoàn tác dễ dàng (login lại).
+**Answer**: Chọn A vì spec rõ ràng Out of Scope và logout có thể hoàn tác dễ dàng (login lại).
 
 ### Q2: Logout button có cần loading state không?
 
@@ -522,7 +517,7 @@ User                 Frontend              Backend
 - **A**: Không show loading, disable button sau click ✅ RECOMMENDED
 - **B**: Show loading spinner
 
-**Recommendation**: Chọn A vì NFR-001 yêu cầu < 1s, UX đủ nhanh không cần spinner.
+**Answer**: Chọn A vì NFR-001 yêu cầu < 1s, UX đủ nhanh không cần spinner.
 
 ### Q3: Xử lý thế nào khi API logout trả về 401 (user chưa login)?
 
@@ -533,7 +528,7 @@ User                 Frontend              Backend
 - **A**: Vẫn clear context và redirect (idempotent) ✅ RECOMMENDED
 - **B**: Show error message "Bạn chưa đăng nhập"
 
-**Recommendation**: Chọn A vì logout phải idempotent, kết quả cuối cùng giống nhau (user logged out).
+**Answer**: Chọn A vì logout phải idempotent, kết quả cuối cùng giống nhau (user logged out).
 
 ### Q4: Có cần ghi audit log cho logout action không?
 
@@ -544,7 +539,7 @@ User                 Frontend              Backend
 - **A**: Không log logout action (v1) ✅ SPEC DEFAULT
 - **B**: Log logout action (user_id, timestamp, IP)
 
-**Recommendation**: Chọn A theo spec Out of Scope, implement trong separate audit module nếu cần sau.
+**Answer**: Chọn A theo spec Out of Scope, implement trong separate audit module nếu cần sau.
 
 ### Q5: Multi-device logout behavior như thế nào?
 
@@ -561,21 +556,23 @@ User                 Frontend              Backend
 - **Option A**: Giữ Single Active Session, remove FR-012 khỏi spec
 - **Option B**: Sửa database design để support multiple sessions (breaking change)
 
-**ESCALATION**: 🚨 Cần human decision trước khi continue Phase 1.
+**ESCALATION**: 🚨 Cần human decision truoc khi continue Phase 1. RESOLVED (2026-07-05): Single Active Session confirmed. Matches DATABASE.md + jwt.util.js. Logout chi clear cookie local. FR-012 valid (only 1 active session).
 
+**Answer**: Giữ Single Active Session, remove FR-012 khỏi spec
 ---
 
 ## Next Steps
 
-1. ✅ **Phase 0 Complete**: Constitution Check PASSED
-2. ⏳ **BLOCKED - Awaiting Human Input**: Resolve Q5 conflict (Single vs Multi Session)
-3. 📋 **After Resolution**: Generate `research.md` (Phase 0 output)
-4. 📋 **Phase 1**: Generate `data-model.md`, `contracts/`, `quickstart.md`
-5. 📋 **Phase 2**: Run `/speckit-tasks` to generate `tasks.md`
+1. Phase 0 Complete: Constitution Check PASSED
+2. Q5 RESOLVED: Single Active Session confirmed (matches DATABASE.md + jwt.util.js)
+3. Phase 0: `research.md` generated (29/06/2026)
+4. Phase 1: `data-model.md`, `contracts/`, `quickstart.md` generated (02/07/2026)
+5. Phase 2: `tasks.md` generated (05/07/2026) at [./tasks.md](./tasks.md)
+6. Phase 3-5: Implementation ready per `tasks.md` (T001-T029)
 
 ---
 
-**Plan Status**: 🟡 BLOCKED — Awaiting decision on Session Model conflict (Q5)
+**Plan Status**: 🟢 READY FOR IMPLEMENTATION
 
 **Estimated Complexity**: 🟢 LOW-MEDIUM
 
@@ -583,4 +580,4 @@ User                 Frontend              Backend
 - Frontend: ~4 hours (API client + Context update + Header handler + tests)
 - Total: ~8 hours
 
-**Ready for Review**: ✅ YES — Plan structure complete, needs Q5 resolution before Phase 1.
+**Ready for Review**: ✅ YES — Plan structure complete, all phases complete. Proceed to tasks.md for implementation.

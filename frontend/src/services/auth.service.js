@@ -10,5 +10,9 @@ export const authService = {
             }
         }
         return axiosApi.post('auth/login', data)
+    },
+
+    async logout() {
+        return axiosApi.post('/auth/logout');
     }
 } 

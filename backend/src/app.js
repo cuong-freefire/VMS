@@ -87,6 +87,18 @@ app.use('/api/v1/auth', authRoutes);
 // 6.2 User routes
 app.use('/api/v1/user', userRoutes);
 
+app.get('/', (req, res) => {
+  res.cookie('testCookie', 'testValue', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax'
+  });
+  res.status(200).json({
+    success: true,
+    message: 'VMS Backend API is running. Please use /api/v1/auth or /api/v1/user endpoints.'
+  });
+});
+
 // Global Error Handler (luôn đặt cuối cùng)
 app.use((err, req, res, next) => {
   console.error(err);
