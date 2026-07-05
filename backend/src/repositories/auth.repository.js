@@ -23,7 +23,7 @@ const prisma = new PrismaClient();
  * @param {string} type - Verification type ('REGISTER' or 'RESET_PASSWORD')
  * @returns {Promise<Object|null>} EmailVerification record or null
  */
-export const findVerificationByEmailAndType = async (email, type = 'REGISTER') => {
+const findVerificationByEmailAndType = async (email, type = 'REGISTER') => {
     return prisma.emailVerification.findUnique({
         where: {
             email_type: {
@@ -39,7 +39,7 @@ export const findVerificationByEmailAndType = async (email, type = 'REGISTER') =
  * @param {string} email - User email
  * @returns {Promise<Object|null>} EmailVerification record or null
  */
-export const findVerificationByEmail = async (email) => {
+const findVerificationByEmail = async (email) => {
     return prisma.emailVerification.findFirst({
         where: { email },
         orderBy: { createdAt: 'desc' },
@@ -53,7 +53,7 @@ export const findVerificationByEmail = async (email) => {
  * @param {string} type - Verification type (default: 'REGISTER')
  * @returns {Promise<Object>} Created EmailVerification record
  */
-export const createVerification = async (email, otpHash, type = 'REGISTER') => {
+const createVerification = async (email, otpHash, type = 'REGISTER') => {
     return prisma.emailVerification.create({
         data: {
             email,
@@ -73,7 +73,7 @@ export const createVerification = async (email, otpHash, type = 'REGISTER') => {
  * @param {string} type - Verification type
  * @returns {Promise<Object>} Updated EmailVerification record
  */
-export const updateVerification = async (email, updateData, type = 'REGISTER') => {
+const updateVerification = async (email, updateData, type = 'REGISTER') => {
     return prisma.emailVerification.update({
         where: {
             email_type: {
@@ -91,7 +91,7 @@ export const updateVerification = async (email, updateData, type = 'REGISTER') =
  * @param {string} type - Verification type
  * @returns {Promise<Object>} Deleted EmailVerification record
  */
-export const deleteVerification = async (email, type = 'REGISTER') => {
+const deleteVerification = async (email, type = 'REGISTER') => {
     return prisma.emailVerification.delete({
         where: {
             email_type: {
@@ -107,7 +107,7 @@ export const deleteVerification = async (email, type = 'REGISTER') => {
  * @param {string} email - User email (normalized)
  * @returns {Promise<Object|null>} User record with role or null
  */
-export const findUserByEmail = async (email) => {
+const findUserByEmail = async (email) => {
     return prisma.user.findUnique({
         where: { email },
         include: { role: true }
@@ -119,7 +119,7 @@ export const findUserByEmail = async (email) => {
  * @param {string} email - User email
  * @returns {Promise<Object|null>} LoginAttempt record or null
  */
-export const getLoginAttempts = async (email) => {
+const getLoginAttempts = async (email) => {
     return prisma.loginAttempt.findUnique({
         where: { email }
     });
@@ -130,7 +130,7 @@ export const getLoginAttempts = async (email) => {
  * @param {string} email - User email
  * @returns {Promise<Object>} Updated LoginAttempt record
  */
-export const incrementLoginAttempts = async (email) => {
+const incrementLoginAttempts = async (email) => {
     const existing = await prisma.loginAttempt.findUnique({
         where: { email }
     });
@@ -163,7 +163,7 @@ export const incrementLoginAttempts = async (email) => {
  * @param {string} email - User email
  * @returns {Promise<void>}
  */
-export const resetLoginAttempts = async (email) => {
+const resetLoginAttempts = async (email) => {
     await prisma.loginAttempt.delete({
         where: { email }
     }).catch(() => {
@@ -178,7 +178,7 @@ export const resetLoginAttempts = async (email) => {
  * @param {Date} expiresAt - Session expiry time
  * @returns {Promise<Object>} Created or updated UserSession
  */
-export const upsertSession = async (userId, jti, expiresAt) => {
+const upsertSession = async (userId, jti, expiresAt) => {
     return prisma.userSession.upsert({
         where: { userId },
         create: {
@@ -204,7 +204,7 @@ export const upsertSession = async (userId, jti, expiresAt) => {
  * @param {number} userData.roleId - Role ID (Volunteer role)
  * @returns {Promise<Object>} Created User record
  */
-export const createUser = async (userData) => {
+const createUser = async (userData) => {
     const {
         email,
         passwordHash,
@@ -230,11 +230,21 @@ export const createUser = async (userData) => {
  * Get Volunteer role
  * @returns {Promise<Object|null>} Role record or null
  */
-export const getVolunteerRole = async () => {
+const getVolunteerRole = async () => {
     return prisma.role.findUnique({
         where: { name: 'VOLUNTEER' },
     });
 };
+
+const getJtiByUserId = async (userId) => {
+    const response = await prisma.userSession.findUnique({
+        where: { userId },
+        select: {
+            jti: true
+        }
+    })
+    return response.jti || null;
+}
 
 export default {
     findVerificationByEmailAndType,
@@ -244,5 +254,10 @@ export default {
     deleteVerification,
     findUserByEmail,
     createUser,
+    getJtiByUserId,
     getVolunteerRole,
+    getLoginAttempts,
+    incrementLoginAttempts,
+    resetLoginAttempts,
+    upsertSession
 };
