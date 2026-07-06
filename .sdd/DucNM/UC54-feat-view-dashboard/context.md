@@ -14,14 +14,14 @@ Hệ thống VMS sinh ra nhiều dữ liệu nghiệp vụ hàng ngày: sự ki�
   - Bar chart: Số sự kiện theo tháng (12 tháng gần nhất).
   - Line chart: User mới theo tháng (12 tháng gần nhất).
   - Pie chart: Phân bố đơn đăng ký (Approved/Rejected/Pending).
-- **Phân quyền:** Admin thấy toàn hệ thống. Manager thấy dữ liệu trong phạm vi quản lý.
+- **Phân quyền:** Admin và Manager đều thấy dữ liệu toàn hệ thống. Manager là role hệ thống, không gắn với tổ chức cụ thể — dashboard hiển thị giống Admin.
 - **Read-only:** Dashboard chỉ đọc dữ liệu. Không có thao tác write.
 - **Cache:** Dữ liệu dashboard được cache 5 phút (Redis). User có thể force refresh.
 
 ## 3. STAKEHOLDERS
 
 - **Admin:** Cần dashboard tổng quan toàn hệ thống để ra quyết định chiến lược.
-- **Manager:** Cần dashboard cho phạm vi quản lý của mình.
+- **Manager:** Cần dashboard tổng quan toàn hệ thống để quản lý vận hành.
 
 ## 4. CONSTRAINTS (Ràng buộc cứng)
 
@@ -38,10 +38,10 @@ Hệ thống VMS sinh ra nhiều dữ liệu nghiệp vụ hàng ngày: sự ki�
 
 ## 6. OPEN QUESTIONS (Cần chốt trước khi viết SPEC.md)
 
-1. **Phạm vi Manager:** Manager có organization_id không? Làm sao phân biệt dữ liệu của Manager với Admin?
+1. **Phạm vi Manager:** Manager có tổ chức không? Dashboard Manager có khác Admin không?
 2. **Refresh:** Khi user nhấn Refresh, có force xóa cache không?
 
 ## 7. ANSWERS (Đã chốt nghiệp vụ)
 
-- **A1:** Manager có organization_id liên kết. Dashboard Manager chỉ query dữ liệu liên quan đến organization của họ. Admin query toàn bộ.
+- **A1:** Manager là role hệ thống, không gắn với tổ chức cụ thể. Dashboard của Manager giống Admin — thấy toàn bộ dữ liệu hệ thống.
 - **A2:** Khi user nhấn Refresh, system bỏ qua cache (gửi query param `force=true` hoặc `cache=false`) và query từ database. Kết quả được lưu cache lại.
