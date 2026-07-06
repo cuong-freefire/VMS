@@ -1,9 +1,17 @@
 import { Link } from "react-router-dom"
 import { Shrimp } from 'lucide-react';
 import { useAuth } from "../../contexts/authContext.context";
+import { useState } from "react";
 
 export default function Navbar() {
     const authContext = useAuth()
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+    const handleLogout = async () => {
+        if (isLoggingOut) return;
+        setIsLoggingOut(true);
+        await authContext.logout();
+    };
 
     const navItem = [
         { name: 'HomePage', icon: '', link: '/' },
@@ -39,8 +47,15 @@ export default function Navbar() {
                 <div className="col-3">
                     {
                         authContext?.isAuthenticated ?
-                            <div className="py-3">
-                                <p className="text-success">Xin chào {authContext.user.name}</p>
+                            <div className="py-3 d-flex align-items-center gap-2">
+                                <p className="text-success mb-0">Xin chào {authContext.user.name}</p>
+                                <button
+                                    className="btn btn-outline-danger btn-sm"
+                                    onClick={handleLogout}
+                                    disabled={isLoggingOut}
+                                >
+                                    {isLoggingOut ? 'Đang đăng xuất...' : 'Đăng xuất'}
+                                </button>
                             </div>
                             :
                             <ul className="list-unstyled d-flex justify-content-center py-3 gap-3 mb-0">

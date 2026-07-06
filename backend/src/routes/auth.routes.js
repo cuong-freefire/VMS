@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Authentication Routes
  *
  * Các endpoint liên quan đến xác thực người dùng:
@@ -10,7 +10,7 @@
  */
 
 import { Router } from 'express';
-import { login, sendOTPController, verifyOTPController } from '../controllers/auth.controller.js';
+import { login, sendOTPController, verifyOTPController, logout } from '../controllers/auth.controller.js';
 import { validate, loginSchema, sendOTPSchema, verifyOTPSchema } from '../middlewares/validators/auth.validator.js';
 
 const router = Router();
@@ -225,7 +225,40 @@ router.post('/register/send-otp', validate(sendOTPSchema), sendOTPController);
  *         description: Lỗi server
  */
 router.post('/register/verify-otp', validate(verifyOTPSchema), verifyOTPController);
+/**
+ * @swagger
+ * /api/v1/auth/logout:
+ *   post:
+ *     summary: Đăng xuất người dùng
+ *     description: |
+ *       Xóa JWT token khỏi httpOnly cookie và kết thúc phiên làm việc.
+ *       Idempotent design — luôn trả về 200 OK.
+ *     tags:
+ *       - Authentication
+ *     responses:
+ *       200:
+ *         description: Đăng xuất thành công (idempotent)
+ *         headers:
+ *           Set-Cookie:
+ *             description: Clear token cookie
+ *             schema:
+ *               type: string
+ *               example: token=; Max-Age=0; HttpOnly; SameSite=Lax; Path=/
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Đăng xuất thành công
+ *                 data:
+ *                   type: object
+ *                   example: {}
+ */
+router.post('/logout', logout);
 
 export default router;
-
-

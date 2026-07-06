@@ -25,7 +25,6 @@ export function AuthProvider({ children }) {
         initializeUser()
     }, [])
 
-
     const login = async (data) => {
         const res = await authService.login(data);
 
@@ -34,12 +33,24 @@ export function AuthProvider({ children }) {
         return res.data;
     };
 
+    const logout = async () => {
+        try {
+            await authService.logout();
+        } catch (error) {
+            console.error('Logout API failed, clearing local state anyway:', error.message);
+        } finally {
+            setUser(null);
+            window.location.href = '/';
+        }
+    };
+
     return (
         <AuthContext.Provider
             value={{
                 user,
                 loading,
                 login,
+                logout,
                 isAuthenticated: !!user
             }}
         >

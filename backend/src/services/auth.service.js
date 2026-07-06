@@ -1,9 +1,9 @@
-import { signAccessToken } from "../utils/jwt.util.js";
+﻿import { signAccessToken } from "../utils/jwt.util.js";
 import { ServiceError } from "../utils/response.util.js";
 import bcrypt from "bcryptjs";
 import { generateOTP, hashOTP, verifyOTP as verifyOTPHash } from "../utils/otp.util.js";
 import { generateOTPEmailContent } from "../utils/email.util.js";
-import * as authRepository from "../repositories/auth.repository.js";
+import authRepository from "../repositories/auth.repository.js";
 import { transporter } from "../config/transporter.config.js";
 
 /**
@@ -26,7 +26,7 @@ import { transporter } from "../config/transporter.config.js";
  * @returns {Promise<Object>} Object with token and user data
  * @throws {ServiceError} 401/403/429 errors
  */
-export async function loginService(email, password) {
+async function loginService(email, password) {
     // 1. Normalize email to lowercase
     const normalizedEmail = email.toLowerCase().trim();
 
@@ -132,7 +132,7 @@ export async function loginService(email, password) {
  * @returns {Promise<Object>} Success response with cooldown info
  * @throws {ServiceError} 400/409/429/503 errors
  */
-export const sendOTP = async (email) => {
+const sendOTP = async (email) => {
     // 1. Validate email format (already done by Zod middleware)
     // 2. Normalize email
     const normalizedEmail = email.toLowerCase().trim();
@@ -247,7 +247,7 @@ export const sendOTP = async (email) => {
  * @returns {Promise<Object>} Success response with user_id
  * @throws {ServiceError} 400/429/500 errors
  */
-export const verifyOTP = async (payload) => {
+const verifyOTP = async (payload) => {
     const { email, otp, fullName, phoneNumber, password } = payload;
 
     // 1. Normalize email

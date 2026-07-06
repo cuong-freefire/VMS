@@ -30,6 +30,6 @@ export function setTokenToCookie(res, token) {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
-        maxAge: 24 * 60 * 60 * 1000 // 1 ngày
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 ngày
     })
 }

@@ -1,4 +1,4 @@
-# Quickstart Guide: UC05 Logout Implementation
+﻿# Quickstart Guide: UC05 Logout Implementation
 
 **Feature**: UC05-feat-auth-logout  
 **Complexity**: 🟢 LOW-MEDIUM  
@@ -112,7 +112,7 @@ export const logout = async () => {
 **Action**: ADD logout method
 
 ```javascript
-import { logout as logoutService } from '../services/auth.service.js';
+// No service call needed — controller handles clearCookie directly
 
 /**
  * @swagger
@@ -141,8 +141,8 @@ import { logout as logoutService } from '../services/auth.service.js';
  */
 export const logout = async (req, res) => {
   try {
-    // Call service (minimal logic)
-    await logoutService();
+    // No business logic needed — stateless JWT logout
+    // Clear cookie directly via res.clearCookie()
     
     // Clear cookie with same attributes as login
     res.cookie(
