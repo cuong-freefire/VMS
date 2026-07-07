@@ -28,9 +28,9 @@ import httpLogger from './middlewares/logger.middleware.js';
 import { errorResponse } from './utils/response.util.js';
 
 // Kiểm tra kết nối nodemailer (SMTP) khi server khởi động
-import { verifyTransporter } from './config/transporter.config.js';
+// import { verifyTransporter } from './config/transporter.config.js';
 
-verifyTransporter();
+// verifyTransporter();
 
 const app = express();
 

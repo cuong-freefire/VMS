@@ -12,14 +12,14 @@ export const transporter = nodemailer.createTransport({
     socketTimeout: 10000,
 });
 
-// Verify connection khi server start
-export const verifyTransporter = async () => {
-    try {
-        await transporter.verify();
-        console.log("✅ SMTP connection verified");
-        return true;
-    } catch (error) {
-        console.error("❌ SMTP connection failed:", error.message);
-        return false;
-    }
-};
+// // Verify connection khi server start
+// export const verifyTransporter = async () => {
+//     try {
+//         await transporter.verify();
+//         console.log("✅ SMTP connection verified");
+//         return true;
+//     } catch (error) {
+//         console.error("❌ SMTP connection failed:", error.message);
+//         return false;
+//     }
+// };
