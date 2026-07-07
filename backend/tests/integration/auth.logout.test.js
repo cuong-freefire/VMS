@@ -1,4 +1,4 @@
-﻿import request from 'supertest';
+import request from 'supertest';
 import app from '../../src/app.js';
 import jwt from 'jsonwebtoken';
 
@@ -17,24 +17,24 @@ describe('POST /api/v1/auth/logout', () => {
     it('should return 200 and clear cookie when authenticated', async () => {
       const response = await request(app)
         .post('/api/v1/auth/logout')
-        .set('Cookie', oken = + validToken)
+        .set('Cookie', `token=${validToken}`)
         .expect(200);
 
       expect(response.body.success).toBe(true);
       expect(response.body.message).toBe('Đăng xuất thành công');
     });
 
-    it('should set Set-Cookie header with Max-Age=0', async () => {
+    it('should set Set-Cookie header that clears the cookie', async () => {
       const response = await request(app)
         .post('/api/v1/auth/logout')
-        .set('Cookie', oken = + validToken)
+        .set('Cookie', `token=${validToken}`)
         .expect(200);
 
       const setCookie = response.headers['set-cookie'];
       expect(setCookie).toBeDefined();
       const cookieStr = Array.isArray(setCookie) ? setCookie[0] : setCookie;
       expect(cookieStr).toContain('token=;');
-      expect(cookieStr).toContain('Max-Age=0');
+      expect(cookieStr).toMatch(/(Max-Age=0|Expires=Thu, 01 Jan 1970)/);
     });
 
     it('should return 200 when no cookie (idempotent)', async () => {
@@ -63,7 +63,7 @@ describe('POST /api/v1/auth/logout', () => {
 
       const response = await request(app)
         .post('/api/v1/auth/logout')
-        .set('Cookie', oken = + expiredToken)
+        .set('Cookie', `token=${expiredToken}`)
         .expect(200);
 
       expect(response.body.success).toBe(true);
@@ -74,7 +74,7 @@ describe('POST /api/v1/auth/logout', () => {
     it('should handle multiple sequential logout calls', async () => {
       await request(app)
         .post('/api/v1/auth/logout')
-        .set('Cookie', oken = + validToken)
+        .set('Cookie', `token=${validToken}`)
         .expect(200);
 
       const response2 = await request(app)
@@ -105,14 +105,14 @@ describe('POST /api/v1/auth/logout', () => {
     it('should set HttpOnly and SameSite=Lax attributes', async () => {
       const response = await request(app)
         .post('/api/v1/auth/logout')
-        .set('Cookie', oken = + validToken)
+        .set('Cookie', `token=${validToken}`)
         .expect(200);
 
       const setCookie = response.headers['set-cookie'];
       const cookieStr = Array.isArray(setCookie) ? setCookie[0] : setCookie;
       expect(cookieStr).toContain('HttpOnly');
       expect(cookieStr).toContain('SameSite=Lax');
-      expect(cookieStr).toContain('Max-Age=0');
+      expect(cookieStr).toMatch(/(Max-Age=0|Expires=Thu, 01 Jan 1970)/);
     });
   });
 
@@ -122,7 +122,7 @@ describe('POST /api/v1/auth/logout', () => {
 
       await request(app)
         .post('/api/v1/auth/logout')
-        .set('Cookie', oken = + validToken)
+        .set('Cookie', `token=${validToken}`)
         .expect(200);
 
       const responseTime = Date.now() - startTime;

@@ -1,347 +1,468 @@
-# Implementation Plan: Xem hồ sơ cá nhân (View Profile)
+﻿# Kế Hoạch Triển Khai: Xem Hồ Sơ Cá Nhân (View Profile)
 
-**Branch**: `feat/UC18-view-profile` | **Date**: 2026-06-30 | **Spec**: [spec.md](.sdd/CuongLH/UC18-feat-profile-view/spec.md)
+**Nhánh**: `feat/UC18-view-profile` | **Ngày**: 2026-07-07 | **Spec**: [spec.md](./spec.md)
 
-**Input**: Feature specification from `.sdd/CuongLH/UC18-feat-profile-view/spec.md`
+**Đầu Vào**: Đặc tả tính năng từ `.sdd/CuongLH/UC18-feat-profile-view/spec.md`
 
-## Summary
+---
 
-Feature này cung cấp API endpoint cho người dùng đã đăng nhập xem thông tin hồ sơ cá nhân của chính mình (Private Profile). API trả về thông tin cơ bản (tên, email, số điện thoại, avatar) kèm danh sách kỹ năng đã đăng ký, đồng thời đảm bảo bảo mật bằng cách loại bỏ hoàn toàn các trường nhạy cảm (password, token, internal IDs) khỏi response.
+## 1. Tổng Quan (Summary)
 
-**Technical Approach**:
+Tính năng cung cấp API endpoint cho phép người dùng đã đăng nhập xem thông tin hồ sơ cá nhân của chính mình (Private Profile). API trả về các thông tin cơ bản (họ tên, email, số điện thoại, ảnh đại diện) kèm theo danh sách kỹ năng đã đăng ký. Đồng thời đảm bảo an toàn bảo mật bằng cách loại bỏ triệt để các trường dữ liệu nhạy cảm (password_hash, token, internal IDs) khỏi response.
 
-- Sử dụng Auth Middleware để xác thực JWT token và lấy định danh người dùng đã được xác thực từ `req.user`
-- Tạo Service layer để truy vấn database với Prisma (chưa có Prisma schema, cần tạo mới)
-- Tạo Repository layer để tách biệt data access logic
-- Implement data sanitization để loại bỏ các trường nhạy cảm
-- Tuân thủ kiến trúc phân tầng: Controller → Service → Repository
+**Hướng Tiếp Cận Kỹ Thuật (Technical Approach)**:
 
-## Technical Context
+- Sử dụng Auth Middleware hiện có để xác thực JWT token và trích xuất định danh người dùng từ `req.user` (không nhận từ request body/params - tuân thủ Lesson 3).
+- Xây dựng Service layer để xử lý business logic truy vấn database qua Prisma ORM.
+- Xây dựng Repository layer để tách biệt hoàn toàn data access logic khỏi business logic.
+- Áp dụng data sanitization để loại bỏ mọi trường nhạy cảm trước khi trả về client.
+- Tuân thủ nghiêm ngặt kiến trúc phân tầng: **Controller → Service → Repository**.
 
-**Language/Version**: Node.js 18+ + JavaScript (ESM)
+---
 
-**Primary Dependencies**:
+## 2. Bối Cảnh Kỹ Thuật (Technical Context)
 
-- Express 5.x (REST API framework)
-- Prisma ORM (database access - **CẦN SETUP**)
-- MySQL (database)
-- Zod (validation)
-- JWT + bcryptjs (authentication - đã có)
-- Pino (logging)
+**Ngôn Ngữ / Phiên Bản**: Node.js 18+ + JavaScript (ESM)
 
-**Storage**: MySQL database với các bảng:
+**Các Thư Viện Phụ Thuộc Chính (Primary Dependencies)**:
 
-- `users` (thông tin người dùng)
-- `user_skills` (bảng trung gian many-to-many)
-- `skills` (danh mục kỹ năng)
+| Thư Viện | Vai Trò | Trạng Thái |
+|----------|--------|------------|
+| Express 5.x | REST API framework | Đã có |
+| Prisma ORM | Database access | **CẦN THIẾT LẬP MỚI** |
+| MySQL | Database | Đã có |
+| Zod | Input validation | Đã có |
+| JWT + bcryptjs | Authentication | Đã có |
+| Pino | Logging | Đã có |
 
-**Testing**: Jest + Supertest (integration tests)
+**Lưu Trữ (Storage)**: MySQL với các bảng liên quan:
 
-**Target Platform**: Node.js server runtime
+- `users` — thông tin tài khoản người dùng
+- `user_skills` — bảng trung gian many-to-many giữa User và Skill
+- `skills` — danh mục kỹ năng
 
-**Project Type**: Web service (RESTful API)
+**Kiểm Thử (Testing)**: Jest + Supertest cho integration tests
 
-**Performance Goals**:
+**Nền Tảng Mục Tiêu (Target Platform)**: Node.js server runtime
 
-- Response time < 300ms (normal load)
-- Response time < 1s (200 concurrent requests)
-- Support 200+ concurrent users
+**Loại Dự Án (Project Type)**: Web application (RESTful API backend + React frontend)
 
-**Constraints**:
+**Mục Tiêu Hiệu Năng (Performance Goals)**:
 
-- MUST enforce JWT authentication via httpOnly cookie
-- MUST sanitize all sensitive fields from response
-- MUST use user identity from JWT token only (NOT from request params/body)
-- MUST follow layered architecture (Controller → Service → Repository)
-- Response MUST follow project standard: `{ success, message, data }`
+- Thời gian phản hồi (response time) < 300ms ở tải bình thường
+- Thời gian phản hồi < 1s với 200 concurrent requests
+- Hỗ trợ tối thiểu 200+ người dùng đồng thời
 
-**Scale/Scope**:
+**Ràng Buộc (Constraints)**:
 
-- Single API endpoint: GET `/api/v1/user/me`
-- Expected ~10k active users
-- Read-only operation (no data mutation)
+- **PHẢI** thực thi JWT authentication qua httpOnly cookie (ADR-002)
+- **PHẢI** sanitize tất cả các trường nhạy cảm khỏi response (DATABASE.md Section 12)
+- **PHẢI** sử dụng định danh người dùng từ JWT token, KHÔNG từ request params/body (Lesson 3)
+- **PHẢI** tuân thủ kiến trúc phân tầng Controller → Service → Repository (ADR-001)
+- **PHẢI** sử dụng định dạng response chuẩn: `{ success, message, data }` (ADR-006)
 
-## Constitution Check
+**Quy Mô / Phạm Vi (Scale/Scope)**:
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+- Một API endpoint duy nhất: `GET /api/v1/user/me`
+- Dự kiến ~10k người dùng hoạt động
+- Thao tác chỉ đọc (read-only), không thay đổi dữ liệu
 
-**Architecture Compliance**:
+---
 
-- ✅ Layered architecture: Controller → Service → Repository (tuân thủ AGENTS.md Section 6)
-- ✅ Module ownership: Member 1 (CuongLH) owns Profile Management (tuân thủ CLAUDE.md Section 1)
-- ✅ Cross-module: Không gọi Repository của module khác (tuân thủ AGENTS.md Section 5)
-- ✅ Response format: Sử dụng `response.util.js` (tuân thủ ADR-006)
-- ✅ Authentication: JWT HttpOnly Cookie (tuân thủ ADR-002)
-- ✅ Database access: Prisma ORM only (tuân thủ ADR-001)
-- ✅ Validation: Zod cho input validation (tuân thủ ADR-003)
+## 3. Kiểm Tra Tuân Thủ Hiến Pháp (Constitution Check)
 
-**Security Compliance**:
+*CỔNG KIỂM TRA: Phải vượt qua trước khi thực hiện Phase 0. Kiểm tra lại sau Phase 1.*
 
-- ✅ UserId từ JWT token, KHÔNG từ request body (tuân thủ Lesson 3)
-- ✅ Data sanitization: Loại bỏ password_hash, tokens (tuân thủ DATABASE.md Section 12)
-- ✅ Soft delete: Query phải filter `is_active = true` (tuân thủ ADR-005)
+### Tuân Thủ Kiến Trúc (Architecture Compliance)
 
-**Code Quality**:
+| Hạng Mục | Trạng Thái | Căn Cứ |
+|----------|-----------|--------|
+| Kiến trúc phân tầng: Controller → Service → Repository | ✅ Đạt | AGENTS.md Section 6 |
+| Module ownership: Member 1 (CuongLH) sở hữu Profile Management | ✅ Đạt | CLAUDE.md Section 1 |
+| Cross-module: Không gọi Repository của module khác | ✅ Đạt | AGENTS.md Section 5 |
+| Định dạng response: Sử dụng `response.util.js` | ✅ Đạt | ADR-006 |
+| Authentication: JWT HttpOnly Cookie | ✅ Đạt | ADR-002 |
+| Database access: Chỉ dùng Prisma ORM | ✅ Đạt | ADR-001 |
+| Validation: Zod cho input validation | ✅ Đạt | ADR-003 |
 
-- ✅ Max function length: 40 lines (tuân thủ AGENTS.md Section 7)
-- ✅ Max file length: 300 lines (tuân thủ AGENTS.md Section 7)
-- ✅ Test coverage: 80% cho Service layer (tuân thủ AGENTS.md Section 7)
-- ✅ Comments: Chỉ giải thích WHY, không giải thích WHAT (tuân thủ AGENTS.md Section 7)
+### Tuân Thủ Bảo Mật (Security Compliance)
 
-**Violations**: NONE - Feature hoàn toàn tuân thủ constitution
+| Hạng Mục | Trạng Thái | Căn Cứ |
+|----------|-----------|--------|
+| UserId lấy từ JWT token, KHÔNG từ request body | ✅ Đạt | Lesson 3 |
+| Data sanitization: Loại bỏ password_hash, tokens khỏi response | ✅ Đạt | DATABASE.md Section 12 |
+| Soft delete: Query phải lọc `is_active = true` | ✅ Đạt | ADR-005 |
 
-## Project Structure
+### Tuân Thủ Chất Lượng Code (Code Quality)
 
-### Documentation (this feature)
+| Hạng Mục | Trạng Thái | Căn Cứ |
+|----------|-----------|--------|
+| Độ dài hàm tối đa: 40 dòng | ✅ Đạt | AGENTS.md Section 7 |
+| Độ dài file tối đa: 300 dòng | ✅ Đạt | AGENTS.md Section 7 |
+| Test coverage: Tối thiểu 80% cho Service layer | ✅ Đạt | AGENTS.md Section 7 |
+| Comments: Chỉ giải thích WHY, không giải thích WHAT | ✅ Đạt | AGENTS.md Section 7 |
+
+**Kết Luận**: KHÔNG có vi phạm constitution. Tính năng hoàn toàn tuân thủ mọi ràng buộc kiến trúc, bảo mật, và chất lượng code.
+
+---
+
+## 4. Cấu Trúc Dự Án (Project Structure)
+
+### Tài Liệu (Documentation)
 
 ```text
 .sdd/CuongLH/UC18-feat-profile-view/
-├── spec.md              # Feature specification (ĐÃ CÓ)
-├── context.md           # Problem statement (ĐÃ CÓ)
-├── plan.md              # This file (implementation plan)
-├── research.md          # Technical research (ĐÃ CÓ)
-├── data-model.md        # Database schema & queries (ĐÃ CÓ)
-├── quickstart.md        # API usage examples (ĐÃ CÓ)
-├── contracts/           # API contracts (ĐÃ CÓ)
-│   ├── api-contract.md
-│   └── service-contract.md
-└── tasks.md             # Atomic tasks breakdown (CHƯA TẠO)
+├── spec.md                  # Đặc tả tính năng (ĐÃ CÓ)
+├── context.md               # Phát biểu bài toán (ĐÃ CÓ)
+├── plan.md                  # File này - Kế hoạch triển khai
+├── research.md              # Nghiên cứu kỹ thuật (ĐÃ CÓ)
+├── data-model.md            # Thiết kế schema & queries (ĐÃ CÓ)
+├── quickstart.md            # Hướng dẫn sử dụng API (ĐÃ CÓ)
+├── contracts/               # Hợp đồng API (ĐÃ CÓ)
+│   ├── api-contract.md      #   Đặc tả REST endpoint
+│   └── service-contract.md  #   Đặc tả Service interface
+└── tasks.md                 # Danh sách tác vụ nguyên tử (CHƯA TẠO - sẽ sinh bởi /speckit-tasks)
 ```
 
-### Source Code (repository root)
+### Mã Nguồn (Source Code)
 
 ```text
 backend/
 ├── prisma/
-│   ├── schema.prisma          # [CREATE] Prisma schema definition
-│   └── migrations/            # [AUTO-GENERATED] Prisma migrations
+│   ├── schema.prisma                # [TẠO MỚI] Định nghĩa Prisma schema
+│   └── migrations/                  # [TỰ SINH] Prisma migrations
 │
 ├── src/
 │   ├── controllers/
-│   │   └── profile.controller.js    # [CREATE] Profile controller
+│   │   └── profile.controller.js    # [TẠO MỚI] Điều khiển request/response
 │   │
 │   ├── services/
-│   │   └── profile.service.js       # [CREATE] Profile business logic
+│   │   └── profile.service.js       # [TẠO MỚI] Business logic + sanitization
 │   │
 │   ├── repositories/
-│   │   └── profile.repository.js    # [CREATE] Profile data access
+│   │   └── profile.repository.js    # [TẠO MỚI] Data access qua Prisma
 │   │
 │   ├── validators/
-│   │   └── profile.validator.js     # [CREATE] Profile request validation (optional)
+│   │   └── profile.validator.js     # [TẠO MỚI] Zod schema (tùy chọn - endpoint GET không có body)
 │   │
 │   ├── routes/
-│   │   └── user.routes.js           # [MODIFY] Add GET /me endpoint
+│   │   └── user.routes.js           # [SỬA] Thêm route GET /me
 │   │
 │   ├── middleware/
-│   │   └── auth.middleware.js       # [EXISTING] JWT authentication
+│   │   └── auth.middleware.js       # [ĐÃ CÓ] JWT authentication
 │   │
 │   └── utils/
-│       ├── response.util.js         # [EXISTING] Standard response format
-│       └── jwt.util.js              # [EXISTING] JWT utilities
+│       ├── response.util.js         # [ĐÃ CÓ] Định dạng response chuẩn
+│       └── jwt.util.js              # [ĐÃ CÓ] JWT utilities
 │
 └── tests/
     ├── integration/
-    │   └── profile.test.js          # [CREATE] API integration tests
+    │   └── profile.test.js          # [TẠO MỚI] API integration tests
     │
     └── unit/
-        ├── profile.service.test.js  # [CREATE] Service layer unit tests
-        └── profile.repository.test.js # [CREATE] Repository unit tests
+        ├── profile.service.test.js  # [TẠO MỚI] Service layer unit tests
+        └── profile.repository.test.js # [TẠO MỚI] Repository unit tests
 
 frontend/
 ├── src/
 │   ├── components/
 │   │   └── pages/
-│   │       └── ProfilePage.jsx      # [CREATE] Profile view page
+│   │       └── ProfilePage.jsx      # [TẠO MỚI] Trang hiển thị hồ sơ
 │   │
 │   ├── api/
-│   │   └── profileApi.js            # [CREATE] Profile API client
+│   │   └── profileApi.js            # [TẠO MỚI] API client (Axios)
 │   │
 │   └── services/
-│       └── profile.service.js       # [CREATE] Profile frontend service
+│       └── profile.service.js       # [TẠO MỚI] Frontend service layer
 │
 └── tests/
-    └── ProfilePage.test.jsx         # [CREATE] Profile page component tests
+    └── ProfilePage.test.jsx         # [TẠO MỚI] Component tests
 ```
 
-**Structure Decision**:
-Feature này tuân thủ kiến trúc Web Application với Backend (Express + Prisma) và Frontend (React). Backend sử dụng layered architecture (Controller → Service → Repository) để tách biệt concerns và dễ dàng test/maintain. Frontend sử dụng component-based architecture với API client layer.
+**Quyết Định Cấu Trúc**: Tính năng tuân thủ kiến trúc Web Application chuẩn với Backend (Express + Prisma) và Frontend (React). Backend áp dụng kiến trúc phân tầng Controller → Service → Repository để tách biệt mối quan tâm (separation of concerns), giúp kiểm thử và bảo trì dễ dàng. Frontend sử dụng kiến trúc component-based với lớp API client riêng biệt.
 
-## Implementation Phases
+---
 
-### Phase 0: Research & Verification (READ-ONLY)
+## 5. Theo Dõi Độ Phức Tạp (Complexity Tracking)
 
-**Objective**: Khảo sát codebase hiện có, xác định dependencies, và xác minh technical feasibility
+> **Chỉ điền nếu Constitution Check phát hiện vi phạm cần giải trình**
 
-**Tasks**:
+| Vi Phạm (Violation) | Lý Do Cần Thiết (Why Needed) | Phương Án Đơn Giản Hơn Bị Từ Chối (Simpler Alternative Rejected Because) |
+|---------------------|------------------------------|--------------------------------------------------------------------------|
+| Không có vi phạm | — | — |
 
-1. **Verify Auth Middleware** - Đọc `backend/src/middleware/auth.middleware.js` để xác nhận:
-   - JWT token được lấy từ cookie nào? (hiện tại: `req.cookies.token`)
-   - `req.user` chứa những trường gì? (cần xác minh payload structure và độ lệch với spec)
-   - Error codes hiện có: `UNAUTHORIZED`, `TOKEN_INVALID`
+**Ghi Chú**: Tính năng này hoàn toàn tuân thủ constitution. Không có vi phạm nào về kiến trúc, bảo mật, hoặc chất lượng code cần giải trình.
 
-2. **Verify Response Utilities** - Đọc `backend/src/utils/response.util.js` để xác nhận:
-   - Format: `{ success, message, data/code/details }`
-   - Functions: `successResponse(data, message)`, `errorResponse(message, code, details)`
-   - `ServiceError` class structure
+---
 
-3. **Check Prisma Setup** - Xác minh trạng thái Prisma:
-   - ❌ `backend/prisma/schema.prisma` CHƯA TỒN TẠI (cần tạo mới)
-   - Cần setup Prisma từ đầu: `npx prisma init`
-   - Cần define models: User, Skill, UserSkill
+## 6. Các Giai Đoạn Triển Khai (Implementation Phases)
 
-4. **Review DATABASE.md Schema** - Đọc schema từ DATABASE.md Section 3:
-   - Table `users`: id, email, password_hash, full_name, phone, avatar_url, role_id, is_active, email_verified
-   - Table `skills`: id, name, description, is_active
-   - Table `user_skills`: id, user_id, skill_id (many-to-many)
+### Phase 0: Nghiên Cứu & Xác Minh (Research & Verification) — CHỈ ĐỌC
+
+**Mục Tiêu**: Khảo sát codebase hiện có, xác định dependencies, và xác minh tính khả thi kỹ thuật trước khi thiết kế.
+
+**Các Tác Vụ**:
+
+1. **Xác Minh Auth Middleware** — Đọc `backend/src/middleware/auth.middleware.js` để xác nhận:
+   - JWT token được trích xuất từ cookie nào? (hiện tại: `req.cookies.token`)
+   - `req.user` chứa những trường dữ liệu gì? (cần xác minh cấu trúc payload và so sánh với yêu cầu của spec)
+   - Mã lỗi hiện có: `UNAUTHORIZED`, `TOKEN_INVALID`
+
+2. **Xác Minh Response Utilities** — Đọc `backend/src/utils/response.util.js` để xác nhận:
+   - Định dạng response: `{ success, message, data/code/details }`
+   - Các hàm có sẵn: `successResponse(data, message)`, `errorResponse(message, code, details)`
+   - Cấu trúc lớp `ServiceError`
+
+3. **Kiểm Tra Trạng Thái Prisma** — Xác minh hiện trạng Prisma trong dự án:
+   - ❌ `backend/prisma/schema.prisma` CHƯA TỒN TẠI (cần tạo mới từ đầu)
+   - Cần chạy `npx prisma init` để khởi tạo
+   - Cần định nghĩa models: User, Skill, UserSkill
+
+4. **Đọc Lại DATABASE.md Schema** — Đối chiếu schema từ DATABASE.md Section 3:
+   - Bảng `users`: id, email, password_hash, full_name, phone, avatar_url, role_id, is_active, email_verified
+   - Bảng `skills`: id, name, description, is_active
+   - Bảng `user_skills`: id, user_id, skill_id (many-to-many)
    - Indexes: PRIMARY, UNIQUE(email), INDEX(is_active)
 
-5. **Document Findings** - Tạo `research.md` với:
-   - Current authentication flow diagram
-   - Database schema ERD (users ↔ user_skills ↔ skills)
-   - Gap giữa code hiện tại và scope của `context.md`/`spec.md`
-   - Identified risks/blockers
+5. **Ghi Nhận Kết Quả** — Tạo `research.md` chứa:
+   - Sơ đồ luồng xác thực hiện tại (authentication flow diagram)
+   - Sơ đồ quan hệ thực thể (ERD: users ↔ user_skills ↔ skills)
+   - Khoảng cách (gap) giữa code hiện tại và phạm vi của `context.md`/`spec.md`
+   - Các rủi ro/trở ngại đã xác định
 
-**Output**: `research.md` file với technical findings và architecture decisions
+**Đầu Ra**: File `research.md` với các phát hiện kỹ thuật và quyết định kiến trúc.
 
 ---
 
-### Phase 1: Design & Contracts (READ-ONLY)
+### Phase 1: Thiết Kế & Hợp Đồng (Design & Contracts) — CHỈ ĐỌC
 
-**Objective**: Thiết kế data models, API contracts, và service interfaces trước khi code
+**Mục Tiêu**: Thiết kế data models, API contracts, và service interfaces trước khi viết code.
 
-**Tasks**:
+**Các Tác Vụ**:
 
-#### 1.1 Database Schema Design (`data-model.md`)
+#### 1.1 Thiết Kế Database Schema (`data-model.md`)
 
-**Content**:
+Nội dung cần có:
 
 - Mô tả 3 bảng nguồn dữ liệu: `users`, `skills`, `user_skills`
-- Ghi rõ field response theo scope của spec: `full_name`, `email`, `phone_number`, `avatar_url`, `skills`
-- Thể hiện mapping giữa `users.phone` trong database và `phone_number` trong API response
-- Chỉ rõ các field nội bộ phải loại bỏ khỏi response
-- Chỉ rõ điều kiện lọc `skills.is_active = true` và cách xử lý `skills: []`
+- Liệt kê rõ các trường trả về theo phạm vi spec: `full_name`, `email`, `phone_number`, `avatar_url`, `skills`
+- Thể hiện ánh xạ (mapping) giữa `users.phone` trong database và `phone_number` trong API response
+- Chỉ rõ các trường nội bộ phải loại bỏ khỏi response (password_hash, role_id, email_verified, ...)
+- Chỉ rõ điều kiện lọc `skills.is_active = true` và cách xử lý trường hợp `skills: []` (mảng rỗng - không có kỹ năng)
 
-#### 1.2 API Contract (`contracts/api-contract.md`)
+#### 1.2 Hợp Đồng API (`contracts/api-contract.md`)
 
-**Content**:
+Nội dung cần có:
 
-- Định nghĩa endpoint `GET /api/v1/user/me`
-- Chỉ rõ auth qua JWT trong httpOnly cookie
-- Ví dụ success response với field `phone_number` theo spec
-- Bao phủ đầy đủ các lỗi: `UNAUTHORIZED`, `TOKEN_INVALID`, `USER_NOT_FOUND`, `ACCOUNT_DISABLED`, `INTERNAL_SERVER_ERROR`
-- Nhấn mạnh self-view only và không nhận định danh từ client
+- Định nghĩa endpoint: `GET /api/v1/user/me`
+- Chỉ rõ phương thức xác thực: JWT trong httpOnly cookie
+- Ví dụ success response với trường `phone_number` theo đúng spec
+- Bao phủ đầy đủ các mã lỗi: `UNAUTHORIZED`, `TOKEN_INVALID`, `USER_NOT_FOUND`, `ACCOUNT_DISABLED`, `INTERNAL_SERVER_ERROR`
+- Nhấn mạnh nguyên tắc self-view only (chỉ xem hồ sơ của chính mình) và không nhận định danh từ client
 
-#### 1.3 Service Contract (`contracts/service-contract.md`)
+#### 1.3 Hợp Đồng Service (`contracts/service-contract.md`)
 
-**Content**:
+Nội dung cần có:
 
-- Input là định danh người dùng đã được JWT xác thực
-- Output phải dùng `phone_number` để khớp spec
-- Throws các lỗi nghiệp vụ chuẩn của UC18
-- Chỉ rõ dependency vào repository và logic sanitize/transformation
+- Input là định danh người dùng đã được JWT xác thực (không phải từ request)
+- Output phải dùng `phone_number` để khớp với spec
+- Định nghĩa các lỗi nghiệp vụ (business errors) chuẩn của UC18
+- Chỉ rõ dependency vào Repository layer và logic sanitize/transformation
 
-#### 1.4 Quick Start Guide (`quickstart.md`)
+#### 1.4 Hướng Dẫn Nhanh (`quickstart.md`)
 
-**Content**:
+Nội dung cần có:
 
-- Mô tả cách test bằng curl và Postman
-- Ví dụ frontend integration với `withCredentials: true`
-- Expected response phải dùng `phone_number`
+- Hướng dẫn test API bằng `curl` và Postman
+- Ví dụ tích hợp frontend với `withCredentials: true`
+- Expected response mẫu phải dùng `phone_number`
 - Có đủ happy path và error path cơ bản
 
-**Output**: 4 files (`data-model.md`, `contracts/api-contract.md`, `contracts/service-contract.md`, `quickstart.md`)
+**Đầu Ra**: 4 files (`data-model.md`, `contracts/api-contract.md`, `contracts/service-contract.md`, `quickstart.md`)
 
 ---
 
-### Phase 2: Implementation Planning (READY FOR APPROVAL)
+### Phase 2: Lập Kế Hoạch Triển Khai Chi Tiết (Implementation Planning) — SẴN SÀNG PHÊ DUYỆT
 
-**Objective**: Chi tiết hóa các atomic tasks để implement feature
+**Mục Tiêu**: Chia nhỏ implementation thành các tác vụ nguyên tử (atomic tasks)
 
-**Note**: Phase này sẽ được thực hiện bằng command `/speckit-tasks` sau khi plan được approve
+**Ghi Chú**: Giai đoạn này sẽ được thực hiện bằng lệnh `/speckit-tasks` sau khi plan được phê duyệt.
 
-**Expected Output**: `tasks.md` với breakdown:
+**Đầu Ra Dự Kiến**: `tasks.md` với danh sách tác vụ:
 
-- Task 1: Setup Prisma schema và migrations
-- Task 2: Implement ProfileRepository
-- Task 3: Implement ProfileService với data sanitization
-- Task 4: Implement ProfileController
-- Task 5: Update user.routes.js
-- Task 6: Write unit tests (Service + Repository)
-- Task 7: Write integration tests
-- Task 8: Frontend ProfilePage component
-- Task 9: Frontend API client
-- Task 10: End-to-end testing
+| Task | Mô Tả | Tầng |
+|------|-------|------|
+| T001 | Thiết lập Prisma schema và migrations | Database |
+| T002 | Triển khai ProfileRepository | Repository |
+| T003 | Triển khai ProfileService với data sanitization | Service |
+| T004 | Triển khai ProfileController | Controller |
+| T005 | Cập nhật user.routes.js thêm GET /me | Routes |
+| T006 | Viết unit tests cho Service | Tests |
+| T007 | Viết unit tests cho Repository | Tests |
+| T008 | Viết integration tests cho API endpoint | Tests |
+| T009 | Triển khai ProfilePage component (frontend) | Frontend |
+| T010 | Triển khai API client (frontend) | Frontend |
+| T011 | Kiểm thử end-to-end | Tests |
 
-**Dependencies**: Tasks phải được thực hiện theo thứ tự vì có dependency chain (Database → Repository → Service → Controller → Routes → Tests)
+**Chuỗi Phụ Thuộc (Dependency Chain)**: Các tác vụ phải được thực hiện theo đúng thứ tự do có dependency chain:
 
----
-
-## Risk Assessment
-
-### HIGH RISK
-
-- **Prisma chưa được setup**: Backend hiện tại chưa có Prisma schema. Cần setup toàn bộ Prisma từ đầu (init, schema, migrate). Risk: Có thể conflict với database hiện có hoặc cần refactor authentication code.
-  - **Mitigation**: Đọc kỹ DATABASE.md, tạo schema từ spec, test migration trên dev DB trước.
-
-### MEDIUM RISK
-
-- **Data sanitization**: Cần đảm bảo TUYỆT ĐỐI không trả về password_hash hoặc các trường nhạy cảm. Risk: Nếu quên sanitize, gây lỗ hổng bảo mật nghiêm trọng.
-  - **Mitigation**: Sử dụng Prisma select explicit fields, tạo utility function sanitizeUser(), write specific test cases cho data leakage.
-
-- **JWT payload structure**: Scope của `context.md` và `spec.md` yêu cầu định danh người dùng từ JWT, nhưng implementation hiện tại có thể chưa khớp hoàn toàn. Risk: Code và docs lệch nhau nếu không chốt strategy sớm.
-  - **Mitigation**: Phase 0 research phải verify `jwt.util.js` và `auth.service.js`, sau đó chốt rõ cách đáp ứng yêu cầu định danh trong tầng auth/service.
-
-### LOW RISK
-
-- **Performance**: Query join 3 tables (users + user_skills + skills) có thể chậm nếu không index đúng. Risk: Response time > 300ms.
-  - **Mitigation**: DATABASE.md đã define indexes, Prisma sẽ sử dụng indexes tự động, test performance với 200 concurrent requests.
-
-## Success Criteria Review
-
-Mapping từ spec.md Success Criteria sang implementation deliverables:
-
-- **SC-001** (Response < 1s): Đo bằng integration test với load testing tool (artillery/k6)
-- **SC-002** (Block 100% unauthorized): Integration test với invalid/missing token
-- **SC-003** (No data leakage): Unit test verify response KHÔNG chứa password_hash, role_id, etc.
-- **SC-004** (Handle empty skills): Unit test với user có 0 skills → verify response.skills = []
-- **SC-005** (200 concurrent requests): Load test với artillery
-- **SC-006** (No IDOR): Integration test verify không thể thay đổi userId để xem profile người khác
-
-## Deployment Checklist
-
-Trước khi merge vào main branch:
-
-- [ ] Prisma schema đã được review và approved
-- [ ] Prisma migrations chạy thành công trên dev DB
-- [ ] Unit tests pass (80%+ coverage cho Service layer)
-- [ ] Integration tests pass (all scenarios từ spec.md)
-- [ ] Load test confirm response time < 1s với 200 concurrent
-- [ ] Security review: Verify không có data leakage
-- [ ] API documentation (Swagger) đã được update
-- [ ] Frontend integration test pass
-- [ ] Code review approved bởi ít nhất 1 member khác
-- [ ] CONSTITUTION.md compliance checked (architecture, security, code quality)
+```
+Database (T001) → Repository (T002) → Service (T003) → Controller (T004) → Routes (T005) → Tests (T006-T008)
+                                                                                    ↓
+                                                                           Frontend (T009-T010) → E2E (T011)
+```
 
 ---
 
-## Next Steps
+## 7. Đánh Giá Rủi Ro (Risk Assessment)
 
-1. **Review plan này** - Team lead review và approve plan
-2. **Clarify JWT payload** - Xác minh chính xác cấu trúc `req.user` từ auth.middleware để implementation bám đúng scope
-3. **Prisma setup decision** - Quyết định có setup Prisma mới hay dùng raw SQL queries (khuyến nghị: Prisma theo ADR-001)
-4. **Review bộ docs hiện tại** - Đảm bảo research, data-model, contracts, quickstart đã đồng bộ với `context.md` và `spec.md`
-5. **Run `/speckit-tasks`** - Generate tasks.md với atomic task breakdown (Phase 2)
-6. **Start implementation** - Thực hiện các tasks theo thứ tự dependencies
-
-## Questions for Stakeholders
-
-1. **Database Migration Strategy**: Hiện tại backend có database nào đang chạy không? Cần migrate data cũ hay setup fresh database?
-2. **Prisma vs Raw SQL**: Team có muốn setup Prisma đầy đủ (theo ADR-001) hay tạm dùng raw SQL queries cho nhanh? (Khuyến nghị: Prisma)
-3. **JWT Payload Structure**: Cần confirm chính xác `req.user` chứa claim nào để đáp ứng yêu cầu định danh của UC18?
-4. **Testing Priority**: Ưu tiên viết tests trước (TDD) hay implement code trước rồi test sau?
+| Rủi Ro (Risk) | Tác Động (Impact) | Xác Suất (Probability) | Biện Pháp Giảm Thiểu (Mitigation) |
+|---------------|-------------------|----------------------|-----------------------------------|
+| **Prisma chưa được thiết lập** — Backend hiện chưa có Prisma schema. Cần thiết lập toàn bộ từ đầu (init, schema, migrate). | **CAO** — Nếu xung đột với database hiện có hoặc cần refactor authentication code sẽ gây chậm tiến độ nghiêm trọng. | Trung Bình — Database schema đã được định nghĩa rõ trong DATABASE.md. | Đọc kỹ DATABASE.md, tạo schema bám sát spec, kiểm thử migration trên dev DB trước khi áp dụng chính thức. |
+| **Rò rỉ dữ liệu nhạy cảm** — Nếu quên sanitize, password_hash hoặc các trường nội bộ có thể bị lộ ra ngoài response. | **CAO** — Lỗ hổng bảo mật nghiêm trọng, vi phạm constitution Layer 1. | Thấp — Prisma `select` cho phép chọn trường tường minh. | Dùng Prisma `select` để chỉ định chính xác các trường trả về, tạo utility function `sanitizeUser()`, viết test case riêng để phát hiện data leakage. |
+| **Cấu trúc JWT payload không khớp** — `context.md` và `spec.md` yêu cầu định danh từ JWT nhưng implementation hiện tại có thể khác. | Trung Bình — Code và tài liệu không đồng bộ, gây nhầm lẫn khi triển khai. | Trung Bình — Auth middleware đã hoạt động, cần xác minh. | Phase 0 phải kiểm tra `jwt.util.js` và `auth.service.js`, sau đó chốt rõ cách thức đáp ứng yêu cầu định danh. |
+| **Hiệu năng truy vấn** — Query join 3 bảng (users + user_skills + skills). | Thấp — Có thể chậm hơn ngưỡng 300ms nếu không có index phù hợp. | Thấp — DATABASE.md đã định nghĩa đầy đủ indexes. | Prisma tự động sử dụng indexes, kiểm thử hiệu năng với 200 concurrent requests. |
 
 ---
 
-**Plan Status**: READY FOR REVIEW
-**Estimated Effort**: 16-24 hours (1 developer, including setup + tests)
-**Priority**: P1 (Core feature - blocking UC19, UC20, UC21)
+## 8. Đối Chiếu Tiêu Chí Thành Công (Success Criteria Review)
+
+Ánh xạ từ spec.md Success Criteria sang các sản phẩm bàn giao (deliverables):
+
+| Mã SC | Tiêu Chí Thành Công | Phương Pháp Kiểm Chứng |
+|-------|--------------------|-----------------------|
+| SC-001 | Thời gian phản hồi < 1s với 200 concurrent requests | Kiểm thử tải bằng artillery hoặc k6 |
+| SC-002 | Chặn 100% request không có token hợp lệ | Integration test: request không token, token hết hạn, token giả mạo |
+| SC-003 | Response không chứa dữ liệu nhạy cảm | Unit test: kiểm tra response KHÔNG chứa password_hash, role_id, email_verified, ... |
+| SC-004 | Xử lý đúng trường hợp không có kỹ năng (skills = []) | Unit test: user có 0 skills → response.skills = [] |
+| SC-005 | Chịu tải 200 concurrent requests | Kiểm thử tải bằng artillery |
+| SC-006 | Không có lỗ hổng IDOR | Integration test: không thể đọc profile người khác bằng cách thay đổi userId |
+
+---
+
+## 9. Danh Sách Kiểm Tra Trước Triển Khai (Deployment Checklist)
+
+Trước khi merge vào nhánh chính:
+
+- [ ] Prisma schema đã được review và phê duyệt
+- [ ] Prisma migrations chạy thành công trên database phát triển (dev DB)
+- [ ] Unit tests đạt (≥80% coverage cho Service layer)
+- [ ] Integration tests đạt (tất cả các kịch bản từ spec.md)
+- [ ] Kiểm thử tải xác nhận response time < 1s với 200 concurrent requests
+- [ ] Kiểm tra bảo mật: Xác nhận không có rò rỉ dữ liệu nhạy cảm
+- [ ] Tài liệu API (Swagger) đã được cập nhật trong `backend/src/routes/`
+- [ ] Kiểm thử tích hợp frontend đạt
+- [ ] Code review được phê duyệt bởi ít nhất 1 thành viên khác
+- [ ] Kiểm tra tuân thủ CONSTITUTION.md (kiến trúc, bảo mật, chất lượng code)
+
+---
+
+## 10. Các Bước Tiếp Theo (Next Steps)
+
+1. **Phê duyệt kế hoạch này** — Team lead hoặc người phụ trách review và approve plan.
+2. **Làm rõ cấu trúc JWT payload** — Xác minh chính xác `req.user` chứa những claim nào để implementation bám sát đúng phạm vi spec.
+3. **Quyết định phương án Prisma** — Chốt sẽ thiết lập Prisma mới hoàn toàn (khuyến nghị: theo ADR-001) hay dùng raw SQL queries.
+4. **Rà soát bộ tài liệu hiện có** — Đảm bảo research.md, data-model.md, contracts, quickstart.md đồng bộ với context.md và spec.md.
+5. **Chạy `/speckit-tasks`** — Sinh tasks.md với danh sách tác vụ nguyên tử (Phase 2).
+6. **Bắt đầu triển khai** — Thực hiện các tác vụ theo đúng chuỗi phụ thuộc.
+
+---
+
+## 11. Câu Hỏi Cho Các Bên Liên Quan (Questions for Stakeholders)
+
+### 1. Chiến Lược Database Migration
+
+**Câu Hỏi**: Hiện tại backend đã có database đang chạy chưa? Cần migrate dữ liệu cũ hay thiết lập database mới hoàn toàn?
+
+**Tầm Quan Trọng (Context)**: Quyết định này ảnh hưởng trực tiếp đến cách thiết lập Prisma schema và chiến lược migration. Nếu đã có dữ liệu thật, cần migrate cẩn thận. Nếu chưa có, có thể tạo mới hoàn toàn.
+
+**Các Lựa Chọn (Options)**:
+
+- **(A)** Database đã có dữ liệu — cần migrate dữ liệu cũ sang schema mới
+- **(B)** Database đã có nhưng là dữ liệu test — có thể xóa và tạo mới
+- **(C)** Chưa có database — thiết lập mới hoàn toàn từ đầu
+
+**Đề Xuất (Recommendation)**: Phương án (C) nếu chưa có database thật. Phương án (B) nếu đã có dữ liệu test.
+
+---
+
+### 2. Prisma vs Raw SQL
+
+**Câu Hỏi**: Team muốn thiết lập Prisma ORM đầy đủ (theo ADR-001) hay tạm thời dùng raw SQL queries để triển khai nhanh hơn?
+
+**Tầm Quan Trọng (Context)**: Prisma cần thời gian thiết lập ban đầu nhưng mang lại type safety, migration management, và giảm SQL injection risk. Raw SQL nhanh hơn để bắt đầu nhưng về lâu dài khó bảo trì.
+
+**Các Lựa Chọn (Options)**:
+
+- **(A)** Thiết lập Prisma ORM đầy đủ — đúng chuẩn ADR-001, tốn thêm thời gian Phase 0
+- **(B)** Dùng raw SQL queries — bắt đầu nhanh, nhưng vi phạm ADR-001
+- **(C)** Dùng Prisma nhưng chỉ cho module Profile — các module khác dùng raw SQL
+
+**Đề Xuất (Recommendation)**: Phương án (A) — Thiết lập Prisma đầy đủ. Đây là yêu cầu bắt buộc của ADR-001 và sẽ dùng chung cho toàn bộ dự án về sau.
+
+---
+
+### 3. Cấu Trúc JWT Payload
+
+**Câu Hỏi**: Cần xác nhận chính xác `req.user` sau khi qua auth middleware chứa những trường dữ liệu gì (id, email, role_id, ...) để đáp ứng yêu cầu định danh của UC18?
+
+**Tầm Quan Trọng (Context)**: Lớp Service của UC18 cần `userId` để truy vấn profile. Nếu `req.user` không chứa `id` hoặc chứa dưới tên khác, cần điều chỉnh code tương ứng.
+
+**Các Lựa Chọn (Options)**:
+
+- **(A)** `req.user.id` — định danh người dùng chuẩn
+- **(B)** `req.user.userId` — tên trường khác
+- **(C)** Cần sửa auth middleware để thêm trường `id` vào payload
+
+**Đề Xuất (Recommendation)**: Cần Phase 0 research để trả lời chính xác. Dựa trên codebase hiện tại, khả năng cao là `req.user.id`.
+
+---
+
+### 4. Ưu Tiên Kiểm Thử
+
+**Câu Hỏi**: Ưu tiên viết tests trước (TDD — Test-Driven Development) hay triển khai code trước rồi viết tests sau?
+
+**Tầm Quan Trọng (Context)**: TDD giúp code chất lượng cao hơn nhưng tốn thời gian hơn trong giai đoạn đầu. Viết tests sau giúp triển khai nhanh hơn nhưng dễ bỏ sót edge cases.
+
+**Các Lựa Chọn (Options)**:
+
+- **(A)** TDD: Viết tests trước, code sau (đảm bảo ≥80% coverage)
+- **(B)** Code trước, tests sau: Triển khai nhanh, bổ sung tests sau khi code hoạt động
+- **(C)** Kết hợp: Viết unit tests song song với implementation
+
+**Đề Xuất (Recommendation)**: Phương án (A) — TDD. Tuân thủ tiêu chuẩn dự án (AGENTS.md Section 7 yêu cầu ≥80% coverage). Đặc biệt quan trọng với security test cases như SC-003 (data leakage) và SC-006 (IDOR).
+
+---
+
+## 12. Ước Lượng Công Sức (Estimated Effort)
+
+**Tổng Thời Gian Dự Kiến**: 19–27 giờ (1 lập trình viên, bao gồm thiết lập + kiểm thử)
+
+**Phân Bổ Theo Giai Đoạn**:
+
+| Giai Đoạn | Công Việc | Thời Gian |
+|-----------|----------|-----------|
+| Phase 0 | Nghiên cứu & Xác minh (đọc codebase, xác minh auth, kiểm tra Prisma) | 2–3 giờ |
+| Phase 1 | Thiết kế & Hợp đồng (data-model, API contract, service contract, quickstart) | 3–4 giờ |
+| Phase 2 (Backend) | Thiết lập Prisma, Repository, Service, Controller, Routes | 6–8 giờ |
+| Phase 2 (Testing) | Unit tests + Integration tests + Load tests | 4–6 giờ |
+| Phase 2 (Frontend) | ProfilePage component + API client + Component tests | 3–4 giờ |
+| Review & Chỉnh Sửa | Code review, sửa lỗi, cập nhật Swagger | 1–2 giờ |
+
+---
+
+## 13. Mức Độ Ưu Tiên (Priority)
+
+**Mức**: **P1 — Tính Năng Cốt Lõi (Core Feature)**
+
+**Lý Do**: UC18 View Profile là tính năng nền tảng, blocker cho các tính năng tiếp theo:
+
+- UC19 (Edit Profile) — cần View Profile hoạt động trước
+- UC20 (Edit Volunteer Skills) — cần hiển thị skills từ View Profile
+- UC21 (View Volunteer History) — chia sẻ chung cấu trúc Profile
+
+---
+
+**Trạng Thái Kế Hoạch**: SẴN SÀNG ĐỂ REVIEW  
+**Người Phụ Trách**: Member 1 — CuongLH  
+**Module**: Profile Management
