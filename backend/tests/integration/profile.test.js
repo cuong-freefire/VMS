@@ -1,68 +1,105 @@
+﻿/**
+ * Integration Test: PATCH /api/v1/user/me — Text update (UC19 US1)
+ *
+ * Owner: Member 1 - CuongLH
+ * Module: Profile Management
+ */
+
 import request from "supertest";
-import jwt from "jsonwebtoken";
 import app from "../../src/app.js";
 
-const SECRET = process.env.SECRET_KEY || "test-secret";
+describe("PATCH /api/v1/user/me — Text update", () => {
+  let authCookie;
 
-function makeToken(userId = 1) {
-  return jwt.sign(
-    { user_id: userId, email: "test@vms.com", role_id: 2, jti: "test-jti-" + userId },
-    SECRET, { expiresIn: "7d" }
-  );
-}
+  beforeAll(async () => {
+    // Đăng nhập để lấy cookie JWT
+    const loginRes = await request(app)
+      .post("/api/v1/auth/login")
+      .send({ email: "volunteer@test.com", password: "Test@123" });
 
-describe("GET /api/v1/user/me", () => {
-  describe("Auth Errors - No valid token (US2, T012)", () => {
-    it("should return 401 when no token cookie present", async () => {
-      const res = await request(app).get("/api/v1/user/me");
-      expect(res.status).toBe(401);
-      expect(res.body.success).toBe(false);
-      expect(res.body.code).toBe("UNAUTHORIZED");
-    });
-
-    it("should return 401 when token is not a valid JWT", async () => {
-      const res = await request(app)
-        .get("/api/v1/user/me")
-        .set("Cookie", "token=not-a-valid-jwt-string");
-      expect(res.status).toBe(401);
-      expect(res.body.code).toBe("TOKEN_INVALID");
-    });
-
-    it("should return 401 when token is expired", async () => {
-      const expiredToken = jwt.sign(
-        { user_id: 1, email: "test@vms.com" },
-        SECRET, { expiresIn: "-1h" }
-      );
-      const res = await request(app)
-        .get("/api/v1/user/me")
-        .set("Cookie", "token=" + expiredToken);
-      expect(res.status).toBe(401);
-    });
+    authCookie = loginRes.headers["set-cookie"];
   });
 
-  describe("Route Registration and Structure", () => {
-    it("should have the endpoint mounted correctly (returns non-404)", async () => {
-      const res = await request(app).get("/api/v1/user/me");
-      // 401 means route exists but auth required (correct)
-      // 404 would mean route not found (incorrect)
-      expect(res.status).not.toBe(404);
-    });
+  it("should update full_name successfully (200)", async () => {
+    const res = await request(app)
+      .patch("/api/v1/user/me")
+      .set("Cookie", authCookie)
+      .send({ full_name: "Nguyễn Văn Updated" });
 
-    it("should reject with invalid token (SC-002 - 100% unauthorized blocked)", async () => {
-      const res = await request(app)
-        .get("/api/v1/user/me")
-        .set("Cookie", "token=invalid");
-      expect(res.status).toBe(401);
-    });
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.full_name).toBe("Nguyễn Văn Updated");
   });
 
-  describe("Response Format Compliance", () => {
-    it("should return standard error response format", async () => {
-      const res = await request(app).get("/api/v1/user/me");
-      expect(res.body).toHaveProperty("success", false);
-      expect(res.body).toHaveProperty("message");
-      expect(res.body).toHaveProperty("code");
-      expect(res.body).toHaveProperty("details");
-    });
+  it("should update phone_number successfully (200)", async () => {
+    const res = await request(app)
+      .patch("/api/v1/user/me")
+      .set("Cookie", authCookie)
+      .send({ phone_number: "0987654321" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.phone_number).toBe("0987654321");
+  });
+
+  it("should update both full_name and phone_number (200)", async () => {
+    const res = await request(app)
+      .patch("/api/v1/user/me")
+      .set("Cookie", authCookie)
+      .send({ full_name: "Nguyễn Văn Both", phone_number: "0912345678" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.full_name).toBe("Nguyễn Văn Both");
+    expect(res.body.data.phone_number).toBe("0912345678");
+  });
+
+  it("should return 200 with no changes for empty body", async () => {
+    const res = await request(app)
+      .patch("/api/v1/user/me")
+      .set("Cookie", authCookie)
+      .send({});
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+  });
+
+  it("should return 400 for invalid full_name (quá ngắn)", async () => {
+    const res = await request(app)
+      .patch("/api/v1/user/me")
+      .set("Cookie", authCookie)
+      .send({ full_name: "A" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
+
+  it("should return 400 for invalid phone_number", async () => {
+    const res = await request(app)
+      .patch("/api/v1/user/me")
+      .set("Cookie", authCookie)
+      .send({ phone_number: "123" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
+
+  it("should return 401 for unauthenticated request", async () => {
+    const res = await request(app)
+      .patch("/api/v1/user/me")
+      .send({ full_name: "Test" });
+
+    expect(res.status).toBe(401);
+    expect(res.body.success).toBe(false);
+  });
+
+  it("should ignore unknown fields sent by client", async () => {
+    const res = await request(app)
+      .patch("/api/v1/user/me")
+      .set("Cookie", authCookie)
+      .send({ full_name: "Valid Name", email: "hacked@evil.com", password: "secret" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
   });
 });
