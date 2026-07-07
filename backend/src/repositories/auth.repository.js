@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Authentication Repository - Database operations for auth module
  * Owner: Member 1 (CuongLH)
  * 
@@ -230,6 +230,19 @@ const createUser = async (userData) => {
  * Get Volunteer role
  * @returns {Promise<Object|null>} Role record or null
  */
+
+/**
+ * Update user password
+ * @param {string} email - User email
+ * @param {string} passwordHash - Bcrypt hash of new password
+ * @returns {Promise<Object>} Updated User record
+ */
+const updatePassword = async (email, passwordHash) => {
+    return prisma.user.update({
+        where: { email },
+        data: { passwordHash },
+    });
+};
 const getVolunteerRole = async () => {
     return prisma.role.findUnique({
         where: { name: 'VOLUNTEER' },
@@ -272,5 +285,6 @@ export default {
     incrementLoginAttempts,
     resetLoginAttempts,
     upsertSession,
+    updatePassword,
     deleteSessionByUserId
 };

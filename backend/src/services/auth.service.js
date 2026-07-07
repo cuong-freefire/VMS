@@ -141,7 +141,7 @@ const sendOTP = async (email) => {
     const existingUser = await authRepository.findUserByEmail(normalizedEmail);
     if (existingUser && existingUser.isActive) {
         throw new ServiceError(
-            "Email đã được sử dụng. Vui lòng sử dụng email khác hoặc đăng nhập.",
+            "Email đã được sử dụng. Vui lòng sử dụng email khác.",
             409,
             "EMAIL_ALREADY_EXISTS"
         );
@@ -350,8 +350,216 @@ const verifyOTP = async (payload) => {
     };
 };
 
+
+/**
+ * Request password reset OTP
+ * Implements UC07: US1 (Forgot Password) + US4 (Zero User Enumeration)
+ *
+ * @param {string} email
+ * @returns {Promise<Object>}
+ * @throws {ServiceError} 429
+ */
+const requestResetPassword = async (email) => {
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await authRepository.findUserByEmail(normalizedEmail);
+
+    // Zero enumeration: non-existing email → fake OTP, same response
+    if (!user) {
+        generateOTP(); // Discard fake OTP
+        return {
+            success: true,
+            message: "Nếu email tồn tại trong hệ thống, mã OTP đã được gửi. Vui lòng kiểm tra hộp thư.",
+            cooldown_seconds: 60,
+        };
+    }
+
+    const verification = await authRepository.findVerificationByEmailAndType(
+        normalizedEmail, "RESET_PASSWORD"
+    );
+
+    // FR-007: Check lockout BEFORE cooldown
+    if (verification && verification.isLocked && verification.lockedUntil) {
+        const now = new Date();
+        if (verification.lockedUntil > now) {
+            const remainingSeconds = Math.ceil((verification.lockedUntil - now) / 1000);
+            const minutes = Math.floor(remainingSeconds / 60);
+            const seconds = remainingSeconds % 60;
+            throw new ServiceError(
+                `Tài khoản bị khóa ${minutes} phút ${seconds} giây do nhập sai OTP quá nhiều. Vui lòng thử lại sau.`,
+                429, "EMAIL_LOCKED", { lock_remaining_seconds: remainingSeconds }
+            );
+        }
+    }
+
+    // Cooldown: lastSentAt + 60s > NOW
+    if (verification && verification.lastSentAt) {
+        const now = new Date();
+        const elapsed = Math.floor((now - verification.lastSentAt) / 1000);
+        if (elapsed < 60) {
+            const remaining = 60 - elapsed;
+            throw new ServiceError(
+                `Vui lòng đợi ${remaining} giây trước khi gửi lại OTP`,
+                429, "COOLDOWN_ACTIVE", { remaining_seconds: remaining }
+            );
+        }
+    }
+
+    const otp = generateOTP();
+    const otpHash = await hashOTP(otp);
+
+    if (verification) {
+        await authRepository.updateVerification(normalizedEmail, {
+            otpHash, createdAt: new Date(), lastSentAt: new Date(),
+            attempts: 0, isLocked: false, lockedUntil: null,
+        }, "RESET_PASSWORD");
+    } else {
+        await authRepository.createVerification(normalizedEmail, otpHash, "RESET_PASSWORD");
+    }
+
+    // Send email async — silent failure, no throw
+    transporter.sendMail({
+        from: process.env.SMTP_USER,
+        to: normalizedEmail,
+        subject: "Mã OTP đặt lại mật khẩu - VMS",
+        text: `Mã OTP đặt lại mật khẩu của bạn là: ${otp}
+
+Mã có hiệu lực trong 10 phút. Vui lòng không chia sẻ mã này với bất kỳ ai.
+
+---
+Email tự động từ hệ thống VMS. Vui lòng không trả lời email này.`,
+    }).catch(() => { });
+
+    return {
+        success: true,
+        message: "Nếu email tồn tại trong hệ thống, mã OTP đã được gửi. Vui lòng kiểm tra hộp thư.",
+        cooldown_seconds: 60,
+    };
+};
+
+/**
+ * Verify OTP for password reset
+ * Implements UC07: US1 + US2 (Lockout after 5 wrong attempts)
+ *
+ * @param {string} email
+ * @param {string} otp
+ * @returns {Promise<Object>} { verified: true }
+ * @throws {ServiceError} 400/404/429
+ */
+const verifyResetOTP = async (email, otp) => {
+    const normalizedEmail = email.toLowerCase().trim();
+    const verification = await authRepository.findVerificationByEmailAndType(
+        normalizedEmail, "RESET_PASSWORD"
+    );
+
+    if (!verification) {
+        throw new ServiceError(
+            "Không tìm thấy mã OTP hợp lệ. Vui lòng yêu cầu mã mới.",
+            404, "VERIFICATION_NOT_FOUND"
+        );
+    }
+
+    // Check lockout
+    if (verification.isLocked && verification.lockedUntil) {
+        const now = new Date();
+        if (verification.lockedUntil > now) {
+            const remainingSeconds = Math.ceil((verification.lockedUntil - now) / 1000);
+            const minutes = Math.floor(remainingSeconds / 60);
+            const seconds = remainingSeconds % 60;
+            throw new ServiceError(
+                `Bạn đã nhập sai quá 5 lần. Tài khoản bị khóa ${minutes} phút ${seconds} giây.`,
+                429, "EMAIL_LOCKED", { lock_remaining_seconds: remainingSeconds }
+            );
+        }
+    }
+
+    // Check expiry: createdAt + 10 minutes < NOW
+    const now = new Date();
+    const otpAgeMinutes = (now - verification.lastSendAt) / (1000 * 60);
+    if (otpAgeMinutes > 10) {
+        throw new ServiceError(
+            "Mã OTP đã hết hạn. Vui lòng yêu cầu mã mới.",
+            400, "OTP_EXPIRED"
+        );
+    }
+
+    const isValid = await verifyOTPHash(otp, verification.otpHash);
+
+    if (!isValid) {
+        const newAttempts = verification.attempts + 1;
+        const updateData = { attempts: newAttempts };
+
+        if (newAttempts >= 5) {
+            updateData.isLocked = true;
+            updateData.lockedUntil = new Date(now.getTime() + 15 * 60 * 1000);
+        }
+
+        await authRepository.updateVerification(normalizedEmail, updateData, "RESET_PASSWORD");
+
+        if (newAttempts >= 5) {
+            throw new ServiceError(
+                "Bạn đã nhập sai quá 5 lần. Tài khoản bị khóa 15 phút.",
+                429, "EMAIL_LOCKED"
+            );
+        }
+
+        throw new ServiceError(
+            `Mã OTP không đúng. Bạn còn ${5 - newAttempts} lần thử.`,
+            400, "INVALID_OTP"
+        );
+    }
+
+    return {
+        verified: true,
+        message: "Mã OTP xác thực thành công.",
+    };
+};
+
+/**
+ * Reset password with verified OTP
+ * Implements UC07: US1 (Successful password reset)
+ *
+ * @param {string} email
+ * @param {string} otp
+ * @param {string} newPassword
+ * @returns {Promise<Object>}
+ * @throws {ServiceError} 400/403/404/429/500
+ */
+const resetPassword = async (email, otp, newPassword) => {
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Re-verify OTP
+    await verifyResetOTP(normalizedEmail, otp);
+
+    const user = await authRepository.findUserByEmail(normalizedEmail);
+    if (!user) {
+        throw new ServiceError(
+            "Không tìm thấy tài khoản với email này.",
+            404, "USER_NOT_FOUND"
+        );
+    }
+
+    if (!user.isActive) {
+        throw new ServiceError(
+            "Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên.",
+            403, "ACCOUNT_DISABLED"
+        );
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+
+    await authRepository.updatePassword(normalizedEmail, passwordHash);
+    await authRepository.deleteVerification(normalizedEmail, "RESET_PASSWORD");
+
+    return {
+        success: true,
+        message: "Mật khẩu đã được đặt lại thành công. Bạn có thể đăng nhập ngay.",
+    };
+};
 export default {
     loginService,
     sendOTP,
     verifyOTP,
+    requestResetPassword,
+    verifyResetOTP,
+    resetPassword,
 };
