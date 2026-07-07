@@ -76,6 +76,43 @@ export async function verifyOTPController(req, res) {
  * Stateless JWT - no server-side session invalidation.
  * Token cleared from browser via clearCookie, expires naturally.
  */
+
+export async function requestResetPassword(req, res) {
+    try {
+        const { email } = req.body;
+        const result = await authService.requestResetPassword(email);
+        return res.status(200).json(successResponse(result, result.message));
+    } catch (error) {
+        return res.status(error.status || 500).json(
+            errorResponse(error.message, error.code || "INTERNAL_SERVER_ERROR", error.details)
+        );
+    }
+}
+
+export async function verifyResetOTP(req, res) {
+    try {
+        const { email, otp } = req.body;
+        const result = await authService.verifyResetOTP(email, otp);
+        return res.status(200).json(successResponse(result, result.message));
+    } catch (error) {
+        return res.status(error.status || 500).json(
+            errorResponse(error.message, error.code || "INTERNAL_SERVER_ERROR", error.details)
+        );
+    }
+}
+
+export async function resetPassword(req, res) {
+    try {
+        const { email, otp, newPassword } = req.body;
+        const result = await authService.resetPassword(email, otp, newPassword);
+        return res.status(200).json(successResponse(result, result.message));
+    } catch (error) {
+        return res.status(error.status || 500).json(
+            errorResponse(error.message, error.code || "INTERNAL_SERVER_ERROR", error.details)
+        );
+    }
+}
+
 export async function logout(req, res) {
     try {
         res.clearCookie('token', {

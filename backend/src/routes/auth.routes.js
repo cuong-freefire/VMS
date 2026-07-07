@@ -10,8 +10,8 @@
  */
 
 import { Router } from 'express';
-import { login, sendOTPController, verifyOTPController, logout } from '../controllers/auth.controller.js';
-import { validate, loginSchema, sendOTPSchema, verifyOTPSchema } from '../middlewares/validators/auth.validator.js';
+import { login, sendOTPController, verifyOTPController, logout, requestResetPassword, verifyResetOTP, resetPassword } from '../controllers/auth.controller.js';
+import { validate, loginSchema, sendOTPSchema, verifyOTPSchema, requestResetSchema, verifyResetOTPSchema, resetPasswordSchema } from '../middlewares/validators/auth.validator.js';
 
 const router = Router();
 
@@ -260,5 +260,133 @@ router.post('/register/verify-otp', validate(verifyOTPSchema), verifyOTPControll
  *                   example: {}
  */
 router.post('/logout', logout);
+/**
+ * @swagger
+ * /api/v1/auth/forgot-password/request:
+ *   post:
+ *     summary: Yêu cầu OTP đặt lại mật khẩu (UC07 Bước 1)
+ *     description: |
+ *       Gửi mã OTP 6 chữ số đến email để xác thực danh tính.
+ *       - Zero enumeration: response giống nhau cho email tồn tại và không tồn tại
+ *       - Cooldown 60s giữa các lần gửi
+ *       - Lockout 15 phút sau 5 lần nhập sai OTP
+ *     tags: [Forgot Password]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *     responses:
+ *       200:
+ *         description: Thành công (kể cả email không tồn tại)
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: "Nếu email tồn tại trong hệ thống, mã OTP đã được gửi."
+ *               data:
+ *                 cooldown_seconds: 60
+ *       400:
+ *         description: Email không hợp lệ
+ *       429:
+ *         description: Cooldown chưa qua hoặc email bị khóa
+ */
+router.post('/forgot-password/request', validate(requestResetSchema), requestResetPassword);
+
+/**
+ * @swagger
+ * /api/v1/auth/forgot-password/verify-otp:
+ *   post:
+ *     summary: Xác thực OTP đặt lại mật khẩu (UC07 Bước 2)
+ *     description: |
+ *       Xác thực mã OTP 6 chữ số.
+ *       - OTP hết hạn sau 10 phút
+ *       - Lockout sau 5 lần nhập sai (15 phút)
+ *     tags: [Forgot Password]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, otp]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               otp:
+ *                 type: string
+ *                 example: "123456"
+ *     responses:
+ *       200:
+ *         description: OTP hợp lệ
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 verified: true
+ *                 message: "Mã OTP xác thực thành công."
+ *       400:
+ *         description: OTP không đúng hoặc hết hạn
+ *       404:
+ *         description: Không tìm thấy OTP
+ *       429:
+ *         description: Email bị khóa
+ */
+router.post('/forgot-password/verify-otp', validate(verifyResetOTPSchema), verifyResetOTP);
+
+/**
+ * @swagger
+ * /api/v1/auth/forgot-password/reset:
+ *   post:
+ *     summary: Đặt lại mật khẩu mới (UC07 Bước 3)
+ *     description: |
+ *       Đặt mật khẩu mới sau khi OTP đã được xác thực.
+ *       - Yêu cầu mật khẩu: ít nhất 8 ký tự, có chữ hoa, chữ thường, số, ký tự đặc biệt
+ *       - Xóa OTP record sau khi đổi mật khẩu thành công
+ *     tags: [Forgot Password]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, otp, newPassword]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               otp:
+ *                 type: string
+ *                 example: "123456"
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *                 example: "NewPass@123"
+ *     responses:
+ *       200:
+ *         description: Mật khẩu đã được đặt lại
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: "Mật khẩu đã được đặt lại thành công."
+ *       400:
+ *         description: OTP không hợp lệ hoặc mật khẩu không đủ mạnh
+ *       403:
+ *         description: Tài khoản bị vô hiệu hóa
+ *       404:
+ *         description: Không tìm thấy tài khoản
+ */
+router.post('/forgot-password/reset', validate(resetPasswordSchema), resetPassword);
+
 
 export default router;
