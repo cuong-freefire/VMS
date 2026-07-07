@@ -11,7 +11,8 @@
 
 import { Router } from 'express';
 import { login, sendOTPController, verifyOTPController, logout, requestResetPassword, verifyResetOTP, resetPassword } from '../controllers/auth.controller.js';
-import { validate, loginSchema, sendOTPSchema, verifyOTPSchema, requestResetSchema, verifyResetOTPSchema, resetPasswordSchema } from '../middlewares/validators/auth.validator.js';
+import { loginSchema, sendOTPSchema, verifyOTPSchema, requestResetSchema, verifyResetOTPSchema, resetPasswordSchema } from '../middlewares/validators/auth.validator.js';
+import { validate } from '../middlewares/validators/validate.js';
 
 const router = Router();
 

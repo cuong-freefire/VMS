@@ -120,32 +120,9 @@ export const resetPasswordSchema = z.object({
             .regex(/[^A-Za-z0-9]/, 'Mật khẩu phải chứa ít nhất 1 ký tự đặc biệt'),
     }),
 });
-export const validate = (schema) => {
-    return (req, res, next) => {
-        try {
-            const validated = schema.parse({
-                body: req.body,
-            });
-            req.body = validated.body;
-            next();
-        } catch (error) {
-            if (error instanceof z.ZodError) {
-                const errorMessages = error.issues
-                    .map((err) => `${err.path.join('.')}: ${err.message}`)
-                    .join('; ');
-                return res.status(400).json({
-                    success: false,
-                    error: errorMessages,
-                });
-            }
-            next(error);
-        }
-    };
-};
 
 export default {
     loginSchema,
     sendOTPSchema,
     verifyOTPSchema,
-    validate,
 };
