@@ -1,0 +1,199 @@
+/* LandingPage.css */
+
+.landing-hero {
+  position: relative;
+  background-color: var(--green-house);
+  min-height: calc(100vh - var(--navbar-height));
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.landing-hero-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0.35;
+}
+
+.landing-hero-content {
+  position: relative;
+  width: 100%;
+  max-width: var(--max-content-width);
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4);
+}
+
+.landing-hero-title {
+  font-size: var(--font-size-jumbo);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-on-dark);
+  letter-spacing: var(--letter-spacing-normal);
+  line-height: var(--line-height-compact);
+  margin: 0 0 var(--space-3);
+  max-width: 600px;
+}
+
+.landing-hero-subtitle {
+  font-size: var(--font-size-body-large);
+  color: var(--text-on-dark-soft);
+  line-height: var(--line-height-normal);
+  margin: 0 0 var(--space-5);
+  max-width: 500px;
+}
+
+.landing-stats-section {
+  background-color: var(--green-house);
+  padding: var(--space-5) var(--space-4);
+}
+
+.landing-stats-container {
+  max-width: var(--max-content-width);
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.landing-stat-item {
+  text-align: center;
+}
+
+.landing-stat-value {
+  font-size: var(--font-size-jumbo);
+  font-weight: var(--font-weight-bold);
+  color: var(--gold);
+  line-height: 1;
+}
+
+.landing-stat-label {
+  font-size: var(--font-size-small);
+  color: var(--text-on-dark-soft);
+  margin-top: 8px;
+}
+
+.landing-benefits-section {
+  background-color: var(--surface-warm);
+  padding: var(--space-7) var(--space-4);
+}
+
+.landing-benefits-container {
+  max-width: var(--max-content-width);
+  margin: 0 auto;
+}
+
+.landing-benefits-title {
+  text-align: center;
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-semibold);
+  color: var(--green-primary);
+  margin-bottom: var(--space-5);
+  letter-spacing: var(--letter-spacing-normal);
+}
+
+.landing-benefit-card {
+  background-color: var(--surface-white);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-5) var(--space-4);
+  text-align: center;
+  height: 100%;
+}
+
+.landing-benefit-icon-wrapper {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background-color: var(--green-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--space-3);
+}
+
+.landing-benefit-icon {
+  color: var(--green-accent);
+}
+
+.landing-benefit-card-title {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin: 0 0 8px;
+}
+
+.landing-benefit-card-desc {
+  font-size: var(--font-size-small);
+  color: var(--text-secondary);
+  line-height: var(--line-height-normal);
+  margin: 0;
+}
+
+.landing-impact-section {
+  background-color: var(--green-house);
+}
+
+.landing-impact-container {
+  max-width: var(--max-content-width);
+  margin: 0 auto;
+  display: flex;
+  align-items: stretch;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  padding: 0 var(--space-4);
+}
+
+.landing-impact-image {
+  flex: 1 1 400px;
+  min-height: 450px;
+  background-size: cover;
+  background-position: center;
+  border-radius: 24px;
+  box-shadow: var(--shadow-card);
+  margin: var(--space-5) 0;
+}
+
+.landing-impact-content {
+  flex: 1 1 400px;
+  padding: var(--space-6) 0;
+  color: var(--text-on-dark);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.landing-impact-title {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-semibold);
+  margin: 0 0 var(--space-3);
+}
+
+.landing-impact-desc {
+  font-size: var(--font-size-body);
+  color: var(--text-on-dark-soft);
+  line-height: var(--line-height-normal);
+  margin-bottom: var(--space-4);
+}
+
+.landing-cta-section {
+  background-color: var(--surface-warm);
+  padding: var(--space-7) var(--space-4);
+  text-align: center;
+}
+
+.landing-cta-title {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-semibold);
+  color: var(--green-primary);
+  margin: 0 0 var(--space-3);
+}
+
+.landing-cta-desc {
+  font-size: var(--font-size-body);
+  color: var(--text-secondary);
+  max-width: 500px;
+  margin: 0 auto var(--space-5);
+}
