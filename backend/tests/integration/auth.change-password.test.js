@@ -148,7 +148,7 @@ describe('POST /api/v1/auth/change-password - Error Handling', () => {
           oldPassword: 'wrongoldp', newPassword: 'jjjjjjjj', confirmPassword: 'jjjjjjjj',
         }).expect(400);
       expect(res.body.success).toBe(false);
-      expect(res.body.message).toBe('M?t kh?u cu kh�ng ch�nh x�c.');
+      expect(res.body.message).toBe('Mật khẩu cũ không chính xác.');
       expect(mockRepo.updatePassword).not.toHaveBeenCalled();
     });
   });
@@ -255,6 +255,6 @@ describe('POST /api/v1/auth/change-password - Edge Cases and Security', () => {
         oldPassword: 'vvvvvvvv', newPassword: 'wwwwwwww', confirmPassword: 'wwwwwwww',
       }).expect(404);
     expect(res.body.success).toBe(false);
-    expect(res.body.message).toBe('T�i kho?n kh�ng t?n t?i.');
+    expect(res.body.message).toBe('Tài khoản không tồn tại.');
   });
 });

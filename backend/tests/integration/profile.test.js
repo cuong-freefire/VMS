@@ -1,5 +1,5 @@
 /**
- * Integration Test: PATCH /api/v1/user/me � Text update (UC19 US1)
+ * Integration Test: PATCH /api/v1/user/me � Text update (UC19 US1)
  *
  * Owner: Member 1 - CuongLH
  * Module: Profile Management
@@ -8,11 +8,11 @@
 import request from "supertest";
 import app from "../../src/app.js";
 
-describe("PATCH /api/v1/user/me � Text update", () => {
+describe("PATCH /api/v1/user/me � Text update", () => {
   let authCookie;
 
   beforeAll(async () => {
-    // �ang nh?p d? l?y cookie JWT
+    //Đăng nhập để lấy  cookie JWT
     const loginRes = await request(app)
       .post("/api/v1/auth/login")
       .send({ email: "test-volunteer@vms-test.com", password: "abc12345" });
@@ -23,14 +23,14 @@ describe("PATCH /api/v1/user/me � Text update", () => {
     const res = await request(app)
       .patch("/api/v1/user/me")
       .set("Cookie", authCookie)
-      .send({ full_name: "Nguy?n Van Updated" });
+      .send({ full_name: "Nguyễn Văn Updated" });
 
     console.log(res.status);
     console.log(res.body);
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(res.body.data.full_name).toBe("Nguy?n Van Updated");
+    expect(res.body.data.full_name).toBe("Nguyễn Văn Updated");
   });
 
   it("should update phone_number successfully (200)", async () => {
@@ -52,7 +52,7 @@ describe("PATCH /api/v1/user/me � Text update", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(res.body.data.full_name).toBe("Nguy?n Van Both");
+    expect(res.body.data.full_name).toBe("Nguyễn Văn Both");
     expect(res.body.data.phone_number).toBe("0912345678");
   });
 
@@ -66,7 +66,7 @@ describe("PATCH /api/v1/user/me � Text update", () => {
     expect(res.body.success).toBe(true);
   });
 
-  it("should return 400 for invalid full_name (qu� ng?n)", async () => {
+  it("should return 400 for invalid full_name (quá ngắn)", async () => {
     const res = await request(app)
       .patch("/api/v1/user/me")
       .set("Cookie", authCookie)
