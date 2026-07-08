@@ -1,16 +1,15 @@
-import { Outlet } from "react-router-dom";
+﻿import { Outlet } from "react-router-dom";
 import Footer from "../ui/Footer";
 import Navbar from "../ui/Navbar";
 
 export default function MainLayout() {
-    return (
-        <div className="d-flex flex-column">
-            <Navbar />
-
-            <main className="flex-grow-1" style={{ minHeight: 'calc(100vh - 90px)' }}>
-                <Outlet />
-            </main>
-            <Footer />
-        </div>
-    )
+  return (
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      <Navbar />
+      <main style={{ flex: 1, marginTop: "var(--navbar-height)" }}>
+        <Outlet />
+      </main>
+      <Footer />
+    </div>
+  );
 }

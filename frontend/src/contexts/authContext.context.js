@@ -1,68 +1,73 @@
-import { createContext, useContext, useEffect, useState } from "react";
+﻿import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { userService } from "../services/user.service.js";
 import { authService } from "../services/auth.service.js";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-    const initializeUser = async () => {
-        try {
-            const res = await userService.getMe();
-            setUser(res.data)
-        }
-        catch {
-            setUser(null)
-        }
-        finally {
-            setLoading(false)
-        }
+  const initializeUser = useCallback(async () => {
+    try {
+      const res = await userService.getMe();
+      const userData = res.data?.user || res.data;
+      setUser(userData);
+    } catch {
+      setUser(null);
+    } finally {
+      setLoading(false);
     }
+  }, []);
 
-    useEffect(() => {
-        initializeUser()
-    }, [])
+  useEffect(() => {
+    initializeUser();
+  }, [initializeUser]);
 
-    const login = async (data) => {
-        const res = await authService.login(data);
+  const login = async (data) => {
+    const res = await authService.login(data);
+    const userData = res.data?.user || res.data;
+    setUser(userData);
+    return userData;
+  };
 
-        setUser(res.data);
+  const logout = async () => {
+    try {
+      await authService.logout();
+    } catch (error) {
+      console.error("Logout API failed, clearing local state:", error.message);
+    } finally {
+      setUser(null);
+    }
+  };
 
-        return res.data;
-    };
+  const updateUser = (data) => {
+    setUser((prev) => ({ ...prev, ...data }));
+  };
 
-    const logout = async () => {
-        try {
-            await authService.logout();
-        } catch (error) {
-            console.error('Logout API failed, clearing local state anyway:', error.message);
-        } finally {
-            setUser(null);
-            window.location.href = '/';
-        }
-    };
+  const roleId = user?.role_id;
 
-    return (
-        <AuthContext.Provider
-            value={{
-                user,
-                loading,
-                login,
-                logout,
-                isAuthenticated: !!user
-            }}
-        >
-            {children}
-        </AuthContext.Provider>
-    )
+  const value = {
+    user,
+    loading,
+    login,
+    logout,
+    updateUser,
+    isAuthenticated: !!user,
+    roleId,
+    isVolunteer: roleId === 2,
+    isStaff: roleId === 3,
+    isManager: roleId === 4,
+    isAdmin: roleId === 1,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
-    const authContext = useContext(AuthContext)
-    if (!authContext) {
-        throw new Error("useAuth must be used within AuthProvider");
-    }
-    return authContext;
+  const authContext = useContext(AuthContext);
+  if (!authContext) {
+    throw new Error("useAuth must be used within AuthProvider");
+  }
+  return authContext;
 }
