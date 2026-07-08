@@ -15,8 +15,7 @@ describe("PATCH /api/v1/user/me — Text update", () => {
     // Đăng nhập để lấy cookie JWT
     const loginRes = await request(app)
       .post("/api/v1/auth/login")
-      .send({ email: "volunteer@test.com", password: "Test@123" });
-
+      .send({ email: "cute73998@gmail.com", password: "Cuong25092005@" });
     authCookie = loginRes.headers["set-cookie"];
   });
 
@@ -25,6 +24,9 @@ describe("PATCH /api/v1/user/me — Text update", () => {
       .patch("/api/v1/user/me")
       .set("Cookie", authCookie)
       .send({ full_name: "Nguyễn Văn Updated" });
+
+    console.log(res.status);
+    console.log(res.body);
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
@@ -93,13 +95,13 @@ describe("PATCH /api/v1/user/me — Text update", () => {
     expect(res.body.success).toBe(false);
   });
 
-  it("should ignore unknown fields sent by client", async () => {
+  it("should validate and block unknown fields sent by client", async () => {
     const res = await request(app)
       .patch("/api/v1/user/me")
       .set("Cookie", authCookie)
       .send({ full_name: "Valid Name", email: "hacked@evil.com", password: "secret" });
 
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
   });
 });
