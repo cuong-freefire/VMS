@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Authentication Routes
  *
  * Các endpoint liên quan đến xác thực người dùng:
@@ -10,8 +10,10 @@
  */
 
 import { Router } from 'express';
-import { login, sendOTPController, verifyOTPController, logout, requestResetPassword, verifyResetOTP, resetPassword } from '../controllers/auth.controller.js';
-import { validate, loginSchema, sendOTPSchema, verifyOTPSchema, requestResetSchema, verifyResetOTPSchema, resetPasswordSchema } from '../middlewares/validators/auth.validator.js';
+import { login, sendOTPController, verifyOTPController, logout, requestResetPassword, verifyResetOTP, resetPassword, changePassword } from '../controllers/auth.controller.js';
+import { loginSchema, sendOTPSchema, verifyOTPSchema, requestResetSchema, verifyResetOTPSchema, resetPasswordSchema, changePasswordSchema } from '../middlewares/validators/auth.validator.js';
+import authMiddleware from '../middlewares/auth.middleware.js';
+import { validate } from '../middlewares/validators/validate.js';
 
 const router = Router();
 
@@ -388,5 +390,157 @@ router.post('/forgot-password/verify-otp', validate(verifyResetOTPSchema), verif
  */
 router.post('/forgot-password/reset', validate(resetPasswordSchema), resetPassword);
 
+
+
+
+/**
+ * @swagger
+ * /api/v1/auth/change-password:
+ *   post:
+ *     summary: Thay đổi mật khẩu (UC06)
+ *     description: |
+ *       Cho phép người dùng đã đăng nhập thay đổi mật khẩu.
+ *       - Yêu cầu JWT token hợp lệ trong httpOnly cookie
+ *       - Xác minh mật khẩu cũ bằng bcrypt constant-time
+ *       - Validate mật khẩu mới theo policy: 8+ ký tự, chữ hoa, chữ thường, số, ký tự đặc biệt
+ *       - Mật khẩu mới và xác nhận phải khớp
+ *       - userId lấy từ JWT token (anti-IDOR: KHÔNG từ request body)
+ *       - Giữ nguyên session hiện tại sau khi đổi mật khẩu
+ *     tags:
+ *       - Authentication
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - oldPassword
+ *               - newPassword
+ *               - confirmPassword
+ *             properties:
+ *               oldPassword:
+ *                 type: string
+ *                 format: password
+ *                 description: Mật khẩu hiện tại của người dùng
+ *                 example: "TestPass@123"
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *                 description: Mật khẩu mới (8+ ký tự, chữ hoa, chữ thường, số, ký tự đặc biệt)
+ *                 example: "NewPass@456!"
+ *               confirmPassword:
+ *                 type: string
+ *                 format: password
+ *                 description: Xác nhận mật khẩu mới (phải khớp với newPassword)
+ *                 example: "NewPass@456!"
+ *     responses:
+ *       200:
+ *         description: Mật khẩu đã được thay đổi thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     success:
+ *                       type: boolean
+ *                     message:
+ *                       type: string
+ *             example:
+ *               success: true
+ *               message: "Mật khẩu đã được thay đổi thành công"
+ *               data:
+ *                 success: true
+ *                 message: "Mật khẩu đã được thay đổi thành công"
+ *       400:
+ *         description: |
+ *           Validation error - các trường hợp:
+ *           - Mật khẩu cũ không chính xác
+ *           - Mật khẩu mới không đáp ứng policy bảo mật
+ *           - Mật khẩu mới và xác nhận không khớp
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             examples:
+ *               oldPasswordWrong:
+ *                 summary: Mật khẩu cũ không chính xác
+ *                 value:
+ *                   success: false
+ *                   message: "Mật khẩu cũ không chính xác."
+ *                   code: "INVALID_OLD_PASSWORD"
+ *                   details: null
+ *               weakPassword:
+ *                 summary: Mật khẩu mới không đáp ứng policy
+ *                 value:
+ *                   success: false
+ *                   message: "Mật khẩu mới không đáp ứng chính sách bảo mật."
+ *                   code: "VALIDATION_ERROR"
+ *                   details: null
+ *               confirmMismatch:
+ *                 summary: Mật khẩu xác nhận không khớp
+ *                 value:
+ *                   success: false
+ *                   message: "Mật khẩu mới và xác nhận mật khẩu không khớp."
+ *                   code: "VALIDATION_ERROR"
+ *                   details: null
+ *       401:
+ *         description: Chưa đăng nhập hoặc JWT token hết hạn / không hợp lệ
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             examples:
+ *               noToken:
+ *                 summary: Không có JWT token
+ *                 value:
+ *                   success: false
+ *                   message: "Vui lòng đăng nhập."
+ *                   code: "UNAUTHORIZED"
+ *                   details: null
+ *               tokenExpired:
+ *                 summary: JWT token hết hạn
+ *                 value:
+ *                   success: false
+ *                   message: "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại."
+ *                   code: "SESSION_INVALID"
+ *                   details: null
+ *       403:
+ *         description: Tài khoản đã bị vô hiệu hóa
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               success: false
+ *               message: "Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên."
+ *               code: "ACCOUNT_DISABLED"
+ *               details: null
+ *       500:
+ *         description: Lỗi server (database, internal error)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               success: false
+ *               message: "Có lỗi xảy ra trong quá trình xử lý."
+ *               code: "INTERNAL_SERVER_ERROR"
+ *               details: null
+ */
+router.post('/change-password',
+    authMiddleware,
+    validate(changePasswordSchema),
+    changePassword
+);
 
 export default router;

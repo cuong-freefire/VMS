@@ -13,10 +13,6 @@
  * 6. Routes
  */
 
-import dotenv from 'dotenv';
-// Cấu hình env variables từ .env file
-dotenv.config();
-
 import express from 'express';
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';

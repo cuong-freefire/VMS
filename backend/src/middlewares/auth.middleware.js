@@ -1,6 +1,6 @@
 // Middleware để kiểm tra phiên đăng nhập hợp lệ. (Tuyệt đối ko sửa đổi)
 
-import * as authRepository from "../repositories/auth.repository.js";
+import authRepository from "../repositories/auth.repository.js";
 import { verifyAccessToken } from "../utils/jwt.util.js";
 import { errorResponse } from "../utils/response.util.js";
 

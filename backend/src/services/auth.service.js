@@ -1,9 +1,10 @@
-﻿import { signAccessToken } from "../utils/jwt.util.js";
+import { signAccessToken } from "../utils/jwt.util.js";
 import { ServiceError } from "../utils/response.util.js";
 import bcrypt from "bcryptjs";
 import { generateOTP, hashOTP, verifyOTP as verifyOTPHash } from "../utils/otp.util.js";
 import { generateOTPEmailContent } from "../utils/email.util.js";
 import authRepository from "../repositories/auth.repository.js";
+import logger from "../config/logger.config.js";
 import { transporter } from "../config/transporter.config.js";
 
 /**
@@ -111,7 +112,8 @@ async function loginService(email, password) {
             email: user.email,
             full_name: user.fullName,
             role_id: user.roleId,
-            avatar_url: user.avatarUrl
+            avatar_url: user.avatarUrl,
+            phone: user.phone,
         }
     };
 }
@@ -524,6 +526,76 @@ const verifyResetOTP = async (email, otp) => {
  * @returns {Promise<Object>}
  * @throws {ServiceError} 400/403/404/429/500
  */
+
+
+/**
+ * Change password for authenticated user
+ * Implements UC06: User Story 1 - Thay doi mat khau thanh cong
+ *
+ * Business Logic Flow:
+ * 1. Find user by userId from JWT (NOT from request body — anti-IDOR)
+ * 2. Check account is active (is_active = TRUE)
+ * 3. Verify oldPassword with bcrypt.compare() (constant-time)
+ * 4. Hash newPassword with bcrypt (12 rounds)
+ * 5. Update password_hash in database
+ * 6. Audit log CHANGE_PASSWORD_SUCCESS
+ * 7. Keep current session active (do NOT force logout)
+ *
+ * @param {number} userId - User ID from JWT token (req.user.user_id)
+ * @param {string} oldPassword - Current password for verification
+ * @param {string} newPassword - New password (already validated by Zod)
+ * @returns {Promise<Object>} Success response
+ * @throws {ServiceError} 400 - Old password incorrect
+ * @throws {ServiceError} 403 - Account inactive
+ */
+const changePassword = async (userId, oldPassword, newPassword) => {
+    // 1. Find user by userId (from JWT, NOT request body)
+    const user = await authRepository.findById(userId);
+    if (!user) {
+        throw new ServiceError(
+            "Tài khoản không tồn tại.",
+            404,
+            "USER_NOT_FOUND"
+        );
+    }
+
+    // 2. Check account is active
+    if (!user.isActive) {
+        throw new ServiceError(
+            "Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên.",
+            403,
+            "ACCOUNT_DISABLED"
+        );
+    }
+
+    // 3. Verify oldPassword with bcrypt (constant-time comparison)
+    const isOldPasswordValid = await bcrypt.compare(oldPassword, user.passwordHash);
+    if (!isOldPasswordValid) {
+        logger.warn({ userId, reason: "old_password_incorrect" }, "CHANGE_PASSWORD_FAILED");
+
+        throw new ServiceError(
+            "Mật khẩu cũ không chính xác.",
+            400,
+            "INVALID_OLD_PASSWORD"
+        );
+    }
+
+    // 4. Hash newPassword with bcrypt (12 rounds)
+    const newHash = await bcrypt.hash(newPassword, 12);
+
+    // 5. Update password in database
+    await authRepository.updatePassword(user.email, newHash);
+
+    // 6. Audit log success (no passwords in log)
+    logger.info({ userId }, "CHANGE_PASSWORD_SUCCESS");
+
+    // 7. Return success - session unchanged (keep JWT active)
+    return {
+        success: true,
+        message: "Mật khẩu đã được thay đổi thành công",
+    };
+};
+
 const resetPassword = async (email, otp, newPassword) => {
     const normalizedEmail = email.toLowerCase().trim();
 
@@ -562,4 +634,5 @@ export default {
     requestResetPassword,
     verifyResetOTP,
     resetPassword,
+    changePassword,
 };

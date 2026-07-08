@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Authentication Repository - Database operations for auth module
  * Owner: Member 1 (CuongLH)
  * 
@@ -271,6 +271,33 @@ const deleteSessionByUserId = async (userId) => {
     return { jti: response.jti, expiresAt: response.expiresAt };
 }
 
+
+/**
+ * Find user by ID
+ * UC06: Change Password — lookup user for password verification
+ * @param {number} userId - User ID from JWT token
+ * @returns {Promise<Object|null>} User record with role or null
+ */
+const findById = async (userId) => {
+    return prisma.user.findUnique({
+        where: { id: userId },
+    });
+};
+
+/**
+ * Update user password by ID
+ * UC06: Change Password — atomic password update
+ * @param {number} userId - User ID from JWT token
+ * @param {string} passwordHash - Bcrypt hash of new password
+ * @returns {Promise<Object>} Updated User record
+ */
+const updatePasswordById = async (userId, passwordHash) => {
+    return prisma.user.update({
+        where: { id: userId },
+        data: { passwordHash },
+    });
+};
+
 export default {
     findVerificationByEmailAndType,
     findVerificationByEmail,
@@ -286,5 +313,7 @@ export default {
     resetLoginAttempts,
     upsertSession,
     updatePassword,
-    deleteSessionByUserId
+    deleteSessionByUserId,
+    findById,
+    updatePasswordById,
 };

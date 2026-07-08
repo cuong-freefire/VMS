@@ -1,4 +1,4 @@
-﻿import authService from "../services/auth.service.js";
+import authService from "../services/auth.service.js";
 import { setTokenToCookie } from "../utils/jwt.util.js";
 import { errorResponse, successResponse } from "../utils/response.util.js";
 
@@ -105,6 +105,27 @@ export async function resetPassword(req, res) {
     try {
         const { email, otp, newPassword } = req.body;
         const result = await authService.resetPassword(email, otp, newPassword);
+        return res.status(200).json(successResponse(result, result.message));
+    } catch (error) {
+        return res.status(error.status || 500).json(
+            errorResponse(error.message, error.code || "INTERNAL_SERVER_ERROR", error.details)
+        );
+    }
+}
+
+
+/**
+ * Change password controller
+ * Implements UC06: Thay doi mat khau
+ * userId from JWT token (anti-IDOR: NEVER from request body)
+ */
+export async function changePassword(req, res) {
+    try {
+        const { oldPassword, newPassword } = req.body;
+        const userId = req.user.user_id;
+        // const userId = 1;
+
+        const result = await authService.changePassword(userId, oldPassword, newPassword);
         return res.status(200).json(successResponse(result, result.message));
     } catch (error) {
         return res.status(error.status || 500).json(
