@@ -16,10 +16,11 @@ axiosApi.interceptors.response.use(
         const status = error.response?.status;
         const detail = error.response?.data?.detail || 'An error occurred';
         const pathName = window.location.pathname;
+        const requestUrl = error.config?.url || '';
+        const isGetMe = requestUrl.includes('/user/me') && error.config?.method === 'get';
 
         // Đây là nơi FE "hứng" và xử lý Status Code từ BE ném về
-        if (status === 401 && pathName !== '/login') {
-            alert("Phiên đăng nhập hết hạn, vui lòng đăng nhập lại!");
+        if (status === 401 && pathName !== '/login' && !requestUrl.includes('logout') && !isGetMe) {
             window.location.href = '/login'; // FE chủ động điều hướng về trang Login
         }
 

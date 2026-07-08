@@ -114,6 +114,7 @@ async function loginService(email, password) {
             role_id: user.roleId,
             avatar_url: user.avatarUrl,
             phone: user.phone,
+            created_at: user.createdAt ? user.createdAt.toISOString() : null,
         }
     };
 }

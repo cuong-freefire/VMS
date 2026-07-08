@@ -1,75 +1,218 @@
-import { Link } from "react-router-dom"
-import { Shrimp } from 'lucide-react';
+import { Link, useNavigate } from "react-router-dom";
+import { HeartHandshake, Menu, X, User, ChevronDown, LogOut, History, Lock } from "lucide-react";
 import { useAuth } from "../../contexts/authContext.context";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import Button from "./Button";
+import './Navbar.css';
 
 export default function Navbar() {
-    const authContext = useAuth()
-    const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { user, isAuthenticated, logout } = useAuth();
+  const navigate = useNavigate();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  const dropdownBtnRef = useRef(null);
 
-    const handleLogout = async () => {
-        if (isLoggingOut) return;
-        setIsLoggingOut(true);
-        await authContext.logout();
+  useEffect(() => {
+    const handler = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setDropdownOpen(false);
+      }
     };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
-    const navItem = [
-        { name: 'HomePage', icon: '', link: '/' },
-        { name: 'Draft', icon: '', link: '/' },
-        { name: 'Draft', icon: '', link: '/' },
-        { name: 'Draft', icon: '', link: '/' },
-    ]
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key === "Escape" && dropdownOpen) {
+        setDropdownOpen(false);
+        dropdownBtnRef.current?.focus();
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [dropdownOpen]);
 
-    const authItem = [
-        { name: 'Sign In', icon: '', link: '/login' },
-        { name: 'Sign Up', icon: '', link: '/register' },
-    ]
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    setDropdownOpen(false);
+    navigate("/");
+    await logout();
+    setIsLoggingOut(false);
+  };
 
-    return (
-        <div className="container-fluid bg-dark fixed-top">
-            <div className="row">
-                <div className="col-3">
-                    <div className="py-3 text-light">
-                        <Shrimp /><span className="fw-bold fs-4 mx-2">VSM</span>
-                    </div>
-                </div>
-                <div className="col-6">
-                    <ul className="list-unstyled d-flex justify-content-center py-3 gap-3 mb-0">
-                        {navItem?.map(item => {
-                            return (
-                                <Link to={item.link} className="text-decoration-none text-light">
-                                    <li>{item.name}</li>
-                                </Link>
-                            )
-                        })}
-                    </ul>
-                </div>
-                <div className="col-3">
-                    {
-                        authContext?.isAuthenticated ?
-                            <div className="py-3 d-flex align-items-center gap-2">
-                                <p className="text-success mb-0">Xin chào {authContext.user.name}</p>
-                                <button
-                                    className="btn btn-outline-danger btn-sm"
-                                    onClick={handleLogout}
-                                    disabled={isLoggingOut}
-                                >
-                                    {isLoggingOut ? 'Đang đăng xuất...' : 'Đăng xuất'}
-                                </button>
-                            </div>
-                            :
-                            <ul className="list-unstyled d-flex justify-content-center py-3 gap-3 mb-0">
-                                {authItem?.map(item => {
-                                    return (
-                                        <Link to={item.link} className="text-decoration-none text-light">
-                                            <li>{item.name}</li>
-                                        </Link>
-                                    )
-                                })}
-                            </ul>
-                    }
-                </div>
-            </div>
+  const handleDropdownKeyDown = (e, index, itemsCount) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      const next = e.currentTarget.parentElement.children[index + 1]?.querySelector("button");
+      if (next) next.focus();
+    }
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      const prevIndex = index > 0 ? index - 1 : itemsCount - 1;
+      const prev = e.currentTarget.parentElement.children[prevIndex]?.querySelector("button");
+      if (prev) prev.focus();
+    }
+    if (e.key === "Escape") {
+      setDropdownOpen(false);
+      dropdownBtnRef.current?.focus();
+    }
+  };
+
+  const navLinks = isAuthenticated
+    ? [{ name: "Trang chủ", link: "/home" }, { name: "Sự kiện", link: "/events" }]
+    : [{ name: "Trang chủ", link: "/" }, { name: "Về chúng tôi", link: "/about" }];
+
+  const dropdownItems = [
+    { icon: User, label: "Hồ sơ cá nhân", action: () => { setDropdownOpen(false); navigate("/profile"); } },
+    { icon: History, label: "Lịch sử tình nguyện", action: () => { setDropdownOpen(false); navigate("/history"); } },
+    { divider: true },
+    { icon: Lock, label: "Đổi mật khẩu", action: () => { setDropdownOpen(false); navigate("/change-password"); } },
+    { icon: LogOut, label: "Đăng xuất", action: handleLogout, color: "var(--color-error)", disabled: isLoggingOut },
+  ];
+
+  const userInitial = user?.full_name?.[0]?.toUpperCase() || null;
+
+  return (
+    <nav className="navbar-vms">
+      <div className="navbar-vms-inner">
+        <div className="navbar-vms-left">
+          <Link to={isAuthenticated ? "/home" : "/"} className="navbar-vms-brand">
+            <HeartHandshake size={28} style={{ color: "var(--gold)" }} />
+            <span className="navbar-vms-brand-text">VMS</span>
+          </Link>
         </div>
-    )
+
+        {/* Desktop nav links (Center) */}
+        <div className="navbar-vms-center d-none d-lg-flex">
+          {navLinks.map((it) => (
+            <Link key={it.name} to={it.link} className="nav-link-vms">
+              {it.name}
+            </Link>
+          ))}
+        </div>
+
+        {/* Desktop auth/profile (Right) */}
+        <div className="navbar-vms-right d-none d-lg-flex">
+          {isAuthenticated ? (
+            <div ref={dropdownRef} style={{ position: "relative" }}>
+              <button
+                ref={dropdownBtnRef}
+                onClick={() => setDropdownOpen((prev) => !prev)}
+                aria-expanded={dropdownOpen}
+                aria-haspopup="menu"
+                className="navbar-vms-avatar-btn"
+              >
+                <div className="navbar-vms-avatar-icon">
+                  {userInitial || <User size={16} />}
+                </div>
+                <span className="navbar-vms-username">
+                  {user?.full_name || "Người dùng"}
+                </span>
+                <ChevronDown 
+                  size={14} 
+                  style={{
+                    color: "var(--text-on-dark-soft)",
+                    transform: dropdownOpen ? "rotate(180deg)" : "rotate(0)",
+                    transition: "transform var(--transition-fast)"
+                  }} 
+                />
+              </button>
+
+              {dropdownOpen && (
+                <div role="menu" className="navbar-vms-dropdown">
+                  {dropdownItems.map((item, i) => {
+                    if (item.divider) {
+                      return <div key={`div-${i}`} className="navbar-vms-dropdown-divider" />;
+                    }
+                    const Icon = item.icon;
+                    return (
+                      <button
+                        key={item.label}
+                        role="menuitem"
+                        className="dropdown-item-vms"
+                        disabled={item.disabled}
+                        onClick={item.action}
+                        onKeyDown={(e) => handleDropdownKeyDown(e, i, dropdownItems.length)}
+                        style={{ color: item.color || "var(--text-primary)" }}
+                        tabIndex={0}
+                      >
+                        {Icon && <Icon size={18} />}
+                        {item.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
+              <Link to="/login"><Button variant="dark" size="md">Đăng nhập</Button></Link>
+              <Link to="/register"><Button variant="primary" size="md">Đăng ký</Button></Link>
+            </>
+          )}
+        </div>
+
+        {/* Mobile hamburger */}
+        <button
+          onClick={() => setMobileOpen((prev) => !prev)}
+          className="navbar-vms-mobile-btn d-lg-none"
+          aria-label={mobileOpen ? "Đóng menu" : "Mở menu"}
+          aria-expanded={mobileOpen}
+        >
+          {mobileOpen ? <X size={28} /> : <Menu size={28} />}
+        </button>
+      </div>
+
+      {/* Mobile menu dropdown */}
+      {mobileOpen && (
+        <div className="navbar-vms-mobile-menu d-lg-none">
+          {navLinks.map((it) => (
+            <Link
+              key={it.name}
+              to={it.link}
+              className="navbar-vms-mobile-link"
+              onClick={() => setMobileOpen(false)}
+            >
+              {it.name}
+            </Link>
+          ))}
+          <div className="navbar-vms-dropdown-divider" style={{ backgroundColor: 'rgba(255,255,255,0.12)' }} />
+          {isAuthenticated ? (
+            <>
+              <MobileMenuItem icon={User} label="Hồ sơ cá nhân" onClick={() => { navigate("/profile"); setMobileOpen(false); }} />
+              <MobileMenuItem icon={History} label="Lịch sử tình nguyện" onClick={() => { navigate("/history"); setMobileOpen(false); }} />
+              <MobileMenuItem icon={Lock} label="Đổi mật khẩu" onClick={() => { navigate("/change-password"); setMobileOpen(false); }} />
+              <MobileMenuItem icon={LogOut} label="Đăng xuất" color="var(--color-error)" onClick={() => { handleLogout(); setMobileOpen(false); }} />
+            </>
+          ) : (
+            <div className="d-flex flex-column gap-3 mt-2">
+              <Link to="/login" onClick={() => setMobileOpen(false)} style={{ textDecoration: 'none' }}>
+                <Button variant="dark" size="lg" style={{ width: "100%" }}>Đăng nhập</Button>
+              </Link>
+              <Link to="/register" onClick={() => setMobileOpen(false)} style={{ textDecoration: 'none' }}>
+                <Button variant="primary" size="lg" style={{ width: "100%" }}>Đăng ký</Button>
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
+    </nav>
+  );
+}
+
+function MobileMenuItem({ icon: Icon, label, color, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="navbar-vms-mobile-menu-item"
+      style={{ color: color || "var(--text-on-dark)" }}
+    >
+      {Icon && <Icon size={20} />}
+      {label}
+    </button>
+  );
 }

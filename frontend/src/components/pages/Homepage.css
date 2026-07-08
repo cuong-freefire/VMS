@@ -1,0 +1,108 @@
+/* Homepage.css */
+
+.homepage-container {
+  background-color: var(--surface-warm);
+  min-height: calc(100vh - var(--navbar-height));
+  padding-bottom: var(--space-6);
+}
+
+.homepage-hero {
+  position: relative;
+  background-color: var(--green-house);
+  padding: var(--space-6) var(--space-4);
+  overflow: hidden;
+}
+
+.homepage-hero-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0.25;
+}
+
+.homepage-hero-content {
+  position: relative;
+  max-width: var(--max-content-width);
+  margin: 0 auto;
+}
+
+.homepage-hero-title {
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-on-dark);
+  margin: 0 0 8px;
+  letter-spacing: var(--letter-spacing-normal);
+}
+
+.homepage-hero-subtitle {
+  font-size: var(--font-size-body);
+  color: var(--text-on-dark-soft);
+  margin: 0;
+}
+
+.homepage-content-wrapper {
+  max-width: var(--max-content-width);
+  margin: var(--space-5) auto;
+  padding: 0 var(--space-4);
+}
+
+.homepage-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.homepage-stat-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background-color: var(--green-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.homepage-stat-icon {
+  color: var(--green-accent);
+}
+
+.homepage-stat-value {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.homepage-stat-label {
+  font-size: var(--font-size-small);
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.homepage-section-title {
+  font-size: var(--font-size-body-large);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-3);
+}
+
+.homepage-quick-card-title {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  margin: 0 0 8px;
+  color: var(--text-primary);
+}
+
+.homepage-quick-card-desc {
+  font-size: var(--font-size-small);
+  color: var(--text-secondary);
+  margin: 0 0 16px;
+  line-height: var(--line-height-normal);
+}
+
+.homepage-unauth-container {
+  max-width: var(--max-content-width);
+  margin: var(--space-6) auto;
+  padding: 0 var(--space-4);
+}
