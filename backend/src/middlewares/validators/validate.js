@@ -37,3 +37,30 @@ export const validate = (schema) => (req, res, next) => {
   req.body = result.data;
   next();
 };
+
+/**
+ * Middleware validate req.query bằng Zod schema.
+ * Dùng cho các endpoint có query params cần validate (phân trang, lọc, tìm kiếm).
+ *
+ * @param {z.ZodSchema} schema - Zod schema để validate req.query
+ * @returns {Function} Express middleware
+ */
+export const validateQuery = (schema) => (req, res, next) => {
+  const result = schema.safeParse(req.query);
+
+  if (!result.success) {
+    const messages = result.error.issues
+      .map((e) => `${e.path.join(".")}: ${e.message}`)
+      .join("; ");
+
+    return res.status(400).json({
+      success: false,
+      message: messages,
+      code: "VALIDATION_ERROR",
+    });
+  }
+
+  // Ghi đè req.query = dữ liệu đã parse (loại bỏ field lạ + type coercion)
+  req.query = result.data;
+  next();
+};

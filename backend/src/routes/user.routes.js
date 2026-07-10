@@ -16,10 +16,98 @@ import authMiddleware from "../middlewares/auth.middleware.js";
 import uploadMiddleware from "../middlewares/upload.middleware.js";
 import { updateProfileSchema } from "../middlewares/validators/profile.validator.js";
 import { getMyProfile, updateMyProfile } from "../controllers/profile.controller.js";
+import { getUsersHandler } from "../controllers/user.controller.js";
 import { errorResponse } from "../utils/response.util.js";
-import { validate } from "../middlewares/validators/validate.js";
+import { validate, validateQuery } from "../middlewares/validators/validate.js";
+import { getUsersSchema } from "../middlewares/validators/user.validator.js";
+import authorize from "../middlewares/authorize.middleware.js";
 
 const router = Router();
+
+/**
+ * GET /api/v1/users
+ * Lấy danh sách người dùng (Admin only)
+ * UC26: View User List
+ */
+/**
+ * @swagger
+ * /api/v1/users:
+ *   get:
+ *     summary: Lấy danh sách người dùng (Admin only)
+ *     description: |
+ *       Trả về danh sách người dùng với phân trang, tìm kiếm, lọc theo role.
+ *       Chỉ Admin mới có quyền truy cập. Staff/Manager/Volunteer nhận 403.
+ *       Guest chưa đăng nhập nhận 401.
+ *     tags: [User Management]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Số trang hiện tại
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Số items mỗi trang (max 100)
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Tìm kiếm theo tên hoặc email (case-insensitive)
+ *       - in: query
+ *         name: role
+ *         schema:
+ *           type: string
+ *           enum: [volunteer, staff, manager, admin]
+ *         description: Lọc theo role
+ *       - in: query
+ *         name: sort
+ *         schema:
+ *           type: string
+ *           default: created_at:desc
+ *         description: Sắp xếp (field:direction)
+ *     responses:
+ *       200:
+ *         description: Thành công, trả về danh sách người dùng
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: "Lấy danh sách người dùng thành công"
+ *               data:
+ *                 users:
+ *                   - user_id: 1
+ *                     full_name: "Nguyễn Văn A"
+ *                     email: "nguyenvana@example.com"
+ *                     role: "VOLUNTEER"
+ *                     is_active: true
+ *                     created_at: "2026-01-15T08:30:00.000Z"
+ *                 pagination:
+ *                   page: 1
+ *                   limit: 20
+ *                   total: 50
+ *                   totalPages: 3
+ *       400:
+ *         description: Lỗi validation (page, limit, role, sort)
+ *       401:
+ *         description: Chưa xác thực
+ *       403:
+ *         description: Không có quyền (không phải Admin)
+ *       500:
+ *         description: Lỗi server
+ */
+router.get(
+    "/",
+    authMiddleware,
+    authorize("ADMIN"),
+    validateQuery(getUsersSchema),
+    getUsersHandler
+);
 
 /**
  * @swagger

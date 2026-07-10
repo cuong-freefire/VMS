@@ -80,8 +80,10 @@ app.use(httpLogger);
  */
 // 6.1 Auth routes
 app.use('/api/v1/auth', authRoutes);
-// 6.2 User routes
+// 6.2 User routes (Profile: UC18-UC21)
 app.use('/api/v1/user', userRoutes);
+// 6.3 Admin User Management routes (UC26: View User List)
+app.use('/api/v1/users', userRoutes);
 
 app.get('/', (req, res) => {
   res.cookie('testCookie', 'testValue', {
