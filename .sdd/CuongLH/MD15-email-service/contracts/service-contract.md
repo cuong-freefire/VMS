@@ -21,7 +21,7 @@ EmailService là shared utility được gọi từ các modules khác (Auth, Ev
 **Signature**:
 
 ```javascript
-async sendVerificationEmail(email, userName, otpCode)
+async sendVerificationEmail(email, userName, otpCode, expiryMinutes = 10)
 ```
 
 **Parameters**:
@@ -29,7 +29,7 @@ async sendVerificationEmail(email, userName, otpCode)
 - `email` (string, required): Recipient email address
 - `userName` (string, required): User's full name for personalization
 - `otpCode` (string, required): 6-digit OTP code to include in email
-`https://frontend.com/`
+- `expiryMinutes` (number, optional): OTP validity in minutes (default: 10)
 
 
 **Returns**:
@@ -48,8 +48,8 @@ Promise<{
 const result = await emailService.sendVerificationEmail(
   'user@example.com',
   'Nguyễn Văn A',
-  'https://vms.example.com/otpCode',
-  24
+  '123456',
+  10
 );
 if (result.success) {
   logger.info('Verification email sent', { email: 'user@example.com' });
@@ -60,7 +60,7 @@ if (result.success) {
 
 **Email Template Content**:
 
-- Subject: "Mã xác thực đăng ký VMS"
+- Subject: "Xác thực tài khoản VMS"
 - Body: Username, OTP code (6 chữ số, hiển thị nổi bật), thời hạn 10 phút, hướng dẫn nhập OTP
 
 **Constraints**:
@@ -79,15 +79,15 @@ if (result.success) {
 **Signature**:
 
 ```javascript
-async sendResetPasswordEmail(email, userName, otpCode)
+async sendResetPasswordEmail(email, userName, otpCode, expiryMinutes = 10)
 ```
 
 **Parameters**:
 
 - `email` (string, required): Recipient email
 - `userName` (string, required): User's full name
-- `otpCode` (string, required): Full URL with reset token
-`https://frontend.com/`
+- `otpCode` (string, required): 6-digit OTP code for password reset
+- `expiryMinutes` (number, optional): OTP validity in minutes (default: 10)
 
 
 **Returns**:
@@ -115,7 +115,7 @@ Promise<{ success: boolean, messageId?: string, error?: string }>
 **Signature**:
 
 ```javascript
-async sendApprovalEmail(email, volunteerName, eventName, eventStartTime)
+async sendApprovalEmail(email, volunteerName, eventName, eventStartTime, eventLocation = "")
 ```
 
 **Parameters**:
@@ -246,7 +246,7 @@ cron.schedule('0 * * * *', async () => {
 **Signature**:
 
 ```javascript
-async sendCertificateEmail(email, volunteerName, eventName, certificatePdfPath)
+async sendCertificateEmail(email, volunteerName, eventName, pdfPath)
 ```
 
 **Parameters**:
@@ -254,7 +254,7 @@ async sendCertificateEmail(email, volunteerName, eventName, certificatePdfPath)
 - `email` (string, required): Volunteer email
 - `volunteerName` (string, required): Volunteer's full name
 - `eventName` (string, required): Event name
-- `certificatePdfPath` (string, required): Absolute path to PDF file
+- `pdfPath` (string, required): Absolute path to PDF file
 
 **Returns**:
 
@@ -311,7 +311,7 @@ Promise<{ success: boolean, messageId?: string, error?: string }>
 - Email format validation (RFC 5322)
 - HTML content UTF-8 encoding
 - Attachment file existence check
-- Attachment size validation (if > 5MB, reject)
+- Attachment size validation handled in sendCertificateEmail (not in base sendEmail)
 
 **Error Handling**:
 
@@ -338,12 +338,9 @@ const result = await emailService.sendEmail(
 EmailService requires these environment variables:
 
 ```env
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_SECURE=false          # Use TLS instead of SSL
+# Transporter in transporter.config.js uses service: "gmail" which auto-resolves host/port/secure
 SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-app-password
-SMTP_FROM_EMAIL=noreply@vms.example.com
 SMTP_FROM_NAME=VMS System
 ```
 
@@ -378,7 +375,7 @@ module.exports = emailService;
 **From AuthService (UC62)**:
 
 ```javascript
-const emailService = require('../services/email.service');
+import emailService from "../services/email.service.js";
 
 async function sendOtpForRegistration(email, userName) {
   // Create user + verification token

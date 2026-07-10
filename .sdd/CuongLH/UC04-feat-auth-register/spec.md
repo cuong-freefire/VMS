@@ -1,4 +1,4 @@
-# Feature Specification: Authentication Register (UC04)
+﻿# Feature Specification: Authentication Register (UC04)
 
 **Feature Branch**: `feat/auth-register`
 
@@ -8,17 +8,17 @@
 
 **Input**: User description: "Hệ thống VMS cần một luồng đăng ký tài khoản mới an toàn và tinh gọn với xác thực email qua OTP. Frontend sử dụng Multi-step form (2 trang): Trang 1 nhập thông tin cá nhân → Trang 2 nhập OTP để xác thực và hoàn tất đăng ký."
 
-## User Scenarios & Testing
+## User Scenarios & Testing (Kịch bản người dùng & Kiểm thử)
 
 ### User Story 1 - Gửi OTP để xác thực email (Priority: P1)
 
 Là một Guest chưa có tài khoản, tôi muốn nhập thông tin cá nhân (Họ tên, Email, Số điện thoại, Mật khẩu) và nhận mã OTP qua email để xác thực quyền sở hữu email của mình trước khi tạo tài khoản.
 
-**Why this priority**: Đây là bước đầu tiên bắt buộc trong luồng đăng ký. Không có OTP, người dùng không thể hoàn tất đăng ký. Xác thực email ngăn chặn tài khoản spam và đảm bảo liên lạc được với người dùng.
+**Why this priority (Lý do ưu tiên)**: Đây là bước đầu tiên bắt buộc trong luồng đăng ký. Không có OTP, người dùng không thể hoàn tất đăng ký. Xác thực email ngăn chặn tài khoản spam và đảm bảo liên lạc được với người dùng.
 
-**Independent Test**: Có thể test độc lập bằng cách gọi API gửi OTP với email hợp lệ, kiểm tra hệ thống trả về success và email chứa mã OTP 6 số được gửi đến hộp thư.
+**Independent Test (Kiểm thử độc lập)**: Có thể test độc lập bằng cách gọi API gửi OTP với email hợp lệ, kiểm tra hệ thống trả về success và email chứa mã OTP 6 số được gửi đến hộp thư.
 
-**Acceptance Scenarios**:
+**Acceptance Scenarios (Kịch bản chấp nhận)**:
 
 1. **Given** Guest chưa có tài khoản và điền email hợp lệ chưa tồn tại vào form Bước 1, **When** Guest click nút "Tiếp theo", **Then** hệ thống sinh mã OTP 6 chữ số, lưu `email` và `otp_hash` vào bảng `email_verifications`, gửi email chứa mã OTP, và trả về HTTP 200 với message "Mã OTP đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư." Frontend giữ thông tin cá nhân (Full Name, Phone, Password) ở client state.
 
@@ -32,11 +32,11 @@ Là một Guest chưa có tài khoản, tôi muốn nhập thông tin cá nhân 
 
 Là một Guest đã nhận được mã OTP, tôi muốn nhập mã OTP vào form Bước 2 để xác thực email và hoàn tất việc tạo tài khoản với vai trò Volunteer.
 
-**Why this priority**: Đây là bước cuối cùng để hoàn tất đăng ký. Không có bước này, người dùng không thể tạo tài khoản và sử dụng hệ thống.
+**Why this priority (Lý do ưu tiên)**: Đây là bước cuối cùng để hoàn tất đăng ký. Không có bước này, người dùng không thể tạo tài khoản và sử dụng hệ thống.
 
-**Independent Test**: Có thể test độc lập bằng cách gọi API verify OTP với mã đúng và thông tin đầy đủ, kiểm tra hệ thống tạo user mới trong bảng `users` với `role_id` = Volunteer và trả về success.
+**Independent Test (Kiểm thử độc lập)**: Có thể test độc lập bằng cách gọi API verify OTP với mã đúng và thông tin đầy đủ, kiểm tra hệ thống tạo user mới trong bảng `users` với `role_id` = Volunteer và trả về success.
 
-**Acceptance Scenarios**:
+**Acceptance Scenarios (Kịch bản chấp nhận)**:
 
 1. **Given** Guest có mã OTP hợp lệ (chưa hết hạn 10 phút) trong bảng `email_verifications`, **When** Guest nhập đúng mã OTP cùng toàn bộ thông tin (email, otp, full_name, phone, password) vào form Bước 2 và submit, **Then** hệ thống xác thực OTP thành công, tạo tài khoản mới trong bảng `users` với vai trò Volunteer, set `is_active: true`, xóa record trong `email_verifications`, và trả về HTTP 201 với message "Đăng ký thành công. Bạn có thể đăng nhập ngay bây giờ."
 
@@ -50,11 +50,11 @@ Là một Guest đã nhận được mã OTP, tôi muốn nhập mã OTP vào fo
 
 Là hệ thống, tôi cần chặn việc đăng ký trùng email để đảm bảo mỗi email chỉ có một tài khoản duy nhất.
 
-**Why this priority**: Đây là yêu cầu bảo mật và toàn vẹn dữ liệu bắt buộc. Email là định danh duy nhất của người dùng trong hệ thống.
+**Why this priority (Lý do ưu tiên)**: Đây là yêu cầu bảo mật và toàn vẹn dữ liệu bắt buộc. Email là định danh duy nhất của người dùng trong hệ thống.
 
-**Independent Test**: Có thể test độc lập bằng cách tạo một user với email "<existing@vms.com>", sau đó thử gọi API gửi OTP với cùng email này và verify hệ thống trả về lỗi 409.
+**Independent Test (Kiểm thử độc lập)**: Có thể test độc lập bằng cách tạo một user với email "<existing@vms.com>", sau đó thử gọi API gửi OTP với cùng email này và verify hệ thống trả về lỗi 409.
 
-**Acceptance Scenarios**:
+**Acceptance Scenarios (Kịch bản chấp nhận)**:
 
 1. **Given** tài khoản với email "<existing@vms.com>" đã tồn tại trong bảng `users`, **When** Guest thử đăng ký với email "<existing@vms.com>" ở Bước 1, **Then** hệ thống trả về HTTP 409 với message "Email đã được sử dụng. Vui lòng sử dụng email khác hoặc đăng nhập."
 
@@ -66,11 +66,11 @@ Là hệ thống, tôi cần chặn việc đăng ký trùng email để đảm 
 
 Là Admin của hệ thống, tôi muốn áp dụng cooldown 60 giây giữa các lần gửi OTP cho cùng một email để bảo vệ dịch vụ gửi mail khỏi bị lạm dụng.
 
-**Why this priority**: Đây là yêu cầu bảo mật quan trọng để ngăn chặn spam mail và bảo vệ infrastructure.
+**Why this priority (Lý do ưu tiên)**: Đây là yêu cầu bảo mật quan trọng để ngăn chặn spam mail và bảo vệ infrastructure.
 
-**Independent Test**: Có thể test độc lập bằng cách gọi API gửi OTP 2 lần liên tiếp trong vòng 60 giây và verify lần thứ 2 bị reject với HTTP 429.
+**Independent Test (Kiểm thử độc lập)**: Có thể test độc lập bằng cách gọi API gửi OTP 2 lần liên tiếp trong vòng 60 giây và verify lần thứ 2 bị reject với HTTP 429.
 
-**Acceptance Scenarios**:
+**Acceptance Scenarios (Kịch bản chấp nhận)**:
 
 1. **Given** Guest vừa gửi yêu cầu OTP thành công lúc 10:00:00, **When** Guest click "Gửi lại OTP" lúc 10:00:30 (chưa đủ 60s), **Then** hệ thống trả về HTTP 429 với message "Vui lòng đợi X giây trước khi gửi lại OTP" (X = số giây còn lại).
 
@@ -84,11 +84,11 @@ Là Admin của hệ thống, tôi muốn áp dụng cooldown 60 giây giữa c�
 
 Là Admin của hệ thống, tôi muốn khóa email trong 15 phút nếu nhập sai OTP quá 5 lần để chống tấn công brute-force dò mã.
 
-**Why this priority**: Đây là yêu cầu bảo mật quan trọng để bảo vệ hệ thống khỏi tấn công dò mã OTP tự động.
+**Why this priority (Lý do ưu tiên)**: Đây là yêu cầu bảo mật quan trọng để bảo vệ hệ thống khỏi tấn công dò mã OTP tự động.
 
-**Independent Test**: Có thể test độc lập bằng cách gọi API verify OTP với mã sai 5 lần liên tiếp, sau đó verify hệ thống trả về HTTP 429 ngay cả khi gửi mã đúng.
+**Independent Test (Kiểm thử độc lập)**: Có thể test độc lập bằng cách gọi API verify OTP với mã sai 5 lần liên tiếp, sau đó verify hệ thống trả về HTTP 429 ngay cả khi gửi mã đúng.
 
-**Acceptance Scenarios**:
+**Acceptance Scenarios (Kịch bản chấp nhận)**:
 
 1. **Given** Guest có OTP hợp lệ trong `email_verifications`, **When** Guest nhập sai OTP 5 lần liên tiếp, **Then** hệ thống khóa email trong 15 phút và trả về HTTP 429 với message "Bạn đã nhập sai mã OTP quá nhiều lần. Email này đã bị khóa trong 15 phút."
 
@@ -104,11 +104,11 @@ Là Admin của hệ thống, tôi muốn khóa email trong 15 phút nếu nhậ
 
 Là hệ thống, tôi cần từ chối mã OTP đã hết hạn (quá 10 phút kể từ lúc gửi) để đảm bảo tính bảo mật.
 
-**Why this priority**: Đây là yêu cầu bảo mật bắt buộc. OTP có thời gian sống giới hạn để giảm thiểu rủi ro bị đánh cắp.
+**Why this priority (Lý do ưu tiên)**: Đây là yêu cầu bảo mật bắt buộc. OTP có thời gian sống giới hạn để giảm thiểu rủi ro bị đánh cắp.
 
-**Independent Test**: Có thể test độc lập bằng cách tạo record OTP với `created_at` cách đây > 10 phút, sau đó gọi API verify và kiểm tra hệ thống trả về lỗi 400.
+**Independent Test (Kiểm thử độc lập)**: Có thể test độc lập bằng cách tạo record OTP với `created_at` cách đây > 10 phút, sau đó gọi API verify và kiểm tra hệ thống trả về lỗi 400.
 
-**Acceptance Scenarios**:
+**Acceptance Scenarios (Kịch bản chấp nhận)**:
 
 1. **Given** OTP được tạo lúc 10:00 (TTL 10 phút), **When** Guest nhập OTP đúng lúc 10:11 (đã qua 10 phút), **Then** hệ thống trả về HTTP 400 với message "Mã OTP đã hết hạn. Vui lòng gửi lại OTP mới."
 
@@ -120,11 +120,11 @@ Là hệ thống, tôi cần từ chối mã OTP đã hết hạn (quá 10 phút
 
 Là hệ thống, tôi cần đảm bảo mật khẩu đủ mạnh (tối thiểu 8 ký tự, có chữ hoa, chữ thường, số) để bảo vệ tài khoản người dùng.
 
-**Why this priority**: Đây là yêu cầu bảo mật bắt buộc để ngăn chặn tài khoản bị tấn công dễ dàng.
+**Why this priority (Lý do ưu tiên)**: Đây là yêu cầu bảo mật bắt buộc để ngăn chặn tài khoản bị tấn công dễ dàng.
 
-**Independent Test**: Có thể test độc lập bằng cách gọi API với mật khẩu yếu ("123456") và verify hệ thống trả về lỗi validation.
+**Independent Test (Kiểm thử độc lập)**: Có thể test độc lập bằng cách gọi API với mật khẩu yếu ("123456") và verify hệ thống trả về lỗi validation.
 
-**Acceptance Scenarios**:
+**Acceptance Scenarios (Kịch bản chấp nhận)**:
 
 1. **Given** Guest điền password "abc123" (thiếu chữ hoa) ở Bước 2, **When** Guest submit form, **Then** hệ thống trả về HTTP 400 với message "Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường và số."
 
@@ -138,11 +138,11 @@ Là hệ thống, tôi cần đảm bảo mật khẩu đủ mạnh (tối thi�
 
 Là Guest đang ở Bước 2 (đã nhận OTP), tôi muốn quay lại Bước 1 để sửa thông tin (Name, Phone, Password) nhưng giữ nguyên Email và vẫn dùng được OTP đang còn hạn.
 
-**Why this priority**: Đây là yêu cầu UX quan trọng để tránh bắt người dùng đợi cooldown 60s khi chỉ muốn sửa thông tin không phải Email.
+**Why this priority (Lý do ưu tiên)**: Đây là yêu cầu UX quan trọng để tránh bắt người dùng đợi cooldown 60s khi chỉ muốn sửa thông tin không phải Email.
 
-**Independent Test**: Có thể test độc lập bằng cách gửi OTP cho email "<user@vms.com>", quay lại Bước 1 sửa Name/Phone/Password ở client state, sau đó verify OTP cũ vẫn hoạt động với thông tin mới.
+**Independent Test (Kiểm thử độc lập)**: Có thể test độc lập bằng cách gửi OTP cho email "<user@vms.com>", quay lại Bước 1 sửa Name/Phone/Password ở client state, sau đó verify OTP cũ vẫn hoạt động với thông tin mới.
 
-**Acceptance Scenarios**:
+**Acceptance Scenarios (Kịch bản chấp nhận)**:
 
 1. **Given** Guest đã nhận OTP cho email "<user@vms.com>" và đang ở Bước 2, **When** Guest click "Quay lại" để sửa Full Name từ "Nguyễn Văn A" thành "Nguyễn Văn B" nhưng GIỮ NGUYÊN email "<user@vms.com>", **Then** Frontend cập nhật state của Name ở client-side, KHÔNG gọi API, KHÔNG cập nhật database.
 
@@ -156,11 +156,11 @@ Là Guest đang ở Bước 2 (đã nhận OTP), tôi muốn quay lại Bước 
 
 Là Guest đang ở Bước 2, tôi muốn quay lại Bước 1 để thay đổi Email thành email khác hoàn toàn mới.
 
-**Why this priority**: Đây là yêu cầu UX quan trọng khi người dùng nhận ra đã nhập sai email.
+**Why this priority (Lý do ưu tiên)**: Đây là yêu cầu UX quan trọng khi người dùng nhận ra đã nhập sai email.
 
-**Independent Test**: Có thể test độc lập bằng cách gửi OTP cho "<old@vms.com>", quay lại đổi thành "<new@vms.com>", và verify hệ thống xử lý như một request OTP hoàn toàn mới.
+**Independent Test (Kiểm thử độc lập)**: Có thể test độc lập bằng cách gửi OTP cho "<old@vms.com>", quay lại đổi thành "<new@vms.com>", và verify hệ thống xử lý như một request OTP hoàn toàn mới.
 
-**Acceptance Scenarios**:
+**Acceptance Scenarios (Kịch bản chấp nhận)**:
 
 1. **Given** Guest đã nhận OTP cho email "<old@vms.com>" và đang ở Bước 2, **When** Guest click "Quay lại" và đổi email thành "<new@vms.com>", **Then** Frontend clear OTP state, coi như một luồng đăng ký mới.
 
@@ -172,11 +172,11 @@ Là Guest đang ở Bước 2, tôi muốn quay lại Bước 1 để thay đổ
 
 Là Guest, tôi muốn thấy trạng thái loading khi submit form, validation errors rõ ràng, và toast notifications cho mọi thao tác.
 
-**Why this priority**: Đây là yêu cầu UX quan trọng nhưng không blocking cho core functionality.
+**Why this priority (Lý do ưu tiên)**: Đây là yêu cầu UX quan trọng nhưng không blocking cho core functionality.
 
-**Independent Test**: Có thể test độc lập bằng cách mở Frontend, click submit với field rỗng và verify hiển thị validation errors.
+**Independent Test (Kiểm thử độc lập)**: Có thể test độc lập bằng cách mở Frontend, click submit với field rỗng và verify hiển thị validation errors.
 
-**Acceptance Scenarios**:
+**Acceptance Scenarios (Kịch bản chấp nhận)**:
 
 1. **Given** Guest để trống Email ở Bước 1, **When** Guest click "Tiếp theo", **Then** hiển thị validation error "Email là bắt buộc" dưới field Email, không gửi request.
 
@@ -188,7 +188,7 @@ Là Guest, tôi muốn thấy trạng thái loading khi submit form, validation 
 
 ---
 
-### Edge Cases
+### Edge Cases (Trường hợp biên)
 
 - **WHERE Guest đóng browser ở Bước 2 và quay lại sau 5 phút**: WHERE Guest mở lại browser và quay lại form đăng ký, THE system SHALL cho phép Guest tiếp tục từ Bước 2 nếu OTP còn hạn (Frontend có cơ chế giữ state giữa các phiên), hoặc yêu cầu bắt đầu lại từ Bước 1 nếu OTP đã hết hạn.
 
@@ -202,9 +202,9 @@ Là Guest, tôi muốn thấy trạng thái loading khi submit form, validation 
 
 ---
 
-## Requirements
+## Requirements (Yêu cầu)
 
-### Functional Requirements
+### Functional Requirements (Yêu cầu chức năng)
 
 - **FR-001**: WHEN Guest gửi form đăng ký Bước 1, THE system SHALL validate tất cả các field: Email (required, valid format, unique trong bảng users).
 
@@ -246,7 +246,7 @@ Là Guest, tôi muốn thấy trạng thái loading khi submit form, validation 
 
 - **FR-020**: WHEN xử lý email, THE system SHALL chuẩn hóa email (trim whitespace và convert sang lowercase) trước khi lưu hoặc query database.
 
-### Key Entities
+### Key Entities (Thực thể chính)
 
 - **User (users table)**: Đại diện cho tài khoản người dùng trong hệ thống. Thuộc tính nghiệp vụ: định danh duy nhất, họ tên đầy đủ, email (unique), số điện thoại, mật khẩu đã mã hóa, vai trò (role_id), trạng thái kích hoạt, trạng thái xác thực email, thời gian tạo.
 
@@ -258,9 +258,9 @@ Là Guest, tôi muốn thấy trạng thái loading khi submit form, validation 
 
 ---
 
-## Success Criteria
+## Success Criteria (Tiêu chí thành công)
 
-### Measurable Outcomes
+### Measurable Outcomes (Kết quả đo lường được)
 
 - **SC-001**: Guest có thể hoàn tất đăng ký trong vòng 5 phút (bao gồm thời gian nhận email) ở môi trường có kết nối internet ổn định.
 
@@ -282,7 +282,7 @@ Là Guest, tôi muốn thấy trạng thái loading khi submit form, validation 
 
 ---
 
-## Assumptions
+## Assumptions (Giả định)
 
 - **A-001**: Database đã có bảng `users` với các cột full_name, email (unique), phone, password_hash, role_id, is_active, email_verified, created_at.
 
@@ -306,7 +306,7 @@ Là Guest, tôi muốn thấy trạng thái loading khi submit form, validation 
 
 ---
 
-## Out of Scope
+## Out of Scope (Ngoài phạm vi)
 
 Các tính năng sau KHÔNG nằm trong phạm vi của UC04 và KHÔNG được implement:
 

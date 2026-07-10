@@ -450,7 +450,7 @@ description: "Task list for UC04 - Authentication Register feature implementatio
 
 ---
 
-## Phase 13: Polish & Cross-Cutting Concerns
+## Phase 13: Polish & Cross-Cutting Concerns (Hoàn thiện & Mối quan tâm xuyên suốt)
 
 **Purpose**: Final refinements, documentation, and quality assurance
 
@@ -501,9 +501,9 @@ description: "Task list for UC04 - Authentication Register feature implementatio
 
 ---
 
-## Dependencies & Execution Order
+## Dependencies & Execution Order (Phụ thuộc & Thứ tự thực thi)
 
-### Phase Dependencies
+### Phase Dependencies (Phụ thuộc giữa các Phase)
 
 - **Phase 1 (Setup)**: No dependencies - can start immediately
 - **Phase 2 (Foundational)**: Depends on Setup completion - BLOCKS all user stories
@@ -512,21 +512,21 @@ description: "Task list for UC04 - Authentication Register feature implementatio
 - **Phases 8-12 (US6-US10)**: Depend on foundational - Can proceed in parallel
 - **Phase 13 (Polish)**: Depends on all desired user stories being complete
 
-### User Story Dependencies
+### User Story Dependencies (Phụ thuộc giữa các User Story)
 
 - **US1 (Send OTP)**: Can start after Foundational - No story dependencies
 - **US2 (Verify OTP)**: Can start after US1 - Depends on OTP being sent
 - **US3-US7 (Security/Validation)**: All depend on US1/US2 core logic
 - **US8-US10 (Frontend UX)**: Can develop in parallel with backend
 
-### Within Each User Story
+### Within Each User Story (Trong mỗi User Story)
 
 - Tests written FIRST (TDD approach recommended)
 - Models/Services before Controllers
 - Controllers before Routes
 - Routes before Integration tests
 
-### Parallel Opportunities
+### Parallel Opportunities (Cơ hội song song hóa)
 
 **Phase 1**: All tasks marked [P] can run in parallel
 **Phase 2**: T005-T008, T010 marked [P] can run in parallel (utilities)
@@ -559,7 +559,7 @@ Task T024: Component tests (can test components independently)
 
 ---
 
-## Implementation Strategy
+## Implementation Strategy (Chiến lược triển khai)
 
 ### MVP First (User Stories 1 + 2 Only)
 
@@ -574,7 +574,7 @@ For minimum viable product:
 
 **Time estimate**: 3-4 days for experienced developer
 
-### Incremental Delivery
+### Incremental Delivery (Phân phối tăng dần)
 
 1. Phases 1-2: Foundation → Ready for user stories
 2. Phases 3-4: MVP (US1-US2) → Can register and verify OTP
@@ -583,7 +583,7 @@ For minimum viable product:
 5. Phases 10-12: UX polish (US8-US10) → Navigation, states, notifications
 6. Phase 13: Production ready → Tests, docs, security audit
 
-### Parallel Team Strategy
+### Parallel Team Strategy (Chiến lược nhóm song song)
 
 With multiple developers (one backend, one frontend):
 
@@ -608,7 +608,7 @@ With multiple developers (one backend, one frontend):
 
 ---
 
-## Notes
+## Notes (Ghi chú)
 
 - [P] tasks = can run in parallel (different files, independent)
 - [Story] label maps task to specific user story for traceability

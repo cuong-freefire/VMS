@@ -1,4 +1,4 @@
-﻿import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { userService } from "../services/user.service.js";
 import { authService } from "../services/auth.service.js";
 
@@ -46,6 +46,7 @@ export function AuthProvider({ children }) {
   };
 
   const roleId = user?.role_id;
+  const roleName = user?.role_name;
 
   const value = {
     user,
@@ -55,10 +56,11 @@ export function AuthProvider({ children }) {
     updateUser,
     isAuthenticated: !!user,
     roleId,
-    isVolunteer: roleId === 2,
-    isStaff: roleId === 3,
-    isManager: roleId === 4,
-    isAdmin: roleId === 1,
+    roleName,
+    isVolunteer: roleName === 'VOLUNTEER',
+    isStaff: roleName === 'STAFF',
+    isManager: roleName === 'MANAGER',
+    isAdmin: roleName === 'ADMIN',
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

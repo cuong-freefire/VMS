@@ -8,7 +8,7 @@
 
 ## Overview
 
-UC03 Authentication Login sử dụng 4 database tables để implement secure login với Single Active Session và Account Lockout protection.
+UC03 Authentication Login sử dụng 5 database tables để implement secure login với Single Active Session và Account Lockout protection.
 
 **Tables**:
 
@@ -16,6 +16,7 @@ UC03 Authentication Login sử dụng 4 database tables để implement secure l
 2. `roles` — User roles (existing, seed data)
 3. `user_sessions` — Single Active Session tracking (NEW)
 4. `login_attempts` — Brute-force protection (NEW)
+5. `email_verifications` — Email verification & password reset OTP (existing)
 
 ---
 
@@ -60,7 +61,7 @@ erDiagram
         int id PK
         varchar email UK "Track by email, not user_id"
         int attempts "Failed count"
-        timestamp locked_until "NULL = not locked"
+        timestamp lockedUntil "NULL = not locked"
         timestamp created_at
         timestamp updated_at
     }
@@ -141,13 +142,13 @@ INSERT INTO roles (name, description) VALUES
 ### Business Rules for UC03
 
 1. **Login Eligibility**:
-   - `is_active = TRUE` (MUST check before allow login)
-   - `email_verified = TRUE` (MUST check before allow login, return 403 if false)
+   - `isActive = TRUE` (MUST check before allow login)
+   - `emailVerified = TRUE` (MUST check before allow login, return 403 if false)
 
 2. **Password Storage**:
    - MUST be bcrypt hashed with 12 salt rounds
    - NEVER store plaintext password
-   - `password_hash` MUST NOT be returned in API responses
+   - `passwordHash` MUST NOT be returned in API responses
 
 3. **Email Normalization**:
    - Store email in lowercase for case-insensitive lookup
@@ -210,7 +211,7 @@ const loginSchema = z.object({
 2. **JWT Validation Flow**:
 
    ```
-   1. Decode JWT → extract {user_id, jti}
+   1. Decode JWT → extract {userId, jti}
    2. SELECT jti FROM user_sessions WHERE user_id = ?
    3. IF jti matches → Valid session
    4. IF jti mismatch → Invalid session (401 Unauthorized)
@@ -218,8 +219,8 @@ const loginSchema = z.object({
    ```
 
 3. **Expiry & Cleanup**:
-   - `expires_at` = `created_at` + 7 days (match JWT TTL)
-   - Cron job xóa expired sessions: `DELETE FROM user_sessions WHERE expires_at < NOW()`
+   - `expiresAt` = `createdAt` + 7 days (match JWT TTL)
+   - Cron job xóa expired sessions: `DELETE FROM user_sessions WHERE expiresAt < NOW()`
    - Run frequency: Every 1 hour (low priority, não critical)
 
 4. **Session Revocation**:
@@ -256,7 +257,7 @@ const loginSchema = z.object({
 | `id` | INT | PRIMARY KEY, AUTO_INCREMENT | Attempt ID |
 | `email` | VARCHAR(255) | **UNIQUE**, NOT NULL | Email đang bị track (lowercase) |
 | `attempts` | INT | DEFAULT 0, NOT NULL | Số lần nhập sai liên tiếp |
-| `locked_until` | TIMESTAMP | NULL | Thời điểm mở khóa (NULL = not locked) |
+| `lockedUntil` | TIMESTAMP | NULL | Thời điểm mở khóa (NULL = not locked) |
 | `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | First failed attempt timestamp |
 | `updated_at` | TIMESTAMP | ON UPDATE CURRENT_TIMESTAMP | Last attempt timestamp |
 
@@ -264,7 +265,7 @@ const loginSchema = z.object({
 
 - PRIMARY KEY (`id`)
 - **UNIQUE (`email`)** ← One record per email
-- INDEX (`locked_until`) ← Fast check for locked accounts
+- INDEX (`lockedUntil`) ← Fast check for locked accounts
 
 ### Business Rules
 
@@ -276,34 +277,34 @@ const loginSchema = z.object({
 
    ```
    IF password incorrect:
-     IF login_attempts record exists:
+     IF loginAttempt record exists:
        INCREMENT attempts
        IF attempts >= 5:
-         SET locked_until = NOW() + INTERVAL 15 MINUTE
+         SET lockedUntil = NOW() + INTERVAL 15 MINUTE
      ELSE:
-       INSERT login_attempts (email, attempts = 1)
+       INSERT loginAttempt (email, attempts = 1)
    ```
 
 3. **Lockout Check** (Before password verify):
 
    ```
-   SELECT locked_until FROM login_attempts WHERE email = ?
-   IF locked_until > NOW():
-     RETURN 429 "Account locked. Try again after {locked_until}"
+   SELECT lockedUntil FROM loginAttempt WHERE email = ?
+   IF lockedUntil > NOW():
+     RETURN 429 "Account locked. Try again after {lockedUntil}"
    ```
 
 4. **Successful Login**:
 
    ```
-   DELETE FROM login_attempts WHERE email = ?
+   DELETE FROM loginAttempt WHERE email = ?
    -- OR --
-   UPDATE login_attempts SET attempts = 0, locked_until = NULL WHERE email = ?
+   UPDATE loginAttempt SET attempts = 0, lockedUntil = NULL WHERE email = ?
    ```
 
    Decision: **DELETE** approach (cleaner, record only exists when có failed attempts)
 
 5. **Auto-Unlock**:
-   - After 15 minutes: `locked_until < NOW()` → Account tự động unlocked
+   - After 15 minutes: `lockedUntil < NOW()` → Account tự động unlocked
    - User thử login → Lockout check passes → Cho phép verify password
 
 6. **Cleanup** (Optional):
@@ -315,18 +316,64 @@ const loginSchema = z.object({
 ```
 [No Record]
     ↓ 1st Failed Login
-[attempts = 1, locked_until = NULL]
+[attempts = 1, lockedUntil = NULL]
     ↓ 2nd-4th Failed Login
-[attempts = 2-4, locked_until = NULL]
+[attempts = 2-4, lockedUntil = NULL]
     ↓ 5th Failed Login
-[attempts = 5, locked_until = NOW() + 15 min] ← LOCKED
+[attempts = 5, lockedUntil = NOW() + 15 min] ← LOCKED
     ↓ Wait 15 minutes
-[locked_until < NOW()] ← Auto-unlocked
+[lockedUntil < NOW()] ← Auto-unlocked
     ↓ Successful Login
 [Record DELETED]
 ```
 
 ---
+
+---
+
+## Table: `email_verifications`
+
+**Owner**: Member 1 - CuongLH  
+**Purpose**: Luu tru OTP hash cho email verification va password reset  
+**Soft Delete**: No (records deleted after successful verification)  
+**Source**: backend/prisma/schema.prisma
+
+### Columns
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | INT | PRIMARY KEY, AUTO_INCREMENT | Record ID |
+| `email` | VARCHAR(255) | NOT NULL | Email dang duoc xac thuc |
+| `otp_hash` | VARCHAR(255) | NOT NULL | Bcrypt hash cua OTP code |
+| `type` | ENUM | NOT NULL, DEFAULT 'REGISTER' | REGISTER hoac RESET_PASSWORD |
+| `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | OTP creation timestamp |
+| `last_sent_at` | TIMESTAMP | NULL | Last OTP sent timestamp (rate limiting) |
+| `attempts` | INT | DEFAULT 0 | So lan verify OTP that bai |
+| `is_locked` | BOOLEAN | DEFAULT FALSE | OTP lockout flag |
+| `locked_until` | TIMESTAMP | NULL | Thoi diem mo khoa OTP |
+
+### Indexes
+
+- PRIMARY KEY (`id`)
+- **UNIQUE (`email`, `type`)** <- One verification record per email per type
+- INDEX (`email`)
+- INDEX (`created_at`)
+- INDEX (`locked_until`)
+
+### Business Rules
+
+1. **OTP Scope**:
+   - `type = REGISTER`: OTP gui khi dang ky tai khoan moi
+   - `type = RESET_PASSWORD`: OTP gui khi quen mat khau
+
+2. **OTP Lifecycle**:
+   - OTP het han sau 5 phut (`createdAt + 5 minutes`)
+   - OTP bi xoa sau khi verify thanh cong
+   - Resend OTP: kiem tra `lastSentAt` de rate limit (60s cooldown)
+
+3. **Lockout**:
+   - Sau 5 lan verify OTP sai -> `isLocked = TRUE`, `lockedUntil = NOW() + 15 min`
+   - Khi locked, khong the verify OTP (ke ca OTP dung)
 
 ## Relationships Summary
 
@@ -335,7 +382,7 @@ const loginSchema = z.object({
 **roles → users** (1:N)
 
 - One role can be assigned to many users
-- Foreign Key: `users.role_id` → `roles.id`
+- Foreign Key: `users.roleId` → roles.id
 - ON DELETE: RESTRICT (cannot delete role if users exist)
 
 ### One-to-One
@@ -343,7 +390,7 @@ const loginSchema = z.object({
 **users ↔ user_sessions** (1:0..1)
 
 - One user has AT MOST one active session
-- Foreign Key: `user_sessions.user_id` → `users.id`
+- Foreign Key: `user_sessions.userId` → `users.id`
 - UNIQUE constraint on `user_id` enforces 1:1
 - ON DELETE: CASCADE (delete session when user deleted)
 
@@ -367,7 +414,7 @@ model Role {
   id          Int      @id @default(autoincrement())
   name        String   @unique @db.VarChar(50)
   description String?  @db.VarChar(255)
-  created_at  DateTime @default(now()) @map("created_at")
+  createdAt   DateTime @default(now()) @map("created_at")
   
   users       User[]
   
@@ -375,51 +422,69 @@ model Role {
 }
 
 model User {
-  id             Int       @id @default(autoincrement())
-  email          String    @unique @db.VarChar(255)
-  password_hash  String    @map("password_hash") @db.VarChar(255)
-  full_name      String    @map("full_name") @db.VarChar(255)
-  phone          String?   @db.VarChar(20)
-  avatar_url     String?   @map("avatar_url") @db.VarChar(500)
-  role_id        Int       @map("role_id")
-  is_active      Boolean   @default(true) @map("is_active")
-  email_verified Boolean   @default(false) @map("email_verified")
-  created_at     DateTime  @default(now()) @map("created_at")
-  updated_at     DateTime  @updatedAt @map("updated_at")
+  id              Int       @id @default(autoincrement())
+  email           String    @unique @db.VarChar(255)
+  passwordHash    String    @db.VarChar(255) @map("password_hash")
+  fullName        String    @db.VarChar(255) @map("full_name")
+  phone           String?   @db.VarChar(20)
+  avatarUrl       String?   @db.VarChar(500) @map("avatar_url")
+  roleId          Int       @map("role_id")
+  isActive        Boolean   @default(true) @map("is_active")
+  emailVerified   Boolean   @default(false) @map("email_verified")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  role            Role      @relation(fields: [roleId], references: [id])
+  session         UserSession?
   
-  role           Role      @relation(fields: [role_id], references: [id])
-  session        UserSession?
-  
-  @@index([role_id])
-  @@index([is_active])
-  @@index([email_verified])
+  @@index([roleId])
+  @@index([isActive])
+  @@index([emailVerified])
   @@map("users")
 }
 
 model UserSession {
-  id         Int      @id @default(autoincrement())
-  user_id    Int      @unique @map("user_id")
-  jti        String   @db.VarChar(255)
-  expires_at DateTime @map("expires_at")
-  created_at DateTime @default(now()) @map("created_at")
-  
-  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique @map("user_id")
+  jti       String   @db.VarChar(255)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([jti])
-  @@index([expires_at])
+  @@index([expiresAt])
   @@map("user_sessions")
 }
 
 model LoginAttempt {
-  id           Int       @id @default(autoincrement())
-  email        String    @unique @db.VarChar(255)
-  attempts     Int       @default(0)
-  locked_until DateTime? @map("locked_until")
-  created_at   DateTime  @default(now()) @map("created_at")
-  updated_at   DateTime  @updatedAt @map("updated_at")
-  
-  @@index([locked_until])
+  id          Int       @id @default(autoincrement())
+  email       String    @unique @db.VarChar(255)
+  attempts    Int       @default(0)
+  lockedUntil DateTime? @map("lockedUntil")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@index([lockedUntil])
   @@map("login_attempts")
+}
+
+model EmailVerification {
+  id          Int                   @id @default(autoincrement())
+  email       String                @db.VarChar(255)
+  otpHash     String                @db.VarChar(255) @map("otp_hash")
+  type        EmailVerificationType @default(REGISTER)
+  createdAt   DateTime              @default(now()) @map("created_at")
+  lastSentAt  DateTime?             @map("last_sent_at")
+  attempts    Int                   @default(0)
+  isLocked    Boolean               @default(false) @map("is_locked")
+  lockedUntil DateTime?             @map("lockedUntil")
+
+  @@unique([email, type])
+  @@index([email])
+  @@index([createdAt])
+  @@index([lockedUntil])
+  @@map("email_verifications")
 }
 ```
 
@@ -433,6 +498,7 @@ model LoginAttempt {
 2. **Migration 002**: Create `users` table (if not exists)
 3. **Migration 003**: Create `user_sessions` table (NEW for UC03)
 4. **Migration 004**: Create `login_attempts` table (NEW for UC03)
+5. **Migration 005**: Create `email_verifications` table (existing)
 
 ### Migration Files
 
@@ -460,12 +526,12 @@ CREATE TABLE IF NOT EXISTS `login_attempts` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `email` VARCHAR(255) NOT NULL,
   `attempts` INT NOT NULL DEFAULT 0,
-  `locked_until` TIMESTAMP NULL DEFAULT NULL,
+  `lockedUntil` TIMESTAMP NULL DEFAULT NULL,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `login_attempts_email_key` (`email`),
-  KEY `login_attempts_locked_until_idx` (`locked_until`)
+  KEY `login_attempts_lockedUntil_idx` (`lockedUntil`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
 
@@ -477,21 +543,21 @@ CREATE TABLE IF NOT EXISTS `login_attempts` (
 
 ✅ **UNIQUE(users.email)** — Prevent duplicate accounts
 
-✅ **UNIQUE(user_sessions.user_id)** — Enforce Single Active Session
+✅ **UNIQUE(user_sessions.userId)** — Enforce Single Active Session
 
 ✅ **UNIQUE(login_attempts.email)** — One lockout record per email
 
-✅ **FOREIGN KEY(user_sessions.user_id → users.id)** — Cascade delete sessions when user deleted
+✅ **FOREIGN KEY(user_sessions.userId → users.id)** — Cascade delete sessions when user deleted
 
-✅ **FOREIGN KEY(users.role_id → roles.id)** — Restrict role deletion
+✅ **FOREIGN KEY(users.roleId → roles.id)** — Restrict role deletion
 
 ### Enforced by Application (Service Layer)
 
-⚠️ **Soft delete check**: `users.is_active = TRUE` before login
+⚠️ **Soft delete check**: `users.isActive = TRUE` before login
 
-⚠️ **Lockout check**: `locked_until < NOW()` before password verify
+⚠️ **Lockout check**: `lockedUntil < NOW()` before password verify
 
-⚠️ **jti validation**: JWT jti must match `user_sessions.jti`
+⚠️ **jti validation**: JWT jti must match `userSessions.jti`
 
 ⚠️ **Email normalization**: Lowercase email before DB operations
 
@@ -503,7 +569,7 @@ CREATE TABLE IF NOT EXISTS `login_attempts` (
 
 ```javascript
 // 1. Check lockout
-const lockout = await prisma.loginAttempts.findUnique({
+const lockout = await prisma.loginAttempt.findUnique({
   where: { email: normalizedEmail }
 });
 
@@ -517,13 +583,13 @@ const user = await prisma.user.findUnique({
 
 // 4. Upsert session
 await prisma.userSession.upsert({
-  where: { user_id: user.id },
-  create: { user_id: user.id, jti, expires_at },
-  update: { jti, expires_at }
+  where: { userId: user.id },
+  create: { userId: user.id, jti, expiresAt },
+  update: { jti, expiresAt }
 });
 
 // 5. Delete login attempts
-await prisma.loginAttempts.delete({
+await prisma.loginAttempt.delete({
   where: { email: normalizedEmail }
 });
 ```
@@ -532,7 +598,7 @@ await prisma.loginAttempts.delete({
 
 ```javascript
 const session = await prisma.userSession.findUnique({
-  where: { user_id: decodedJWT.user_id }
+  where: { userId: decodedJWT.userId }
 });
 
 if (!session || session.jti !== decodedJWT.jti) {
@@ -549,13 +615,15 @@ if (!session || session.jti !== decodedJWT.jti) {
 | Index | Query Pattern | Impact |
 |-------|--------------|--------|
 | `users.email` UNIQUE | Login lookup by email | Essential (every login) |
-| `users.role_id` INDEX | Join with roles table | Medium (every login for role info) |
-| `users.is_active` INDEX | Filter active users | Low (small cardinality) |
-| `user_sessions.user_id` UNIQUE | 1-to-1 enforcement + session lookup | Essential (every authenticated request) |
-| `user_sessions.jti` INDEX | JWT validation | Essential (every authenticated request) |
+| `users.roleId` INDEX | Join with roles table | Medium (every login for role info) |
+| `users.isActive` INDEX | Filter active users | Low (small cardinality) |
+| `user_sessions.userId` UNIQUE | 1-to-1 enforcement + session lookup | Essential (every authenticated request) |
+| `userSessions.jti` INDEX | JWT validation | Essential (every authenticated request) |
 | `user_sessions.expires_at` INDEX | Cleanup job query | Low (cron job only) |
 | `login_attempts.email` UNIQUE | Lockout check | Essential (every login) |
-| `login_attempts.locked_until` INDEX | Lockout expiry check | Medium (every login with failed attempts) |
+| `login_attempts.lockedUntil` INDEX | Lockout expiry check | Medium (every login with failed attempts) |
+| `email_verifications.email_type` UNIQUE | OTP lookup per email per type | Essential (register/reset password) |
+| `email_verifications.lockedUntil` INDEX | OTP lockout check | Medium (verify OTP flow) |
 
 ### Query Performance Estimates
 

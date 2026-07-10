@@ -91,7 +91,7 @@ User Registration
   ↓
 3. EmailService builds verification template:
    - Contains: OTP code (6 digits), username, 10-minute expiry message
-   - Link format: 6-digit random number
+   - OTP code format: 6-digit random number
   ↓
 4. NodeMailer sends to user.email via SMTP
   ↓
@@ -121,7 +121,7 @@ User Forgot Password
   ↓
 4. EmailService builds reset template:
    - Contains: OTP code (6 digits), username, 10-minute expiry, security warning
-   - Link format: 6-digit random number
+   - OTP code format: 6-digit random number
   ↓
 5. NodeMailer sends to user.email via SMTP
   ↓

@@ -76,7 +76,7 @@ export const updateProfile = async (userId, data, file) => {
 
       let uploadResult;
       try {
-        uploadResult = await uploadImage(file.buffer);
+        uploadResult = await uploadImage(file.buffer, 'avatars');
       } catch (uploadError) {
         logger.error("Cloudinary upload failed", { userId, error: uploadError.message });
         throw new ServiceError("Không thể tải ảnh lên. Vui lòng thử lại sau.", 500, "CLOUDINARY_ERROR");

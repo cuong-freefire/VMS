@@ -1,4 +1,4 @@
-# API Contract: Verify OTP
+﻿# API Contract: Verify OTP
 
 **Endpoint**: `POST /api/v1/auth/register/verify-otp`
 
@@ -10,13 +10,13 @@
 
 ---
 
-## Overview
+## Overview (Tổng quan)
 
 This endpoint verifies the OTP sent to the user's email, validates all registration data, creates a new user account with Volunteer role, and completes the registration process. It enforces OTP expiration (10 minutes), attempt limits (5 attempts), and lockout (15 minutes after 5 failed attempts).
 
 ---
 
-## Request
+## Request (Yêu cầu)
 
 ### HTTP Method
 
@@ -36,11 +36,11 @@ POST
 Content-Type: application/json
 ```
 
-### Authentication
+### Authentication (Xác thực)
 
 **Not required** - This is a public endpoint for guest users.
 
-### Request Body
+### Request Body (Nội dung yêu cầu)
 
 ```json
 {
@@ -80,7 +80,7 @@ const verifyOTPSchema = z.object({
 });
 ```
 
-### Field Validation
+### Field Validation (Kiểm tra trường)
 
 | Field | Type | Required | Constraints | Example |
 |-------|------|----------|-------------|---------|
@@ -90,7 +90,7 @@ const verifyOTPSchema = z.object({
 | phone_number | string | Yes | 10-11 digits, starts with 0 (Vietnam format) | "0912345678" |
 | password | string | Yes | Min 8 chars, must have uppercase, lowercase, digit | "Password123" |
 
-### Sample Valid Requests
+### Sample Valid Requests (Yêu cầu hợp lệ mẫu)
 
 ```json
 {
@@ -114,7 +114,7 @@ const verifyOTPSchema = z.object({
 
 ---
 
-## Response
+## Response (Phản hồi)
 
 ### Success Response (201 Created)
 
@@ -128,7 +128,7 @@ const verifyOTPSchema = z.object({
 }
 ```
 
-### Response Fields
+### Response Fields (Trường phản hồi)
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -138,7 +138,7 @@ const verifyOTPSchema = z.object({
 
 ---
 
-## Error Responses
+## Error Responses (Phản hồi lỗi)
 
 ### 400 Bad Request - Validation Failed
 
@@ -259,9 +259,9 @@ const verifyOTPSchema = z.object({
 
 ---
 
-## Business Logic
+## Business Logic (Luồng nghiệp vụ)
 
-### Processing Flow
+### Processing Flow (Luồng xử lý)
 
 ```text
 1. Validate request body with Zod
@@ -316,7 +316,7 @@ const verifyOTPSchema = z.object({
 13. Return 201 Created with user_id
 ```
 
-### State Transitions
+### State Transitions (Chuyển đổi trạng thái)
 
 ```text
 email_verifications:
@@ -331,16 +331,16 @@ users:
 
 ---
 
-## Security Considerations
+## Security Considerations (Cân nhắc bảo mật)
 
-### Password Security
+### Password Security (Bảo mật mật khẩu)
 
 - Password hashed with bcrypt (12 rounds) BEFORE storage
 - Plaintext password NEVER logged or stored
 - Hash stored in `users.password_hash` column
 - Frontend should also enforce password strength (client-side validation)
 
-### OTP Security
+### OTP Security (Bảo mật OTP)
 
 - OTP verified against bcrypt hash (not plaintext comparison)
 - OTP plaintext NEVER stored in database
@@ -348,13 +348,13 @@ users:
 - 5-attempt limit + 15-minute lockout prevents brute force
 - 1,000,000 possible combinations (6 digits)
 
-### Transaction Atomicity
+### Transaction Atomicity (Tính nguyên tử của Transaction)
 
 - User creation and email_verification deletion wrapped in transaction
 - Ensures no orphaned records
 - Rollback on any failure prevents partial state
 
-### Attack Vectors
+### Attack Vectors (Vector tấn công)
 
 | Attack | Mitigation |
 |--------|-----------|
@@ -365,7 +365,7 @@ users:
 
 ---
 
-## Database Changes
+## Database Changes (Thay đổi Database)
 
 ### Table: `users`
 
@@ -413,9 +413,9 @@ WHERE email = 'user@vms.com';
 
 ---
 
-## Testing
+## Testing (Kiểm thử)
 
-### Test Cases
+### Test Cases (Ca kiểm thử)
 
 #### TC-01: Happy Path - Correct OTP
 
@@ -597,9 +597,9 @@ POST /api/v1/auth/register/verify-otp
 
 ---
 
-## Performance
+## Performance (Hiệu năng)
 
-### Expected Metrics
+### Expected Metrics (Chỉ số mong đợi)
 
 - **Response Time**:
   - Fast path (validation only): < 50ms
@@ -615,14 +615,14 @@ POST /api/v1/auth/register/verify-otp
 
 - **Transaction Duration**: < 100ms (2 writes in transaction)
 
-### Bottlenecks
+### Bottlenecks (Điểm nghẽn)
 
 - **bcrypt hashing**: ~100ms for 12 rounds (acceptable for registration)
 - **Transaction lock**: Minimal (single row operations)
 
 ---
 
-## Dependencies
+## Dependencies (Phụ thuộc)
 
 - **Zod**: Request validation
 - **bcryptjs**: OTP verification + password hashing
@@ -631,7 +631,7 @@ POST /api/v1/auth/register/verify-otp
 
 ---
 
-## Post-Registration Flow
+## Post-Registration Flow (Luồng sau đăng ký)
 
 After successful registration (201 response):
 
@@ -645,7 +645,7 @@ After successful registration (201 response):
 
 ---
 
-## Rollback Scenario
+## Rollback Scenario (Kịch bản rollback)
 
 If transaction fails at any step:
 

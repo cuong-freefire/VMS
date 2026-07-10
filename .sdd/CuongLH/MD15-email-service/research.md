@@ -20,10 +20,8 @@
 **Triển Khai**:
 
 ```javascript
-const transporter = NodeMailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: process.env.SMTP_PORT,
-  secure: process.env.SMTP_SECURE === 'true',
+const transporter = nodemailer.createTransport({
+  service: "gmail",
   auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
   pool: {
     maxConnections: 5,
@@ -99,7 +97,7 @@ function buildVerificationOtpTemplate(userName, otpCode, expiryMinutes = 10) {
 **Triển Khai**:
 
 ```javascript
-const cron = require('node-cron');
+import cron from 'node-cron';
 
 // Chạy hàng giờ (0 * * * *)
 cron.schedule('0 * * * *', async () => {
@@ -157,15 +155,10 @@ cron.schedule('0 * * * *', async () => {
 ```javascript
 async sendEmail(to, subject, html, attachments = []) {
   try {
-    // Validate email format
-    if (!this.isValidEmail(to)) {
-      logger.warn('Invalid email format', { to });
-      return { success: false, error: 'Invalid email format' };
-    }
     
     // Send via SMTP
     const info = await this.transporter.sendMail({
-      from: process.env.SMTP_FROM_EMAIL,
+      from: `${process.env.SMTP_FROM_NAME} <${process.env.SMTP_USER}>`,
       to,
       subject,
       html,
@@ -220,7 +213,7 @@ async sendEmail(to, subject, html, attachments = []) {
 
 ```javascript
 // Config
-const transporter = NodeMailer.createTransport({
+const transporter = nodemailer.createTransport({
   ...config,
   textEncoding: 'utf8',
   connectionUrl: process.env.SMTP_URL,
@@ -276,7 +269,7 @@ function buildApprovalTemplate(volunteerName, eventName) {
 async sendCertificateEmail(email, volunteerName, eventName, pdfPath) {
   try {
     // Check file size
-    const fs = require('fs');
+    // fs imported at module top level
     const stats = fs.statSync(pdfPath);
     const fileSizeMB = stats.size / (1024 * 1024);
     
@@ -319,7 +312,3 @@ async sendCertificateEmail(email, volunteerName, eventName, pdfPath) {
 ---
 
 **Kết luận**: Tất cả 6 quyết định kỹ thuật đã được chốt, sẵn sàng cho Phase 1 Design.
-
-
-
-

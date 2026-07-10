@@ -1,4 +1,4 @@
-# Feature Specification: Authentication Login (UC03)
+﻿# Feature Specification: Authentication Login (UC03)
 
 **Feature Branch**: `feat/auth-login`
 
@@ -20,13 +20,13 @@ Là một người dùng hợp lệ (Volunteer, Staff, Manager, hoặc Admin), t
 
 **Acceptance Scenarios**:
 
-1. **Given** người dùng có tài khoản hợp lệ (`is_active: true`) với email "<volunteer@vms.com>" và password đã được hash trong database, **When** người dùng nhập đúng email và password vào form đăng nhập và submit, **Then** hệ thống trả về HTTP 200, JWT token được lưu vào HttpOnly Cookie, và thông tin người dùng (bao gồm `role_id`) được trả về trong response body.
+1. **Given** người dùng có tài khoản hợp lệ (`isActive: true`) với email "<volunteer@vms.com>" và password đã được hash trong database, **When** người dùng nhập đúng email và password vào form đăng nhập và submit, **Then** hệ thống trả về HTTP 200 với response format `{success, message, data: {user}}`, JWT token được lưu vào HttpOnly Cookie, và thông tin người dùng bao gồm `id`, `email`, `full_name`, `role_id`, `role_name`, `avatar_url`, `phone`, `created_at` được trả về trong response body.
 
 2. **Given** người dùng vừa đăng nhập thành công và có token hợp lệ trong cookie, **When** người dùng gọi các API được bảo vệ (protected endpoints) với cookie này, **Then** hệ thống xác thực thành công và cho phép truy cập tài nguyên.
 
-3. **Given** người dùng với role Volunteer đăng nhập thành công, **When** Frontend nhận được response chứa `role_id`, **Then** Frontend điều hướng người dùng đến trang Home dành cho Volunteer.
+3. **Given** người dùng với role Volunteer đăng nhập thành công, **When** Frontend nhận được response chứa `role_name`, **Then** Frontend điều hướng người dùng đến trang Home dành cho Volunteer dùng `roleRouteMap`.
 
-4. **Given** người dùng với role Admin đăng nhập thành công, **When** Frontend nhận được response chứa `role_id`, **Then** Frontend điều hướng người dùng đến trang Dashboard dành cho Admin.
+4. **Given** người dùng với role Admin đăng nhập thành công, **When** Frontend nhận được response chứa `role_name`, **Then** Frontend điều hướng người dùng đến trang Dashboard dành cho Admin dùng `roleRouteMap`.
 
 ---
 
@@ -40,11 +40,11 @@ Là một người dùng, khi tôi nhập sai email hoặc password, hệ thốn
 
 **Acceptance Scenarios**:
 
-1. **Given** người dùng có tài khoản với email "<user@vms.com>" trong database, **When** người dùng nhập email "<user@vms.com>" nhưng password sai, **Then** hệ thống trả về HTTP 401 với message "Email hoặc mật khẩu không đúng" (không tiết lộ email có tồn tại).
+1. **Given** người dùng có tài khoản với email "<user@vms.com>" trong database, **When** người dùng nhập email "<user@vms.com>" nhưng password sai, **Then** hệ thống trả về HTTP 401 với message "Email hoặc mật khẩu chưa chính xác" (không tiết lộ email có tồn tại) và error code "UNAUTHORIZED".
 
-2. **Given** email "<notexist@vms.com>" không tồn tại trong database, **When** người dùng nhập email này với bất kỳ password nào, **Then** hệ thống trả về HTTP 401 với message "Email hoặc mật khẩu không đúng" (giống hệt trường hợp password sai).
+2. **Given** email "<notexist@vms.com>" không tồn tại trong database, **When** người dùng nhập email này với bất kỳ password nào, **Then** hệ thống trả về HTTP 401 với message "Email hoặc mật khẩu chưa chính xác" (giống hệt trường hợp password sai) và error code "UNAUTHORIZED".
 
-3. **Given** người dùng nhập sai thông tin đăng nhập, **When** hệ thống trả về lỗi, **Then** không có thông tin nhạy cảm (password hash, token, user details) nào bị log ra console hoặc file log.
+3. **Given** người dùng nhập sai thông tin đăng nhập, **When** hệ thống trả về lỗi, **Then** không có thông tin nhạy cảm (password hash, token, user details) nào bị log ra console hoặc file log. Dùng Pino logger, chỉ log userId và email.
 
 ---
 
@@ -58,7 +58,7 @@ Là Admin của hệ thống, tôi muốn hệ thống tự động khóa tính 
 
 **Acceptance Scenarios**:
 
-1. **Given** người dùng có tài khoản hợp lệ "<user@vms.com>", **When** người dùng nhập sai password 5 lần liên tiếp trong vòng ngắn, **Then** hệ thống khóa tính năng đăng nhập của tài khoản này trong 15 phút và trả về HTTP 429 với message "Tài khoản tạm thời bị khóa do nhập sai mật khẩu quá nhiều lần. Vui lòng thử lại sau 15 phút."
+1. **Given** người dùng có tài khoản hợp lệ "<user@vms.com>", **When** người dùng nhập sai password 5 lần liên tiếp trong vòng ngắn, **Then** hệ thống khóa tính năng đăng nhập của tài khoản này trong 15 phút và trả về HTTP 429 với message "Tài khoản tạm thời bị khóa do nhập sai mật khẩu quá nhiều lần. Vui lòng thử lại sau 15 phút.", error code "ACCOUNT_LOCKED", và `locked_until` timestamp trong `details`.
 
 2. **Given** tài khoản "<user@vms.com>" đang bị khóa do nhập sai 5 lần, **When** người dùng thử đăng nhập với password đúng trong thời gian khóa, **Then** hệ thống vẫn trả về HTTP 429 và không cho phép đăng nhập.
 
@@ -78,9 +78,9 @@ Là Admin của hệ thống, tôi muốn mỗi tài khoản chỉ có một phi
 
 **Acceptance Scenarios**:
 
-1. **Given** người dùng đã đăng nhập thành công trên thiết bị A và nhận được JWT với `jti_1`, **When** người dùng đăng nhập lại cùng tài khoản trên thiết bị B và nhận được JWT với `jti_2`, **Then** hệ thống lưu `jti_2` và ghi đè `jti_1`.
+1. **Given** người dùng đã đăng nhập thành công trên thiết bị A và nhận được JWT với `jti_1`, **When** người dùng đăng nhập lại cùng tài khoản trên thiết bị B và nhận được JWT với `jti_2`, **Then** hệ thống lưu `jti_2` và ghi đè `jti_1` trong `user_sessions` qua Prisma `upsert`.
 
-2. **Given** token cũ với `jti_1` đã bị ghi đè bởi `jti_2`, **When** người dùng sử dụng token cũ (`jti_1`) để gọi protected API, **Then** hệ thống trả về HTTP 401 với message "Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại."
+2. **Given** token cũ với `jti_1` đã bị ghi đè bởi `jti_2`, **When** người dùng sử dụng token cũ (`jti_1`) để gọi protected API, **Then** hệ thống trả về HTTP 401 với message "Tài khoản của bạn đã được đăng nhập trên một thiết bị khác." và error code "LOGGED_IN_ELSEWHERE", đồng thời clear cookie.
 
 3. **Given** người dùng có token mới với `jti_2` đang active, **When** người dùng sử dụng token này để gọi protected API, **Then** hệ thống xác thực thành công và cho phép truy cập.
 
@@ -88,31 +88,31 @@ Là Admin của hệ thống, tôi muốn mỗi tài khoản chỉ có một phi
 
 ### User Story 5 - Chặn tài khoản bị vô hiệu hóa (Priority: P1)
 
-Là Admin, khi tôi vô hiệu hóa một tài khoản (`is_active: false`), tài khoản đó không được phép đăng nhập vào hệ thống.
+Là Admin, khi tôi vô hiệu hóa một tài khoản (`isActive: false`), tài khoản đó không được phép đăng nhập vào hệ thống.
 
 **Why this priority**: Đây là yêu cầu bắt buộc để quản trị viên có thể kiểm soát quyền truy cập hệ thống.
 
-**Independent Test**: Có thể test độc lập bằng cách set `is_active: false` cho một tài khoản trong database, sau đó thử đăng nhập và verify hệ thống từ chối.
+**Independent Test**: Có thể test độc lập bằng cách set `isActive: false` cho một tài khoản trong database, sau đó thử đăng nhập và verify hệ thống từ chối.
 
 **Acceptance Scenarios**:
 
-1. **Given** tài khoản "<user@vms.com>" có `is_active: false` trong database, **When** người dùng nhập đúng email và password của tài khoản này, **Then** hệ thống trả về HTTP 403 với message "Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên."
+1. **Given** tài khoản "<user@vms.com>" có `isActive: false` trong database, **When** người dùng nhập đúng email và password của tài khoản này, **Then** hệ thống trả về HTTP 403 với message "Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên." và error code "ACCOUNT_DISABLED".
 
-2. **Given** người dùng đã đăng nhập thành công và có token hợp lệ, **When** Admin set `is_active: false` cho tài khoản này, **Then** các request tiếp theo với token cũ phải bị từ chối với HTTP 403.
+2. **Given** người dùng đã đăng nhập thành công và có token hợp lệ, **When** Admin set `isActive: false` cho tài khoản này, **Then** các request tiếp theo với token cũ phải bị từ chối với HTTP 403.
 
 ---
 
 ### User Story 5b - Chặn tài khoản chưa xác thực Email (Priority: P1)
 
-Là hệ thống, tôi không cho phép các tài khoản chưa xác thực email (`email_verified: false`) đăng nhập để đảm bảo tính xác thực của thông tin liên lạc.
+Là hệ thống, tôi không cho phép các tài khoản chưa xác thực email (`emailVerified: false`) đăng nhập để đảm bảo tính xác thực của thông tin liên lạc.
 
 **Why this priority**: Yêu cầu nghiệp vụ bắt buộc (Business Rule 8.1.6).
 
-**Independent Test**: Có thể test độc lập bằng cách set `email_verified: false` cho một tài khoản trong database, sau đó thử đăng nhập và verify hệ thống từ chối.
+**Independent Test**: Có thể test độc lập bằng cách set `emailVerified: false` cho một tài khoản trong database, sau đó thử đăng nhập và verify hệ thống từ chối.
 
 **Acceptance Scenarios**:
 
-1. **Given** tài khoản "<user@vms.com>" có `email_verified: false` trong database, **When** người dùng nhập đúng email và password của tài khoản này, **Then** hệ thống trả về HTTP 403 với message "Email chưa được xác thực. Vui lòng kiểm tra hộp thư để xác thực tài khoản."
+1. **Given** tài khoản "<user@vms.com>" có `emailVerified: false` trong database, **When** người dùng nhập đúng email và password của tài khoản này, **Then** hệ thống trả về HTTP 403 với message "Email chưa được xác thực. Vui lòng kiểm tra hộp thư để xác thực tài khoản." và error code "EMAIL_NOT_VERIFIED".
 
 ---
 
@@ -130,9 +130,11 @@ Là người dùng, khi tôi click nút Đăng nhập, tôi muốn thấy trạn
 
 2. **Given** nút Đăng nhập đang ở trạng thái loading, **When** người dùng cố gắng click nhiều lần, **Then** hệ thống không gửi thêm request nào (debounce/prevent double-submit).
 
-3. **Given** API login trả về lỗi 401, **When** Frontend nhận được response, **Then** hiển thị toast error với nội dung "Email hoặc mật khẩu không đúng", enable lại nút Đăng nhập.
+3. **Given** API login trả về lỗi 401, **When** Frontend nhận được response, **Then** hiển thị toast error với nội dung "Email hoặc mật khẩu chưa chính xác", enable lại nút Đăng nhập.
 
-4. **Given** API login trả về thành công, **When** Frontend nhận được response, **Then** hiển thị toast success với nội dung "Đăng nhập thành công", sau đó điều hướng người dùng theo `role_id`.
+4. **Given** API login trả về lỗi 429 (ACCOUNT_LOCKED), **When** Frontend nhận được response, **Then** hiển thị toast warning, enable lại nút Đăng nhập.
+
+5. **Given** API login trả về thành công, **When** Frontend nhận được response, **Then** hiển thị toast success với nội dung "Đăng nhập thành công", sau đó điều hướng người dùng theo `role_name` dùng `roleRouteMap`.
 
 ---
 
@@ -140,9 +142,9 @@ Là người dùng, khi tôi click nút Đăng nhập, tôi muốn thấy trạn
 
 - **Token hết hạn khi user đang sử dụng hệ thống**: WHEN token hết hạn trong lúc người dùng đang thao tác, THE system SHALL trả về HTTP 401 và Frontend SHALL redirect về trang login với thông báo "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."
 
-- **Redis không khả dụng**: WHERE Redis service không khả dụng, THE system SHALL trả về HTTP 503 Service Unavailable với message "Dịch vụ tạm thời không khả dụng. Vui lòng thử lại sau." và SHALL log critical error mà không crash server.
+- **Session hết hạn**: WHERE session trong `user_sessions` có `expiresAt < NOW()`, THE system SHALL tự động xóa session khỏi database, clear cookie `token`, và trả về HTTP 401 với message "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại." và error code "SESSION_INVALID".
 
-- **Email chứa ký tự đặc biệt hoặc khoảng trắng**: THE system SHALL trim và normalize email trước khi xử lý để tránh mismatch.
+- **Email chứa ký tự đặc biệt hoặc khoảng trắng**: THE system SHALL trim và normalize email trước khi xử lý để tránh mismatch. Zod schema dùng `.toLowerCase().trim()`.
 
 - **Concurrent login attempts**: WHERE người dùng login đồng thời từ nhiều tab, THE system SHALL chỉ giữ session cuối cùng hợp lệ và SHALL invalidate các session trước đó.
 
@@ -156,57 +158,57 @@ Là người dùng, khi tôi click nút Đăng nhập, tôi muốn thấy trạn
 
 ### Functional Requirements
 
-- **FR-001**: WHEN người dùng gửi yêu cầu đăng nhập, THE system SHALL validate email phải đúng định dạng và cả email và password không được rỗng.
+- **FR-001**: WHEN người dùng gửi yêu cầu đăng nhập, THE system SHALL validate email phải đúng định dạng, max 255 ký tự, lowercase, trim, và cả email và password không được rỗng.
 
 - **FR-002**: WHEN người dùng gửi thông tin đăng nhập, THE system SHALL kiểm tra email có tồn tại trong database hay không.
 
-- **FR-003**: WHERE email tồn tại, THE system SHALL so sánh password đầu vào với password hash trong database bằng thuật toán bcrypt.
+- **FR-003**: WHERE email tồn tại, THE system SHALL so sánh password đầu vào với password hash trong database bằng thuật toán bcrypt (12 salt rounds, hardcoded).
 
-- **FR-004**: WHERE password match, THE system SHALL kiểm tra trạng thái `is_active` của tài khoản.
+- **FR-004**: WHERE password match, THE system SHALL kiểm tra trạng thái `isActive` của tài khoản.
 
-- **FR-005**: WHERE tài khoản có `is_active: false`, THE system SHALL trả về HTTP 403 với message "Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên."
+- **FR-005**: WHERE tài khoản có `isActive: false`, THE system SHALL trả về HTTP 403 với message "Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên." và error code "ACCOUNT_DISABLED".
 
-- **FR-005b**: WHERE tài khoản có `is_active: true` nhưng `email_verified: false`, THE system SHALL trả về HTTP 403 với message "Email chưa được xác thực. Vui lòng kiểm tra hộp thư để xác thực tài khoản."
+- **FR-005b**: WHERE tài khoản có `isActive: true` nhưng `emailVerified: false`, THE system SHALL trả về HTTP 403 với message "Email chưa được xác thực. Vui lòng kiểm tra hộp thư để xác thực tài khoản." và error code "EMAIL_NOT_VERIFIED".
 
-- **FR-006**: WHERE tài khoản hợp lệ (is_active: true và email_verified: true) và password đúng, THE system SHALL tạo JWT token chứa payload `{user_id, email, role_id, jti}` với thời gian sống 7 ngày.
+- **FR-006**: WHERE tài khoản hợp lệ (isActive: true và emailVerified: true) và password đúng, THE system SHALL tạo JWT token chứa payload `{user_id, email, role_id, role_name, jti}` với thời gian sống 7 ngày (hardcoded '7d').
 
-- **FR-007**: WHEN tạo JWT token mới, THE system SHALL sinh unique `jti` (JWT ID) và lưu vào storage với TTL 7 ngày.
+- **FR-007**: WHEN tạo JWT token mới, THE system SHALL sinh unique `jti` (composite: `${userId}-${timestamp}-${random}`) và lưu vào `user_sessions` với TTL 7 ngày.
 
-- **FR-008**: WHEN người dùng đăng nhập lại, THE system SHALL ghi đè `jti` cũ bằng `jti` mới để thực thi Single Active Session policy.
+- **FR-008**: WHEN người dùng đăng nhập lại, THE system SHALL ghi đè `jti` cũ bằng `jti` mới qua Prisma `upsert` để thực thi Single Active Session policy.
 
-- **FR-009**: WHEN đăng nhập thành công, THE system SHALL lưu JWT token vào HttpOnly Cookie với `httpOnly: true`, `secure: true` (production), `sameSite: 'lax'`, và `maxAge: 7 days`.
+- **FR-009**: WHEN đăng nhập thành công, THE system SHALL lưu JWT token vào HttpOnly Cookie với `httpOnly: true`, `secure: true` khi `NODE_ENV === 'production'`, `sameSite: 'lax'`, và `maxAge: 7 days` (604800000 ms). Cookie name hardcoded là 'token'.
 
-- **FR-010**: WHEN đăng nhập thành công, THE system SHALL trả về HTTP 200 với thông tin user (bao gồm `user_id`, `email`, `full_name`, `role_id`) trong response body.
+- **FR-010**: WHEN đăng nhập thành công, THE system SHALL trả về HTTP 200 với response format `{success: true, message: "Đăng nhập thành công", data: {user}}` trong đó user bao gồm `id`, `email`, `full_name`, `role_id`, `role_name`, `avatar_url`, `phone`, `created_at`.
 
-- **FR-011**: WHERE email không tồn tại hoặc password sai, THE system SHALL trả về HTTP 401 với message "Email hoặc mật khẩu không đúng" mà không tiết lộ thông tin về sự tồn tại của email.
+- **FR-011**: WHERE email không tồn tại hoặc password sai, THE system SHALL trả về HTTP 401 với response `{success: false, message: "Email hoặc mật khẩu chưa chính xác", code: "UNAUTHORIZED"}` mà không tiết lộ thông tin về sự tồn tại của email.
 
-- **FR-012**: WHEN người dùng nhập sai password, THE system SHALL tăng counter số lần nhập sai cho email đó và lưu với TTL 15 phút.
+- **FR-012**: WHEN người dùng nhập sai password, THE system SHALL tăng counter số lần nhập sai cho email đó trong `login_attempts` table.
 
-- **FR-013**: WHERE counter số lần nhập sai đạt 5 lần, THE system SHALL khóa tài khoản trong 15 phút và trả về HTTP 429 với message "Tài khoản tạm thời bị khóa do nhập sai mật khẩu quá nhiều lần. Vui lòng thử lại sau 15 phút."
+- **FR-013**: WHERE counter số lần nhập sai đạt 5 lần, THE system SHALL khóa tài khoản trong 15 phút và trả về HTTP 429 với response `{success: false, message: "Tài khoản tạm thời bị khóa...", code: "ACCOUNT_LOCKED", details: {locked_until}}`.
 
 - **FR-014**: WHERE tài khoản đang bị khóa, THE system SHALL từ chối đăng nhập ngay cả khi password đúng cho đến khi hết thời gian khóa.
 
-- **FR-015**: WHEN người dùng đăng nhập thành công, THE system SHALL reset counter số lần nhập sai về 0.
+- **FR-015**: WHEN người dùng đăng nhập thành công, THE system SHALL reset counter số lần nhập sai về 0 bằng cách DELETE record trong `login_attempts`.
 
-- **FR-016**: WHEN xử lý đăng nhập, THE system MUST NOT log plaintext password, password hash, JWT token, hoặc cookie value ra console hoặc file log.
+- **FR-016**: WHEN xử lý đăng nhập, THE system MUST NOT log plaintext password, password hash, JWT token, hoặc cookie value ra console hoặc file log. THE system SHALL sử dụng Pino logger (không dùng console.log) và chỉ log userId, email cho mục đích audit.
 
-- **FR-017**: WHEN Frontend gọi API login, THE system SHALL gửi request với `withCredentials: true` để tự động gửi cookie trong mọi request.
+- **FR-017**: WHEN Frontend gọi API login, THE system SHALL gửi request với `withCredentials: true` để tự động gửi cookie trong mọi request. Axios client có response interceptor xử lý 401→redirect /login, 403→redirect /403-unauthorized, 500→log.
 
-- **FR-018**: WHEN người dùng click nút Đăng nhập, THE system SHALL disable nút và hiển thị loading state để chống double-submit.
+- **FR-018**: WHEN người dùng click nút Đăng nhập, THE system SHALL disable nút và hiển thị loading state qua `isSubmitting` useState để chống double-submit.
 
-- **FR-019**: WHEN API trả về kết quả, THE system SHALL hiển thị thông báo success/error cho người dùng và điều hướng theo `role_id` nếu thành công.
+- **FR-019**: WHEN API trả về kết quả, THE system SHALL hiển thị thông báo success/error/warning cho người dùng qua react-toastify. WHEN thành công, Frontend SHALL điều hướng theo `role_name` dùng `roleRouteMap` constants. WHEN lỗi 429 (ACCOUNT_LOCKED), hiển thị toast.warning. WHEN các lỗi khác, hiển thị toast.error.
 
 ### Key Entities
 
-- **User**: Đại diện cho người dùng trong hệ thống. Thuộc tính nghiệp vụ: định danh duy nhất, email, mật khẩu đã mã hóa, họ tên, vai trò, trạng thái kích hoạt.
+- **User**: Đại diện cho người dùng trong hệ thống. Thuộc tính nghiệp vụ: id, email, passwordHash (bcrypt 12 rounds), fullName, phone, avatarUrl, roleId, isActive (soft delete), emailVerified, createdAt, updatedAt.
 
-- **Role**: Đại diện cho vai trò/phân quyền trong hệ thống (Volunteer, Staff, Manager, Admin).
+- **Role**: Đại diện cho vai trò/phân quyền trong hệ thống (VOLUNTEER, STAFF, MANAGER, ADMIN).
 
-- **Session**: Đại diện cho phiên đăng nhập active của một người dùng. Mỗi user chỉ có một session active tại một thời điểm. Session có thời gian sống 7 ngày.
+- **UserSession**: Đại diện cho phiên đăng nhập active của một người dùng. Mỗi user chỉ có một session active tại một thời điểm (UNIQUE constraint trên userId). Session có thời gian sống 7 ngày. Store jti và expiresAt.
 
-- **Login Attempts Counter**: Đếm số lần nhập sai password cho một email cụ thể. Tự động reset sau 15 phút hoặc khi đăng nhập thành công.
+- **LoginAttempt**: Đếm số lần nhập sai password cho một email cụ thể. Tự động reset khi đăng nhập thành công (DELETE record). Track bằng email, không có FK constraint.
 
-- **Account Lock**: Đánh dấu trạng thái tạm khóa của một tài khoản do nhập sai quá nhiều lần. Tự động mở khóa sau 15 phút.
+- **Account Lock**: Đánh dấu trạng thái tạm khóa của một tài khoản (`lockedUntil` timestamp). Tự động mở khóa sau 15 phút.
 
 ---
 
@@ -218,7 +220,7 @@ Là người dùng, khi tôi click nút Đăng nhập, tôi muốn thấy trạn
 
 - **SC-002**: Hệ thống có thể xử lý 100 concurrent login requests mà không bị crash hoặc trả về lỗi 500.
 
-- **SC-003**: 100% các trường hợp nhập sai email hoặc password đều trả về cùng một message lỗi chung, không tiết lộ thông tin về sự tồn tại của email.
+- **SC-003**: 100% các trường hợp nhập sai email hoặc password đều trả về cùng một message lỗi chung "Email hoặc mật khẩu chưa chính xác", không tiết lộ thông tin về sự tồn tại của email.
 
 - **SC-004**: Sau khi nhập sai password 5 lần liên tiếp, tài khoản bị khóa trong đúng 15 phút và tự động unlock sau thời gian này.
 
@@ -234,19 +236,19 @@ Là người dùng, khi tôi click nút Đăng nhập, tôi muốn thấy trạn
 
 ## Assumptions
 
-- **A-001**: Database đã có bảng User với các thuộc tính email, password hash, role, và trạng thái active, và password đã được mã hóa bằng bcrypt từ chức năng Register trước đó.
+- **A-001**: Database đã có bảng User với các thuộc tính email, passwordHash, role, và trạng thái isActive, và password đã được mã hóa bằng bcrypt từ chức năng Register trước đó.
 
-- **A-002**: Hệ thống đã có session storage service (Redis hoặc tương đương) đang chạy và có thể kết nối từ Backend.
+- **A-002**: Hệ thống sử dụng MySQL `user_sessions` table để lưu session data (không dùng Redis). Session được quản lý qua Prisma ORM với `upsert` pattern để ghi đè jti cũ.
 
-- **A-003**: Frontend đã cấu hình HTTP client để gửi credentials (cookies) tự động trong mọi request đến Backend.
+- **A-003**: Frontend đã cấu hình HTTP client để gửi credentials (cookies) tự động trong mọi request đến Backend. Axios client có `withCredentials: true`.
 
-- **A-004**: Môi trường production có HTTPS enabled để secure cookie hoạt động đúng.
+- **A-004**: Môi trường production có HTTPS enabled để secure cookie hoạt động đúng. `secure` flag dựa trên `NODE_ENV === 'production'`.
 
-- **A-005**: Bảng Role đã có dữ liệu với các role chuẩn: Volunteer, Staff, Manager, Admin.
+- **A-005**: Bảng Role đã có dữ liệu với các role chuẩn: VOLUNTEER, STAFF, MANAGER, ADMIN.
 
 - **A-006**: Chức năng Register (đăng ký tài khoản) đã được implement và có validate password strength, do đó Login chỉ cần verify password match mà không cần validate strength.
 
-- **A-007**: Environment variables được định nghĩa đầy đủ theo chuẩn project: JWT secret key, cookie name, token expiry, session storage connection, bcrypt salt rounds.
+- **A-007**: Environment variables: `SECRET_KEY` cho JWT signing. Các giá trị khác (expiresIn '7d', cookie name 'token', bcrypt 12 rounds) được hardcode trong code.
 
 - **A-008**: Mobile app support là out of scope cho version 1. Chỉ support web browser.
 

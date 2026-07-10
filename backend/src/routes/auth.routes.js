@@ -59,10 +59,15 @@ const router = Router();
  *               success: true
  *               message: Đăng nhập thành công
  *               data:
- *                 id: 1
- *                 email: volunteer@example.com
- *                 name: John Doe
- *                 role: volunteer
+ *                 user:
+ *                   id: 1
+ *                   email: volunteer@example.com
+ *                   full_name: John Doe
+ *                   role_id: 2
+ *                   role_name: VOLUNTEER
+ *                   avatar_url: https://example.com/default-avatar.png
+ *                   phone: "0912345678"
+ *                   created_at: "2026-06-01T00:00:00.000Z"
  *       400:
  *         description: Dữ liệu đầu vào không hợp lệ (email/password thiếu hoặc sai format)
  *         content:

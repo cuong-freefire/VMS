@@ -1,4 +1,4 @@
-# API Contract: Send OTP
+﻿# API Contract: Send OTP
 
 **Endpoint**: `POST /api/v1/auth/register/send-otp`
 
@@ -10,13 +10,13 @@
 
 ---
 
-## Overview
+## Overview (Tổng quan)
 
 This endpoint generates a 6-digit OTP, stores it securely in the database, and sends it to the user's email address. It enforces cooldown (60 seconds) and lockout (15 minutes after 5 failed attempts) to prevent abuse.
 
 ---
 
-## Request
+## Request (Yêu cầu)
 
 ### HTTP Method
 
@@ -36,11 +36,11 @@ POST
 Content-Type: application/json
 ```
 
-### Authentication
+### Authentication (Xác thực)
 
 **Not required** - This is a public endpoint for guest users.
 
-### Request Body
+### Request Body (Nội dung yêu cầu)
 
 ```json
 {
@@ -59,13 +59,13 @@ const sendOTPSchema = z.object({
 });
 ```
 
-### Field Validation
+### Field Validation (Kiểm tra trường)
 
 | Field | Type | Required | Constraints | Example |
 |-------|------|----------|-------------|---------|
 | email | string | Yes | Valid email format, max 255 chars | "<user@vms.com>" |
 
-### Sample Valid Requests
+### Sample Valid Requests (Yêu cầu hợp lệ mẫu)
 
 ```json
 {
@@ -89,7 +89,7 @@ const sendOTPSchema = z.object({
 
 ---
 
-## Response
+## Response (Phản hồi)
 
 ### Success Response (200 OK)
 
@@ -103,7 +103,7 @@ const sendOTPSchema = z.object({
 }
 ```
 
-### Response Fields
+### Response Fields (Trường phản hồi)
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -113,7 +113,7 @@ const sendOTPSchema = z.object({
 
 ---
 
-## Error Responses
+## Error Responses (Phản hồi lỗi)
 
 ### 400 Bad Request - Invalid Email Format
 
@@ -213,9 +213,9 @@ const sendOTPSchema = z.object({
 
 ---
 
-## Business Logic
+## Business Logic (Luồng nghiệp vụ)
 
-### Processing Flow
+### Processing Flow (Luồng xử lý)
 
 ```text
 1. Validate request body with Zod
@@ -271,7 +271,7 @@ const sendOTPSchema = z.object({
 11. Return 200 success response
 ```
 
-### State Transitions
+### State Transitions (Chuyển đổi trạng thái)
 
 ```text
 No Record → [CREATED] → OTP sent
@@ -282,22 +282,22 @@ Existing Record (locked, not expired) → [REJECTED] → 429 error
 
 ---
 
-## Security Considerations
+## Security Considerations (Cân nhắc bảo mật)
 
-### Rate Limiting
+### Rate Limiting (Giới hạn tần suất)
 
 - **Cooldown**: 60 seconds between requests (per email)
 - **Lockout**: 15 minutes after 5 failed OTP verification attempts
 - **IP-based rate limiting**: NOT implemented in Phase 1 (future enhancement)
 
-### Data Protection
+### Data Protection (Bảo vệ dữ liệu)
 
 - OTP plaintext NEVER stored in database (only bcrypt hash)
 - OTP plaintext NEVER logged
 - Email content NEVER logged
 - SMTP credentials stored in `.env` (gitignored)
 
-### Attack Vectors
+### Attack Vectors (Vector tấn công)
 
 | Attack | Mitigation |
 |--------|-----------|
@@ -308,7 +308,7 @@ Existing Record (locked, not expired) → [REJECTED] → 429 error
 
 ---
 
-## Database Changes
+## Database Changes (Thay đổi Database)
 
 ### Table: `email_verifications`
 
@@ -327,7 +327,7 @@ ON DUPLICATE KEY UPDATE
 
 ---
 
-## Email Template
+## Email Template (Mẫu email)
 
 **Subject**: Mã xác thực đăng ký VMS
 
@@ -351,9 +351,9 @@ Email: support@vms.com
 
 ---
 
-## Testing
+## Testing (Kiểm thử)
 
-### Test Cases
+### Test Cases (Ca kiểm thử)
 
 #### TC-01: Happy Path - New Email
 
@@ -471,9 +471,9 @@ POST /api/v1/auth/register/send-otp
 
 ---
 
-## Performance
+## Performance (Hiệu năng)
 
-### Expected Metrics
+### Expected Metrics (Chỉ số mong đợi)
 
 - **Response Time**:
   - Fast path (validation only): < 50ms
@@ -489,7 +489,7 @@ POST /api/v1/auth/register/send-otp
 
 ---
 
-## Dependencies
+## Dependencies (Phụ thuộc)
 
 - **Zod**: Request validation
 - **bcryptjs**: OTP hashing
