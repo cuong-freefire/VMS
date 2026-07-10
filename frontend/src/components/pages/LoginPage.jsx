@@ -1,8 +1,9 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { Mail } from 'lucide-react';
 import { useAuth } from '../../contexts/authContext.context';
+import { roleRouteMap } from '../../constants/roles';
 import FormInput from '../ui/FormInput';
 import PasswordInput from '../ui/PasswordInput';
 import Button from '../ui/Button';
@@ -24,8 +25,8 @@ export default function LoginPage() {
   const onSubmit = async (data) => {
     setIsSubmitting(true);
     try {
-      await login(data);
-      const from = location.state?.from || '/home';
+      const userData = await login(data);
+      const from = location.state?.from || roleRouteMap[userData.role_name] || '/home';
       navigate(from, { replace: true });
     } catch (err) {
       const code = err?.code;
