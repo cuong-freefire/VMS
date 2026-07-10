@@ -1,12 +1,14 @@
+﻿# **LANGUAGE**: This specification must be written in Vietnamese with technical terms kept in English (e.g., upload, API, endpoint, authentication, OAuth, cache, session, commit, merge, rollback, validate, etc.)
+
 # Feature Specification: Email Services (Module 15)
 
 **Feature Branch**: `MD15-email-service`
 
 **Created**: 2026-06-26
 
-**Status**: Draft
+**Status**: APPROVED
 
-**Input**: User description: "Module 15 - Email Services (MD15-Demail-service)"
+**Input**: User description: "Module 15 - Email Services (MD15-Email-service)"
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -220,5 +222,3 @@ Các tính năng sau KHÔNG nằm trong phạm vi của feature này và KHÔNG 
 - **Email tracking (Theo dõi trạng thái thư)**: Module 15 KHÔNG theo dõi trạng thái thư sau khi gửi (opened, clicked, bounced, spam). Nếu cần tính năng này, tổ chức phải sử dụng dịch vụ email marketing chuyên dụng (SendGrid, Mailchimp) thay vì SMTP truyền thống.
 - **Rich media email templates (Email templates phức tạp với hình ảnh, video nhúng)**: Module 15 chỉ hỗ trợ HTML email templates đơn giản với text, liên kết, và định dạng cơ bản. KHÔNG hỗ trợ nhúng video, animation phức tạp, hoặc interactive elements. Tệp đính kèm chỉ hỗ trợ cho chứng nhận PDF (UC66).
 - **Bulk email campaigns (Gửi hàng loạt cho marketing)**: Module 15 được thiết kế cho transactional emails (xác thực, thông báo, nhắc nhở) chứ KHÔNG phải marketing campaigns. Nếu cần gửi hàng loạt thư quảng cáo, tổ chức phải sử dụng dịch vụ email marketing chuyên dụng.
-
-

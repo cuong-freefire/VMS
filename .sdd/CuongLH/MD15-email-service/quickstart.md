@@ -15,22 +15,14 @@
 Add these variables to `backend/.env`:
 
 ```env
-# SMTP Configuration
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_SECURE=false
+# SMTP Configuration (Gmail Service)
+# Nodemailer's "service: gmail" auto-resolves host/port/secure -- no need to set manually.
 SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-app-password
-SMTP_FROM_EMAIL=noreply@vms.example.com
 SMTP_FROM_NAME=VMS System
-
-# For testing with Mailtrap (free sandbox SMTP)
-# SMTP_HOST=live.smtp.mailtrap.io
-# SMTP_PORT=587
-# SMTP_SECURE=false
-# SMTP_USER=api
-# SMTP_PASS=your-mailtrap-token
 ```
+
+> **Note**: The transporter uses Gmail's built-in `service: "gmail"` config in `transporter.config.js`, so `SMTP_HOST`, `SMTP_PORT`, and `SMTP_SECURE` are **not needed**. The sender email address (`from`) uses `SMTP_USER` directly -- `SMTP_FROM_EMAIL` is not a separate variable.
 
 ### Get SMTP Credentials
 
@@ -58,7 +50,7 @@ SMTP_FROM_NAME=VMS System
 cd backend
 
 # Install NodeMailer
-npm install nodemailer@^6.9.x
+npm install nodemailer@^9.0.3
 
 # Install node-cron for UC65 reminder job
 npm install node-cron@^3.0.x
@@ -71,52 +63,43 @@ npm list nodemailer node-cron
 
 ### 3.1 Create `backend/src/services/email.service.js`
 
+> **Note**: The actual implementation uses module-level functions (not a class) and delegates HTML template generation to `emailTemplates.utility.js`. The code below is a simplified reference; see the actual source at `backend/src/services/email.service.js` for the production version.
+
 ```javascript
-const NodeMailer = require('nodemailer');
-const logger = require('../config/logger');
+const nodemailer = require('nodemailer');
+const fs = require('fs');
+const logger = require('../config/logger.config');
 
 class EmailService {
   constructor() {
-    this.transporter = NodeMailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: process.env.SMTP_PORT,
-      secure: process.env.SMTP_SECURE === 'true',
-      auth: {
+    this.transporter = nodemailer.createTransport({
+     service: "gmail",
+    auth: {
         user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-      },
-      pool: {
-        maxConnections: 5,
-        maxMessages: 100,
-        rateDelta: 1000,
-        rateLimit: 14
-      }
+        pass: process.env.SMTP_PASS,
+    },
+    connectionTimeout: 10000, // Đợi tối đa 10 giây để kết nối tới SMTP.
+    greetingTimeout: 10000, // Sau khi kết nối thành công, Gmail sẽ gửi lời chào SMTP. Nếu quá 10 giây mà chưa nhận được lời chào thì hủy kết nối.
+    socketTimeout: 10000, // Trong lúc gửi email, nếu socket không có dữ liệu trong 10 giây thì đóng kết nối.
+    pool: { // Nodemailer sẽ giữ sẵn các kết nối để tái sử dụng
+        maxConnections: 5, // Cho phép tối đa 5 kết nối SMTP đồng thời. 
+        maxMessages: 100, // Mỗi kết nối sẽ gửi tối đa 100 email rồi tự đóng và mở lại kết nối mới
+        rateDelta: 1000, // Khoảng thời gian tính giới hạn tốc độ, tính bằng milliseconds.
+        rateLimit: 14, // Cho phép gửi tối đa 14 email trong mỗi rateDelta
+    },
     });
 
-    // Verify connection on startup
-    this.verifyConnection();
-  }
-
-  async verifyConnection() {
-    try {
-      await this.transporter.verify();
-      logger.info('SMTP connection verified successfully');
-    } catch (error) {
-      logger.error('SMTP connection failed', { error: error.message });
-    }
+    // verifyTransporter() is called at module level in the actual code
   }
 
   async sendEmail(to, subject, html, attachments = []) {
     try {
       const info = await this.transporter.sendMail({
-        from: `${process.env.SMTP_FROM_NAME} <${process.env.SMTP_FROM_EMAIL}>`,
+        from: `${process.env.SMTP_FROM_NAME} <${process.env.SMTP_USER}>`,
         to,
         subject,
         html,
-        attachments,
-        headers: {
-          'Content-Type': 'text/html; charset=utf-8'
-        }
+        attachments
       });
 
       logger.info('Email sent successfully', { to, subject, messageId: info.messageId });
@@ -127,7 +110,7 @@ class EmailService {
     }
   }
 
-  async sendVerificationEmail(email, userName, otpCode) {
+  async sendVerificationEmail(email, userName, otpCode, expiryMinutes = 10) {
     const html = `
       <!DOCTYPE html>
       <html>
@@ -215,7 +198,6 @@ class EmailService {
   }
 
   async sendCertificateEmail(email, volunteerName, eventName, pdfPath) {
-    const fs = require('fs');
     try {
       const stats = fs.statSync(pdfPath);
       const fileSizeMB = stats.size / (1024 * 1024);
@@ -261,11 +243,17 @@ class EmailService {
 module.exports = new EmailService();
 ```
 
-### 3.2 Create `backend/src/utils/cron.jobs.js`
+### 3.2 Create `backend/src/services/emailTemplates.utility.js`
+
+> **Note**: In the actual codebase, HTML templates are managed in a separate `emailTemplates.utility.js` file with functions like `buildVerificationOtpTemplate()`, `buildResetPasswordOtpTemplate()`, etc. The inline templates in section 3.1 above are for quick reference only.
+
+### 3.3 Create `backend/src/utils/cron.jobs.js`
+
+> **Note**: Cron job not yet implemented. The `sendReminderEmail()` function and `buildReminderTemplate()` template are ready, but the actual cron schedule (`cron.jobs.js`) has not been created. `node-cron` package is not yet installed.
 
 ```javascript
 const cron = require('node-cron');
-const logger = require('../config/logger');
+const logger = require('../config/logger.config');
 const emailService = require('../services/email.service');
 
 function initializeCronJobs() {
@@ -471,7 +459,7 @@ Before committing, verify:
 
 - [ ] SMTP configuration working (.env setup)
 - [ ] EmailService singleton initialized
-- [ ] All 6 email methods returning correct response format
+- [ ] All 7 exported functions returning correct response format
 - [ ] Pino logging working (no plaintext passwords logged)
 - [ ] Cron job UC65 scheduled (runs every hour)
 - [ ] UTF-8 encoding for Vietnamese characters ✅

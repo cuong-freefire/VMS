@@ -1,7 +1,7 @@
-# research.md — Phase 0: Technical Research for UC03 Authentication Login
+﻿# research.md — Phase 0: Technical Research for UC03 Authentication Login
 
-**Feature**: UC03-feat-auth-login  
-**Date**: 2026-06-29  
+**Feature**: UC03-feat-auth-login
+**Date**: 2026-06-29
 **Researcher**: AI Agent (Member 1 - CuongLH context)
 
 ---
@@ -88,6 +88,8 @@ UC03 cần track `jti` (JWT ID) để enforce Single Active Session. Nên lưu `
    - Đã tách riêng phần truy cập dữ liệu (AuthRepository), nên code xử lý nghiệp vụ không phụ thuộc vào MySQL hay Redis.
    - Chỉ cần thay lớp lưu trữ dữ liệu: đổi từ MySQLSessionRepo sang RedisSessionRepo
    - No business logic changes
+
+5. **Prisma camelCase API + upsert pattern**: Sử dụng Prisma API với camelCase fields (`userId`, `expiresAt`, `createdAt`) và `prisma.userSession.upsert()` với UNIQUE constraint trên `userId` để ghi đè session cũ khi login mới — đơn giản, atomic, không cần transaction riêng.
 
 **Khi nào cần đánh giá lại ?**:
 
@@ -202,6 +204,14 @@ SPEC Answer A1 chốt: "Access Token 7 ngày, KHÔNG dùng Refresh Token". Indus
 ### VMS Spec Decision Analysis
 
 **VMS Choice**: Single Access Token, 7 days TTL, NO Refresh Token
+
+**JWT Payload**: `{user_id, email, role_id, role_name, jti}`
+
+- `user_id`: User primary key, dùng cho authorization checks và DB queries
+- `email`: User email, dùng cho logging và audit trail
+- `role_id`: Role primary key, dùng cho role-based routing và permission checks
+- `role_name`: Role name string (VOLUNTEER, STAFF, MANAGER, ADMIN), dùng cho frontend role display và quick permission checks không cần DB lookup
+- `jti`: JWT ID (composite: `${userId}-${timestamp}-${random}`), dùng cho session validation và single active session enforcement
 
 **Risks**:
 
@@ -363,11 +373,10 @@ Làm thế nào HttpOnly Cookie work với CORS và SameSite policies? Config n�
 | Attribute | Purpose | Required for VMS |
 |-----------|---------|-----------------|
 | `httpOnly` | Prevent JavaScript access (anti-XSS) | ✅ YES (MANDATORY) |
-| `secure` | Only send over HTTPS | ✅ YES (production), NO (dev localhost) |
-| `sameSite` | CSRF protection | ✅ YES - `Lax` hoặc `Strict` |
+| `secure` | Only send over HTTPS | ✅ YES — tự động bật khi NODE_ENV === `"production"` |
+| `sameSite` | CSRF protection | ✅ YES — hardcoded `"lax"` |
 | `domain` | Cookie scope | Optional (default: current domain) |
-| `path` | Cookie path scope | Optional (default: `/`) |
-| `maxAge` | Expiry time | ✅ YES - 7 days (604800 seconds) |
+| `maxAge` | Expiry time | ✅ YES — 7 days (604800000 ms) |
 
 ### CORS Configuration Requirements
 
@@ -381,7 +390,7 @@ Làm thế nào HttpOnly Cookie work với CORS và SameSite policies? Config n�
 ```javascript
 // Backend: cors.config.js
 app.use(cors({
-  origin: process.env.FRONTEND_ORIGIN, // http://localhost:3000 in dev
+  origin: [ `http://localhost:${process.env.PORT_FE}`, `http://localhost:${process.env.PORT_BE}` ]  // hardcoded in app.js, // http://localhost:3000 in dev
   credentials: true, // CRITICAL: Allow cookies to be sent cross-origin
   optionsSuccessStatus: 200
 }));
@@ -395,7 +404,7 @@ axios.create({
   baseURL: process.env.REACT_APP_API_BASE_URL,
   withCredentials: true, // CRITICAL: Send cookies with requests
   headers: {
-    'Content-Type': 'application/json'
+    ''Content-Type'': ''application/json''
   }
 });
 ```
@@ -427,11 +436,11 @@ axios.create({
 
 ✅ **Set `httpOnly: true`** → Prevent XSS steal via `document.cookie`
 
-✅ **Set `secure: true` (production)** → Prevent MITM attacks on HTTP
+✅ **Set `secure: true` khi `NODE_ENV === ''production''`** → Prevent MITM attacks on HTTP (dev localhost gets `false` automatically)
 
-✅ **Set `sameSite: 'Lax'`** → Prevent CSRF, allow TOP-LEVEL navigation
+✅ **Set `sameSite: ''lax''`** (hardcoded) → Prevent CSRF, allow TOP-LEVEL navigation
 
-✅ **Set `maxAge: 604800`** (7 days) → Auto-expire old cookies
+✅ **Set `maxAge: 604800000`** (7 days in ms) → Auto-expire old cookies
 
 ✅ **Backend CORS `credentials: true`** → Accept cookies cross-origin (dev)
 
@@ -439,39 +448,31 @@ axios.create({
 
 ### Decision
 
-**Cookie Configuration cho UC03**:
+**Cookie Configuration cho UC03 (implemented via jwt.util.js setTokenToCookie):**
 
 ```javascript
-// Backend: auth.controller.js
-res.cookie('vms_access_token', token, {
+// Backend: jwt.util.js — setTokenToCookie(res, token, maxAge)
+res.cookie(tokenName, token, {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production', // true in prod, false in dev
-  sameSite: 'Lax',
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
-  path: '/' // Available to all routes
+  secure: process.env.NODE_ENV === ''production'',   // true in prod, false in dev
+  sameSite: ''lax'',                                  // hardcoded, no env var
+  maxAge: maxAge || 7 * 24 * 60 * 60 * 1000,          // 7 days in milliseconds
 });
 ```
 
-**Environment Variables**:
-
-```bash
-# Backend .env
-FRONTEND_ORIGIN=http://localhost:3000  # dev
-FRONTEND_ORIGIN=https://vms.com        # prod
-COOKIE_SECURE=false                    # dev
-COOKIE_SECURE=true                     # prod
-```
+**Không sử dụng `COOKIE_SECURE` và `COOKIE_SAME_SITE` environment variables.** `secure` tự động suy từ `NODE_ENV === ''production''`, `sameSite` hardcoded là `''lax''`.
 
 **Rationale**:
 
 - **httpOnly**: MANDATORY per ADR-002, prevent XSS
-- **secure**: Conditional (false in dev để test trên HTTP, true in prod)
-- **sameSite Lax**: Balance security (CSRF protection) với UX (email links work)
+- **secure**: Conditional (false in dev để test trên HTTP, true in prod) — derived from NODE_ENV
+- **sameSite lax**: Balance security (CSRF protection) với UX (email links work) — hardcoded, no env var
 - **maxAge 7 days**: Match JWT TTL per SPEC Answer A1
+- **no path** set: Cookie available to all routes by default
 
 **Trade-off Accepted**:
 
-- `Lax` vs `Strict`: Lax allows external top-level navigation (better UX, slightly lower security)
+- `lax` vs `strict`: Lax allows external top-level navigation (better UX, slightly lower security)
 - Dev `secure: false`: Accept HTTP risk in localhost (no sensitive data in dev)
 
 **Alternatives Considered**:
@@ -489,7 +490,7 @@ COOKIE_SECURE=true                     # prod
 | **Bcrypt Rounds** | 12 rounds (~250ms) | OWASP standard, security first, acceptable UX for infrequent operation |
 | **JWT TTL Strategy** | Single token 7 days, NO Refresh | Spec approved, Single Active Session mitigates risk, simpler implementation |
 | **Account Lockout** | 5 attempts / 15 min | Industry standard, effective brute-force prevention, reasonable UX |
-| **Cookie Security** | httpOnly + secure (prod) + sameSite Lax | Prevent XSS/CSRF, allow email link navigation, CORS compatible |
+| **Cookie Security** | httpOnly + secure (prod via NODE_ENV) + sameSite lax (hardcoded) | Prevent XSS/CSRF, allow email link navigation, CORS compatible |
 
 ---
 

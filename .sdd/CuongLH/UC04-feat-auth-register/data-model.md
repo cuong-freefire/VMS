@@ -8,37 +8,37 @@
 
 ---
 
-## Overview
+## Overview (Tổng quan)
 
 This document defines the database schema, entity relationships, and data flow for the registration feature. The data model consists of 3 tables: `users` (existing, modified), `roles` (existing, read-only), and `email_verifications` (new).
 
 ---
 
-## Entities
+## Entities (Thực thể)
 
 ### 1. EmailVerification (NEW TABLE)
 
-**Purpose**: Temporary storage for OTP verification state during registration flow
+**Purpose (Mục đích):** Lưu trữ tạm thời trạng thái xác thực OTP trong quá trình đăng ký
 
-**Table Name**: `email_verifications`
+**Table Name (Tên bảng):** `email_verifications`
 
-**Lifecycle**: Created when OTP sent → Deleted when OTP verified successfully or TTL expired
+**Lifecycle (Vòng đời):** Tạo khi gửi OTP → Xóa khi OTP được xác thực thành công hoặc TTL hết hạn
 
-**Fields**:
+**Fields (Trường dữ liệu):**
 
 | Field | Type | Constraints | Description |
 |-------|------|-------------|-------------|
-| id | INT | PRIMARY KEY, AUTO_INCREMENT | Verification ID |
-| email | VARCHAR(255) | NOT NULL | User's email address (normalized: lowercase, trimmed) |
-| type | ENUM | NOT NULL, DEFAULT 'REGISTER' | 'REGISTER' or 'RESET_PASSWORD' |
-| otp_hash | VARCHAR(255) | NOT NULL | bcrypt hash of 6-digit OTP (never store plaintext) |
-| created_at | TIMESTAMP | NOT NULL, DEFAULT CURRENT_TIMESTAMP | OTP generation timestamp (for TTL check) |
-| last_sent_at | TIMESTAMP | NULL | Last OTP send timestamp (for cooldown) |
-| attempts | INT | NOT NULL, DEFAULT 0 | Failed verification attempts counter |
-| is_locked | BOOLEAN | NOT NULL, DEFAULT FALSE | Lockout flag (true after 5 failed attempts) |
-| locked_until | TIMESTAMP | NULL | Lockout expiration timestamp (null if not locked) |
+| id | INT | PRIMARY KEY, AUTO_INCREMENT | ID bản ghi xác thực |
+| email | VARCHAR(255) | NOT NULL | Địa chỉ email người dùng (chuẩn hóa: chữ thường, cắt khoảng trắng) |
+| type | ENUM | NOT NULL, DEFAULT 'REGISTER' | 'REGISTER' (đăng ký) hoặc 'RESET_PASSWORD' (đặt lại mật khẩu) |
+| otp_hash | VARCHAR(255) | NOT NULL | Mã băm bcrypt của OTP 6 chữ số (không bao giờ lưu dạng văn bản thuần) |
+| created_at | TIMESTAMP | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Dấu thời gian tạo OTP (dùng để kiểm tra TTL) |
+| last_sent_at | TIMESTAMP | NULL | Dấu thời gian gửi OTP lần cuối (dùng để kiểm tra thời gian chờ gửi lại) |
+| attempts | INT | NOT NULL, DEFAULT 0 | Bộ đếm số lần xác thực thất bại |
+| is_locked | BOOLEAN | NOT NULL, DEFAULT FALSE | Cờ khóa (true sau 5 lần thử thất bại) |
+| locked_until | TIMESTAMP | NULL | Dấu thời gian hết hạn khóa (null nếu không bị khóa) |
 
-**Indexes**:
+**Indexes (Chỉ mục):**
 
 ```sql
 PRIMARY KEY (id)
@@ -46,15 +46,15 @@ UNIQUE (email, type)
 INDEX idx_locked_until (locked_until) -- For cleanup queries
 ```
 
-**Business Rules**:
+**Business Rules (Quy tắc nghiệp vụ):**
 
-1. **Uniqueness**: One email can only have one pending verification at a time per type (enforced by UNIQUE(email, type))
+1. **Tính duy nhất**: Mỗi email chỉ có một yêu cầu xác thực đang chờ tại một thời điểm cho mỗi loại (được đảm bảo bởi UNIQUE(email, type))
 2. **TTL**: OTP expires 10 minutes after `created_at`
 3. **Cooldown**: Cannot resend OTP within 60 seconds of `last_sent_at`
 4. **Lockout**: After 5 failed attempts (`attempts >= 5`), set `is_locked = TRUE` and `locked_until = NOW() + 15 minutes`
 5. **Cleanup**: Records with `created_at < NOW() - 10 minutes` should be deleted (cron job or lazy deletion)
 
-**State Transitions**:
+**State Transitions (Chuyển đổi trạng thái):**
 
 ```text
 [CREATED] → OTP sent, attempts=0, is_locked=false
@@ -68,14 +68,14 @@ INDEX idx_locked_until (locked_until) -- For cleanup queries
          └─[UNLOCKED] → locked_until < NOW(), reset attempts=0, is_locked=false
 ```
 
-**Sample Data**:
+**Sample Data (Dữ liệu mẫu):**
 
 ```sql
--- Active verification (pending)
+-- Xác thực đang hoạt động (đang chờ)
 INSERT INTO email_verifications (email, type, otp_hash, created_at, last_sent_at, attempts, is_locked, locked_until)
 VALUES ('user@vms.com', 'REGISTER', '$2a$10$...', '2026-06-29 10:00:00', '2026-06-29 10:00:00', 0, FALSE, NULL);
 
--- Locked verification (5 failed attempts)
+-- Xác thực bị khóa (5 lần thử thất bại)
 INSERT INTO email_verifications (email, type, otp_hash, created_at, last_sent_at, attempts, is_locked, locked_until)
 VALUES ('locked@vms.com', 'REGISTER', '$2a$10$...', '2026-06-29 09:50:00', '2026-06-29 09:50:00', 5, TRUE, '2026-06-29 10:05:00');
 ```
@@ -84,38 +84,38 @@ VALUES ('locked@vms.com', 'REGISTER', '$2a$10$...', '2026-06-29 09:50:00', '2026
 
 ### 2. User (EXISTING TABLE, MODIFIED)
 
-**Purpose**: Store registered user accounts
+**Purpose (Mục đích):** Lưu trữ tài khoản người dùng đã đăng ký
 
-**Table Name**: `users`
+**Table Name (Tên bảng):** `users`
 
-**Lifecycle**: Created after successful OTP verification → Soft deleted when account deactivated
+**Lifecycle (Vòng đời):** Tạo sau khi xác thực OTP thành công → Xóa mềm khi tài khoản bị vô hiệu hóa
 
-**Fields** (only registration-relevant fields shown):
+**Fields (Trường dữ liệu)** (only registration-relevant fields shown):
 
 | Field | Type | Constraints | Description |
 |-------|------|-------------|-------------|
-| id | INT | PRIMARY KEY, AUTO_INCREMENT | User ID |
-| email | VARCHAR(255) | UNIQUE, NOT NULL | Login email (must match verified email) |
-| password_hash | VARCHAR(255) | NOT NULL | bcrypt hash of password (12 rounds) |
-| full_name | VARCHAR(255) | NOT NULL | User's full name |
-| phone | VARCHAR(20) | NULL | Phone number (10-11 digits) |
-| role_id | INT | FOREIGN KEY → roles.id, NOT NULL | User role (Volunteer for new registrations) |
-| is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | Account active status |
-| email_verified | BOOLEAN | NOT NULL, DEFAULT FALSE | Email verified status |
-| created_at | TIMESTAMP | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Account creation time |
-| updated_at | TIMESTAMP | ON UPDATE CURRENT_TIMESTAMP | Last update time |
+| id | INT | PRIMARY KEY, AUTO_INCREMENT | ID người dùng |
+| email | VARCHAR(255) | UNIQUE, NOT NULL | Email đăng nhập (phải khớp email đã xác thực) |
+| password_hash | VARCHAR(255) | NOT NULL | Mã băm bcrypt của mật khẩu (12 vòng) |
+| full_name | VARCHAR(255) | NOT NULL | Họ tên người dùng |
+| phone | VARCHAR(20) | NULL | Số điện thoại (10-11 chữ số) |
+| role_id | INT | FOREIGN KEY → roles.id, NOT NULL | Vai trò người dùng (Tình nguyện viên cho đăng ký mới) |
+| is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | Trạng thái kích hoạt tài khoản |
+| email_verified | BOOLEAN | NOT NULL, DEFAULT FALSE | Trạng thái xác thực email |
+| created_at | TIMESTAMP | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Thời gian tạo tài khoản |
+| updated_at | TIMESTAMP | ON UPDATE CURRENT_TIMESTAMP | Thời gian cập nhật lần cuối |
 
-**Registration-Specific Validation**:
+**Registration-Specific Validation (Kiểm tra đặc thù đăng ký):**
 
-1. **Email**: Must be unique (checked before sending OTP)
-2. **Password**: Min 8 chars, must contain uppercase, lowercase, digit (validated before hash)
-3. **Full Name**: 1-255 characters, required
-4. **Phone Number**: 10-11 digits, starts with 0 (Vietnam format)
-5. **Role**: Automatically set to Volunteer role_id from roles table
-6. **is_active**: Set to TRUE on registration (no admin approval required)
-7. **email_verified**: Set to TRUE on registration (since OTP was verified)
+1. **Email**: Phải là duy nhất (kiểm tra trước khi gửi OTP)
+2. **Mật khẩu**: Tối thiểu 8 ký tự, phải chứa chữ hoa, chữ thường, chữ số (kiểm tra trước khi băm)
+3. **Họ tên**: 1-255 ký tự, bắt buộc
+4. **Số điện thoại**: 10-11 chữ số, bắt đầu bằng 0 (định dạng Việt Nam)
+5. **Vai trò**: Tự động đặt thành role_id của Tình nguyện viên từ bảng roles
+6. **is_active**: Đặt thành TRUE khi đăng ký (không cần phê duyệt của quản trị viên)
+7. **email_verified**: Đặt thành TRUE khi đăng ký (vì OTP đã được xác thực)
 
-**Sample Data**:
+**Sample Data (Dữ liệu mẫu):**
 
 ```sql
 -- New volunteer account created after OTP verification
@@ -127,24 +127,24 @@ VALUES ('volunteer@vms.com', '$2a$12$...', 'Nguyễn Văn A', '0912345678', 1, T
 
 ### 3. Role (EXISTING TABLE, READ-ONLY)
 
-**Purpose**: Define user roles in the system
+**Purpose (Mục đích):** Định nghĩa vai trò người dùng trong hệ thống
 
-**Table Name**: `roles`
+**Table Name (Tên bảng):** `roles`
 
-**Lifecycle**: Seeded at database initialization, rarely changed
+**Lifecycle (Vòng đời):** Được seed khi khởi tạo cơ sở dữ liệu, hiếm khi thay đổi
 
-**Fields**:
+**Fields (Trường dữ liệu):**
 
 | Field | Type | Constraints | Description |
 |-------|------|-------------|-------------|
-| id | INT | PRIMARY KEY, AUTO_INCREMENT | Role ID |
-| name | VARCHAR(50) | UNIQUE, NOT NULL | Role name (VOLUNTEER, STAFF, MANAGER, ADMIN) |
-| description | VARCHAR(255) | NULL | Role description |
-| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Creation time |
+| id | INT | PRIMARY KEY, AUTO_INCREMENT | ID vai trò |
+| name | VARCHAR(50) | UNIQUE, NOT NULL | Tên vai trò (VOLUNTEER, STAFF, MANAGER, ADMIN) |
+| description | VARCHAR(255) | NULL | Mô tả vai trò |
+| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Thời gian tạo |
 
-**Registration Usage**:
+**Registration Usage (Cách dùng khi đăng ký):**
 
-During user creation, the system queries:
+Trong quá trình tạo người dùng, hệ thống truy vấn:
 
 ```sql
 SELECT id FROM roles WHERE name = 'VOLUNTEER' LIMIT 1;
@@ -152,7 +152,7 @@ SELECT id FROM roles WHERE name = 'VOLUNTEER' LIMIT 1;
 
 Then sets `users.role_id = <volunteer_role_id>`.
 
-**Seed Data**:
+**Seed Data (Dữ liệu khởi tạo):**
 
 ```sql
 INSERT INTO roles (name, description) VALUES
@@ -164,7 +164,7 @@ INSERT INTO roles (name, description) VALUES
 
 ---
 
-## Entity Relationships
+## Entity Relationships (Quan hệ thực thể)
 
 ```mermaid
 erDiagram
@@ -204,37 +204,37 @@ erDiagram
     }
 ```
 
-**Relationships**:
+**Relationships (Quan hệ):**
 
-1. **roles → users**: One-to-Many (one role has many users)
-   - Foreign Key: `users.role_id` references `roles.id`
-   - On Delete: RESTRICT (cannot delete role if users exist)
+1. **roles → users**: Một-Nhiều (một vai trò có nhiều người dùng)
+   - Khóa ngoại: `users.role_id` references `roles.id`
+   - Khi xóa: RESTRICT (không thể xóa vai trò nếu có người dùng tồn tại)
 
-2. **email_verifications → users**: One-to-Zero-or-One (verification creates user after success)
-   - NOT a database FK (email_verifications is temporary)
+2. **email_verifications → users**: Một-Không-hoặc-Một (xác thực tạo người dùng sau khi thành công)
+   - KHÔNG phải FK cơ sở dữ liệu (email_verifications là bảng tạm thời)
    - Business rule: `email_verifications.email` must not exist in `users.email` before sending OTP
-   - After verification: User created with same email, verification record deleted
+   - Sau khi xác thực: Người dùng được tạo với cùng email, bản ghi xác thực bị xóa
 
 ---
 
-## Data Flow
+## Data Flow (Luồng dữ liệu)
 
 ### Flow 1: Send OTP (Step 1)
 
 ```text
-Guest Input:
+Đầu vào từ khách:
   └─ email: "user@vms.com"
 
-Backend Validation:
-  1. Normalize email → "user@vms.com" (lowercase, trim)
-  2. Check users table → email must NOT exist (409 if exists)
-  3. Check email_verifications table:
-     - If record exists:
-       a. Check is_locked and locked_until (429 if locked)
-       b. Check cooldown: last_sent_at + 60s > NOW() (429 if too soon)
-     - If no record: Proceed
-  4. Generate OTP: crypto.randomInt(100000, 999999) → "123456"
-  5. Hash OTP: bcrypt.hash("123456", 10) → "$2a$10$..."
+Xử lý phía máy chủ:
+  1. Chuẩn hóa email → "user@vms.com" (chữ thường, cắt khoảng trắng)
+  2. Kiểm tra bảng users → email KHÔNG được tồn tại (409 nếu tồn tại)
+  3. Kiểm tra bảng email_verifications:
+     - Nếu bản ghi tồn tại:
+       a. Kiểm tra is_locked và locked_until (429 nếu bị khóa)
+       b. Kiểm tra thời gian chờ: last_sent_at + 60s > NOW() (429 nếu quá sớm)
+     - Nếu không có bản ghi: Tiếp tục
+  4. Tạo OTP: crypto.randomInt(100000, 999999) → "123456"
+  5. Băm OTP: bcrypt.hash("123456", 10) → "$2a$10$..."
   6. Upsert email_verifications:
      - email = "user@vms.com"
      - type = "REGISTER"
@@ -244,42 +244,42 @@ Backend Validation:
      - attempts = 0
      - is_locked = FALSE
      - locked_until = NULL
-  7. Send email with plaintext OTP "123456"
-  8. Return 200 success
+  7. Gửi email với OTP dạng văn bản thuần "123456"
+  8. Trả về 200 thành công
 
-Database State After:
-  email_verifications: 1 record inserted/updated
-  users: No change
+Trạng thái cơ sở dữ liệu sau đó:
+  email_verifications: 1 bản ghi được chèn/cập nhật
+  users: Không thay đổi
 ```
 
 ### Flow 2: Verify OTP (Step 2)
 
 ```text
-Guest Input:
+Đầu vào từ khách:
   └─ email: "user@vms.com"
   └─ otp: "123456"
   └─ full_name: "Nguyễn Văn A"
   └─ phone: "0912345678"
   └─ password: "Password123"
 
-Backend Validation:
-  1. Validate all fields with Zod schema
-  2. Lookup email_verifications WHERE email = "user@vms.com"
-     - If not found: 400 "Không tìm thấy yêu cầu xác thực"
-  3. Check is_locked and locked_until:
-     - If is_locked = TRUE AND locked_until > NOW(): 429 "Email đã bị khóa"
-     - If is_locked = TRUE AND locked_until <= NOW(): Reset lock (is_locked = FALSE, attempts = 0)
-  4. Check TTL: created_at + 10 minutes > NOW()
-     - If expired: 400 "Mã OTP đã hết hạn"
-  5. Verify OTP: bcrypt.compare("123456", otp_hash)
-     - If wrong:
-       a. Increment attempts += 1
-       b. If attempts >= 5: Set is_locked = TRUE, locked_until = NOW() + 15 min
-       c. Return 400 "Mã OTP không đúng. Bạn còn X lần thử"
-     - If correct: Proceed
-  6. BEGIN TRANSACTION
-     a. Get Volunteer role_id: SELECT id FROM roles WHERE name = 'VOLUNTEER'
-     b. Hash password: bcrypt.hash("Password123", 12) → "$2a$12$..."
+Xử lý phía máy chủ:
+  1. Kiểm tra tất cả các trường bằng lược đồ Zod
+  2. Tra cứu email_verifications WHERE email = "user@vms.com"
+     - Nếu không tìm thấy: 400 "Không tìm thấy yêu cầu xác thực"
+  3. Kiểm tra is_locked và locked_until:
+     - Nếu is_locked = TRUE AND locked_until > NOW(): 429 "Email đã bị khóa"
+     - Nếu is_locked = TRUE AND locked_until <= NOW(): Đặt lại khóa (is_locked = FALSE, attempts = 0)
+  4. Kiểm tra TTL: created_at + 10 minutes > NOW()
+     - Nếu hết hạn: 400 "Mã OTP đã hết hạn"
+  5. Xác thực OTP: bcrypt.compare("123456", otp_hash)
+     - Nếu sai:
+       a. Tăng attempts += 1
+       b. Nếu attempts >= 5: Đặt is_locked = TRUE, locked_until = NOW() + 15 min
+       c. Trả về 400 "Mã OTP không đúng. Bạn còn X lần thử"
+     - Nếu đúng: Tiếp tục
+  6. BẮT ĐẦU GIAO DỊCH
+     a. Lấy role_id Tình nguyện viên: SELECT id FROM roles WHERE name = 'VOLUNTEER'
+     b. Băm mật khẩu: bcrypt.hash("Password123", 12) → "$2a$12$..."
      c. INSERT INTO users:
         - email = "user@vms.com"
         - password_hash = "$2a$12$..."
@@ -289,36 +289,36 @@ Backend Validation:
         - is_active = TRUE
         - email_verified = TRUE
      d. DELETE FROM email_verifications WHERE email = "user@vms.com" AND type = "REGISTER"
-  7. COMMIT TRANSACTION
-  8. Return 201 success with user_id
+  7. HOÀN TẤT GIAO DỊCH
+  8. Trả về 201 thành công với user_id
 
-Database State After:
-  users: 1 record inserted
-  email_verifications: 1 record deleted
+Trạng thái cơ sở dữ liệu sau đó:
+  users: 1 bản ghi được chèn
+  email_verifications: 1 bản ghi bị xóa
 ```
 
 ### Flow 3: Resend OTP
 
 ```text
-Guest Action: Click "Gửi lại OTP" from Step 2
+Hành động của khách: Nhấn "Gửi lại OTP" từ Bước 2
 
-Backend Processing:
-  1. Same as "Send OTP" flow
-  2. If email still in email_verifications:
-     - Check cooldown (last_sent_at + 60s)
-     - Generate NEW OTP
-     - UPDATE existing record (don't insert new)
-     - Reset attempts = 0 (fresh start)
-  3. Send new email with new OTP
-  4. Return 200 success
+Xử lý phía máy chủ:
+  1. Giống luồng "Send OTP"
+  2. Nếu email vẫn còn trong email_verifications:
+     - Kiểm tra thời gian chờ (last_sent_at + 60s)
+     - Tạo OTP MỚI
+     - CẬP NHẬT bản ghi hiện có (không chèn mới)
+     - Đặt lại attempts = 0 (bắt đầu mới)
+  3. Gửi email mới với OTP mới
+  4. Trả về 200 thành công
 
-Database State After:
-  email_verifications: 1 record updated (new otp_hash, new last_sent_at)
+Trạng thái cơ sở dữ liệu sau đó:
+  email_verifications: 1 bản ghi được cập nhật (otp_hash mới, last_sent_at mới)
 ```
 
 ---
 
-## Prisma Schema
+## Prisma Schema (Lược đồ Prisma)
 
 ```prisma
 enum OtpType {
@@ -375,7 +375,7 @@ model Role {
 
 ---
 
-## Migration Strategy
+## Migration Strategy (Chiến lược migration)
 
 ### Step 1: Create Migration
 
@@ -411,7 +411,7 @@ npx prisma generate
 
 ---
 
-## Data Cleanup Strategy
+## Data Cleanup Strategy (Chiến lược dọn dẹp dữ liệu)
 
 ### Automatic Cleanup (Cron Job)
 
@@ -455,18 +455,18 @@ async function cleanupIfExpired(email) {
 
 ---
 
-## Validation Rules Summary
+## Validation Rules Summary (Tổng hợp quy tắc kiểm tra)
 
 | Field | Validation | Enforced By |
 |-------|-----------|-------------|
-| email | Email format, unique in users | Zod + Database constraint |
-| otp | 6 digits, matches hash, not expired | Zod + bcrypt + Timestamp check |
+| email | Email format, unique in users | Zod + Ràng buộc cơ sở dữ liệu |
+| otp | 6 digits, matches hash, not expired | Zod + bcrypt + Kiểm tra dấu thời gian |
 | full_name | 1-255 chars, required | Zod |
 | phone_number | 10-11 digits, starts with 0 | Zod regex `/^0\d{9,10}$/` |
 | password | Min 8, uppercase, lowercase, digit | Zod regex |
-| attempts | 0-5, auto-lock at 5 | Business logic in service |
-| TTL | 10 minutes from created_at | Timestamp comparison |
-| Cooldown | 60 seconds from last_sent_at | Timestamp comparison |
+| attempts | 0-5, auto-lock at 5 | Logic nghiệp vụ trong service |
+| TTL | 10 minutes from created_at | So sánh dấu thời gian |
+| Cooldown | 60 seconds from last_sent_at | So sánh dấu thời gian |
 
 ---
 

@@ -1,4 +1,4 @@
-# **LANGUAGE**: This specification must be written in Vietnamese with technical terms kept in English (e.g., upload, API, endpoint, authentication, OAuth, cache, session, commit, merge, rollback, validate, etc.)
+﻿# **LANGUAGE**: This specification must be written in Vietnamese with technical terms kept in English (e.g., upload, API, endpoint, authentication, OAuth, cache, session, commit, merge, rollback, validate, etc.)
 
 ---
 
@@ -37,12 +37,12 @@
 
 - [ ] T005 Seed roles data (VOLUNTEER, STAFF, MANAGER, ADMIN) and test user in `backend/prisma/seed.js`
 - [ ] T006 Run database seed with `npx prisma db seed`
-- [ ] T007 [P] Create JWT utility functions (signToken, verifyToken) in `backend/src/utils/jwt.util.js`
+- [ ] T007 [P] Create JWT utility functions (signToken, verifyToken, setTokenToCookie) in `backend/src/utils/jwt.util.js`
 - [ ] T008 [P] Verify response utility exists in `backend/src/utils/response.util.js` with successResponse and errorResponse functions
 - [ ] T009 [P] Setup CORS configuration in `backend/src/app.js` with `credentials: true` and `FRONTEND_ORIGIN` from .env
 - [ ] T010 [P] Setup cookie-parser middleware in `backend/src/app.js`
 - [ ] T011 Create auth repository with database query functions in `backend/src/repositories/auth.repository.js`: findUserByEmail, upsertSession, getLoginAttempts, incrementLoginAttempts, resetLoginAttempts
-- [ ] T012 Create Zod validation schema for login input in `backend/src/validators/auth.validator.js` with email format and password required validation
+- [ ] T012 Create Zod validation schema for login input in `backend/src/middlewares/validators/auth.validator.js` with email format and password required validation
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -57,20 +57,24 @@
 ### Tests for User Story 1 (Happy Path)
 
 - [ ] T013 [P] [US1] Write integration test for successful login in `backend/tests/integration/auth.login.test.js` covering: valid credentials → HTTP 200 + JWT cookie + user data
-- [ ] T014 [P] [US1] Write integration test for JWT cookie attributes in `backend/tests/integration/auth.login.test.js` verifying: httpOnly=true, secure flag, sameSite=Lax, maxAge=604800
-- [ ] T015 [P] [US1] Write unit test for AuthService.login() happy path in `backend/tests/unit/auth.service.test.js` mocking repository calls
+- [ ] T014 [P] [US1] Write integration test for JWT cookie attributes in `backend/tests/integration/auth.login.test.js` verifying: httpOnly=true, secure flag, sameSite=lax, maxAge=604800
+- [ ] T015 [P] [US1] Write unit test for loginService() happy path in `backend/tests/unit/auth.service.test.js` mocking repository calls
 
 ### Implementation for User Story 1
 
-- [ ] T016 [US1] Implement AuthService.login() in `backend/src/services/auth.service.js` with: email normalization → find user → verify password → check is_active → generate JWT with jti → upsert session → reset login attempts → return user (without password_hash)
-- [ ] T017 [US1] Implement auth controller login endpoint in `backend/src/controllers/auth.controller.js` that: extracts email/password → calls AuthService.login() → sets HttpOnly cookie with JWT → returns successResponse with user data
+- [ ] T016 [US1] Implement loginService() in `backend/src/services/auth.service.js` with: email normalization → find user → verify password → check is_active → generate JWT with jti → upsert session → reset login attempts → return user (without password_hash)
+- [ ] T017 [US1] Implement auth controller login endpoint in `backend/src/controllers/auth.controller.js` that: extracts email/password → calls loginService() → sets HttpOnly cookie with JWT via setTokenToCookie → returns successResponse with user data
 - [ ] T018 [US1] Mount auth routes in `backend/src/app.js` to register POST /api/v1/auth/login with validateLogin middleware and authController.login handler
-- [ ] T019 [US1] Create frontend authContext in `frontend/src/contexts/authContext.js` with useState for user and isAuthenticated computed property
-- [ ] T020 [US1] Create useAuth hook in `frontend/src/hooks/useAuth.js` that consumes AuthContext and throws error if used outside provider
-- [ ] T021 [US1] Create authApi function in `frontend/src/api/authApi.js` with login(email, password) calling POST /auth/login via axios with credentials: include
-- [ ] T022 [US1] Create LoginPage component in `frontend/src/pages/LoginPage.jsx` with: form inputs (email, password) → loading state on button → call login() → setUser on success → navigate by role_id → show toast on error
-- [ ] T023 [US1] Update frontend axios client in `frontend/src/api/axiosApi.js` to enable `withCredentials: true` for automatic cookie sending
+- [ ] T019 [US1] Create frontend authContext in `frontend/src/contexts/authContext.context.js` with: user state, loading state, login() function, logout() function, updateUser() function, initializeUser() function, role helpers (isVolunteer, isStaff, isManager, isAdmin), roleId, roleName
+- [ ] T020 [US1] Create useAuth hook co-located in `frontend/src/contexts/authContext.context.js` that consumes AuthContext and throws error if used outside AuthProvider
+- [ ] T021 [US1] Create authService functions in `frontend/src/services/auth.service.js` with login(email, password), logout(), forgotPassword(email), changePassword(data) calling backend API via axios
+- [ ] T022 [US1] Create LoginPage component in `frontend/src/components/pages/LoginPage.jsx` with: form inputs (email, password) using react-hook-form → loading state on button → call login() via authService → setUser on success → navigate by role_id → show toast.warning / toast.error on failure
+- [ ] T023 [US1] Verify frontend axios client in `frontend/src/api/axiosApi.js` has `withCredentials: true` and response interceptor handles: 401 → redirect to /login, 403 → redirect to role home, 500 → console.error log
 - [ ] T024 [US1] Wrap frontend App in AuthProvider in `frontend/src/index.js` or `frontend/src/App.js`
+- [ ] T024b [NEW] [P] [US1] Create role constants in `frontend/src/constants/roles.js` with ROLES object (VOLUNTEER, STAFF, MANAGER, ADMIN) and roleRouteMap mapping each role to its default page route
+- [ ] T024c [NEW] [P] [US1] Create GuestRoute guard in `frontend/src/components/guards/GuestRoute.jsx` that redirects authenticated users to role home (use roleRouteMap from constants/roles.js)
+- [ ] T024d [NEW] [P] [US1] Create ProtectedRoute guard in `frontend/src/components/guards/ProtectedRoute.jsx` that redirects unauthenticated users to /login
+- [ ] T024e [NEW] [P] [US1] Create userService in `frontend/src/services/user.service.js` with getMe() function for auth state initialization (calls GET /api/v1/auth/me)
 
 **Checkpoint**: User Story 1 complete - verify successful login, JWT cookie presence, correct user data in response
 
@@ -78,11 +82,11 @@
 
 ## Phase 4: User Story 2 - Chặn đăng nhập với thông tin sai (Priority: P1)
 
-**Goal**: System rejects invalid credentials with HTTP 401 and generic error message that doesn't reveal email existence
+**Goal**: System rejects invalid credentials with HTTP 401 and generic error message that doesn''t reveal email existence
 
 **Independent Test**:
 
-- Call POST /api/v1/auth/login with non-existent email → HTTP 401 "Email hoặc mật khẩu không đúng"
+- Call POST /api/v1/auth/login with non-existent email → HTTP 401 "Email hoặc mật khẩu chưa chính xác"
 - Call POST /api/v1/auth/login with correct email but wrong password → HTTP 401 same message
 - Verify both scenarios return identical error message
 
@@ -91,18 +95,18 @@
 - [ ] T025 [P] [US2] Write integration test for non-existent email in `backend/tests/integration/auth.login.test.js` verifying: HTTP 401 + generic message (no email existence leak)
 - [ ] T026 [P] [US2] Write integration test for wrong password in `backend/tests/integration/auth.login.test.js` verifying: HTTP 401 + same generic message
 - [ ] T027 [P] [US2] Write integration test for invalid email format in `backend/tests/integration/auth.login.test.js` verifying: HTTP 400 validation error
-- [ ] T028 [P] [US2] Write integration test that response doesn't contain password_hash in `backend/tests/integration/auth.login.test.js`
-- [ ] T029 [P] [US2] Write unit test for AuthService.login() handling non-existent user in `backend/tests/unit/auth.service.test.js`
-- [ ] T030 [P] [US2] Write unit test for AuthService.login() handling password mismatch in `backend/tests/unit/auth.service.test.js`
+- [ ] T028 [P] [US2] Write integration test that response doesn''t contain password_hash in `backend/tests/integration/auth.login.test.js`
+- [ ] T029 [P] [US2] Write unit test for loginService() handling non-existent user in `backend/tests/unit/auth.service.test.js`
+- [ ] T030 [P] [US2] Write unit test for loginService() handling password mismatch in `backend/tests/unit/auth.service.test.js`
 
 ### Implementation for User Story 2
 
-- [ ] T031 [US2] Update validateLogin middleware in `backend/src/validators/auth.validator.js` to validate: email required + email format + password required
-- [ ] T032 [US2] Update AuthService.login() in `backend/src/services/auth.service.js` to handle non-existent user: increment attempts then throw 401 "Email hoặc mật khẩu không đúng"
-- [ ] T033 [US2] Update AuthService.login() in `backend/src/services/auth.service.js` to handle password mismatch: increment attempts then throw 401 with same generic message
+- [ ] T031 [US2] Create validate middleware in `backend/src/validators/validate.js` using safeParse pattern: Zod schema → safeParse → if error return 400 with stripped error details → if success call next() with parsed body in req.body
+- [ ] T032 [US2] Update loginService() in `backend/src/services/auth.service.js` to handle non-existent user: increment attempts then throw 401 "Email hoặc mật khẩu chưa chính xác"
+- [ ] T033 [US2] Update loginService() in `backend/src/services/auth.service.js` to handle password mismatch: increment attempts then throw 401 with same generic message
 - [ ] T034 [US2] Ensure response.util.js errorResponse() in `backend/src/utils/response.util.js` returns consistent error format without sensitive data
-- [ ] T035 [US2] Add logging to AuthService.login() in `backend/src/services/auth.service.js` using Pino logger (DO NOT log plaintext password, password_hash, or token)
-- [ ] T036 [US2] Update frontend LoginPage in `frontend/src/pages/LoginPage.jsx` to display error toast with message from error.response?.data?.error
+- [ ] T035 [US2] Add logging to loginService() in `backend/src/services/auth.service.js` using Pino logger (DO NOT log plaintext password, password_hash, or token)
+- [ ] T036 [US2] Update frontend LoginPage in `frontend/src/components/pages/LoginPage.jsx` to display error toast: check error.code for `ACCOUNT_LOCKED` → toast.warning, other errors → toast.error with message from error.response?.data?.error
 
 **Checkpoint**: User Story 2 complete - verify invalid credentials rejected with HTTP 401 and generic message
 
@@ -128,13 +132,13 @@
 
 ### Implementation for User Story 3
 
-- [ ] T042 [US3] Update AuthService.login() in `backend/src/services/auth.service.js` to check lockout status: if locked_until > NOW() throw 429 "Tài khoản tạm thời bị khóa..." with locked_until in response
+- [ ] T042 [US3] Update loginService() in `backend/src/services/auth.service.js` to check lockout status: if locked_until > NOW() throw 429 "Tài khoản tạm thời bị khóa..." with locked_until in response
 - [ ] T043 [US3] Update incrementLoginAttempts() in `backend/src/repositories/auth.repository.js` to: increment attempts → if attempts >= 5 set locked_until = NOW() + 15 minutes
-- [ ] T044 [US3] Update AuthService.login() in `backend/src/services/auth.service.js` to call incrementLoginAttempts() on email not found (non-existent email)
-- [ ] T045 [US3] Update AuthService.login() in `backend/src/services/auth.service.js` to call incrementLoginAttempts() on password mismatch
-- [ ] T046 [US3] Update AuthService.login() in `backend/src/services/auth.service.js` to call resetLoginAttempts() on successful login to delete login_attempts record
+- [ ] T044 [US3] Update loginService() in `backend/src/services/auth.service.js` to call incrementLoginAttempts() on email not found (non-existent email)
+- [ ] T045 [US3] Update loginService() in `backend/src/services/auth.service.js` to call incrementLoginAttempts() on password mismatch
+- [ ] T046 [US3] Update loginService() in `backend/src/services/auth.service.js` to call resetLoginAttempts() on successful login to delete login_attempts record
 - [ ] T047 [US3] Update error handler in `backend/src/controllers/auth.controller.js` to return 429 status code for lockout errors
-- [ ] T048 [US3] Update frontend LoginPage in `frontend/src/pages/LoginPage.jsx` to handle HTTP 429 error and display lockout message with locked_until time
+- [ ] T048 [US3] Update frontend LoginPage in `frontend/src/components/pages/LoginPage.jsx` to handle lockout error: check error.code === `ACCOUNT_LOCKED` → display toast.warning with lockout message and locked_until time
 
 **Checkpoint**: User Story 3 complete - verify account lockout after 5 failed attempts and auto-unlock after 15 minutes
 
@@ -160,8 +164,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T053 [US4] Create authenticate middleware in `backend/src/middlewares/auth.middleware.js` that: extracts JWT from cookie → verifies signature → extracts jti → queries user_sessions → validates jti matches → injects req.user
-- [ ] T054 [US4] Update AuthService.login() in `backend/src/services/auth.service.js` to call upsertSession() with user_id, new jti (uuid.v4()), and expires_at = NOW() + 7 days
+- [ ] T053 [US4] Create authenticate middleware in `backend/src/middlewares/auth.middleware.js` that: extracts JWT from cookie → verifies signature → extracts jti → queries user_sessions → if jti mismatch OR expiresAt < now → clear cookie + delete expired session + return 401 "Phiên đăng nhập không hợp lệ" → if valid jti → injects req.user (user_id, email, role_id, role_name)
+- [ ] T054 [US4] Update loginService() in `backend/src/services/auth.service.js` to generate jti with composite format: `${userId}-${Date.now()}-${crypto.randomUUID()}` and call upsertSession() with user_id, new jti, and expires_at = NOW() + 7 days
 - [ ] T055 [US4] Verify upsertSession() in `backend/src/repositories/auth.repository.js` uses Prisma upsert with UNIQUE constraint on user_id to overwrite old jti
 - [ ] T056 [US4] Update protected routes (e.g., user profile endpoints) in `backend/src/routes/user.routes.js` to use authenticate middleware
 - [ ] T057 [US4] Mount authenticate middleware check for API endpoints that require authentication
@@ -183,15 +187,15 @@
 - [ ] T058 [P] [US5] Write integration test for disabled account (is_active=false) in `backend/tests/integration/auth.status.test.js` verifying: HTTP 403 "Tài khoản đã bị vô hiệu hóa"
 - [ ] T059 [P] [US5] Write integration test for unverified email (email_verified=false) in `backend/tests/integration/auth.status.test.js` verifying: HTTP 403 "Email chưa được xác thực"
 - [ ] T060 [P] [US5] Write integration test for account disabled after login in `backend/tests/integration/auth.status.test.js` verifying: set is_active=false in DB → next protected API call → HTTP 403
-- [ ] T061 [P] [US5] Write unit test for is_active and email_verified checks in AuthService.login() in `backend/tests/unit/auth.service.test.js`
+- [ ] T061 [P] [US5] Write unit test for is_active and email_verified checks in loginService() in `backend/tests/unit/auth.service.test.js`
 
 ### Implementation for User Story 5
 
-- [ ] T062 [US5] Update AuthService.login() in `backend/src/services/auth.service.js` to check is_active after password verification: if false throw 403 "Tài khoản đã bị vô hiệu hóa"
-- [ ] T063 [US5] Update AuthService.login() in `backend/src/services/auth.service.js` to check email_verified after is_active check: if false throw 403 "Email chưa được xác thực. Vui lòng kiểm tra hộp thư để xác thực tài khoản."
+- [ ] T062 [US5] Update loginService() in `backend/src/services/auth.service.js` to check is_active after password verification: if false throw 403 "Tài khoản đã bị vô hiệu hóa"
+- [ ] T063 [US5] Update loginService() in `backend/src/services/auth.service.js` to check email_verified after is_active check: if false throw 403 "Email chưa được xác thực. Vui lòng kiểm tra hộp thư để xác thực tài khoản."
 - [ ] T064 [US5] Update error handler in `backend/src/controllers/auth.controller.js` to return 403 status code for account disabled/unverified errors
-- [ ] T065 [US5] Update authenticate middleware in `backend/src/middlewares/auth.middleware.js` to re-check is_active and email_verified on protected endpoints: if disabled throw 403
-- [ ] T066 [US5] Update frontend LoginPage in `frontend/src/pages/LoginPage.jsx` to handle HTTP 403 error and display appropriate message based on error response
+- [ ] T065 [US5] — NOTE: Middleware does NOT re-check is_active/email_verified yet Update authenticate middleware in `backend/src/middlewares/auth.middleware.js` to re-check is_active and email_verified on protected endpoints: if disabled throw 403
+- [ ] T066 [US5] Update frontend LoginPage in `frontend/src/components/pages/LoginPage.jsx` to handle HTTP 403 error: check error.code for `ACCOUNT_DISABLED` → display "Tài khoản đã bị vô hiệu hóa", check error.code for `EMAIL_NOT_VERIFIED` → display "Email chưa được xác thực", other 403 → generic message
 
 **Checkpoint**: User Story 5 complete - verify disabled/unverified accounts cannot login or use protected endpoints
 
@@ -257,16 +261,16 @@
 # Parallel test writing (all [P] marked):
 T013: integration test - successful login
 T014: integration test - JWT cookie attributes
-T015: unit test - AuthService.login() happy path
+T015: unit test - loginService() happy path
 
 # Parallel implementation (after tests pass):
-T016: AuthService.login() implementation
+T016: loginService() implementation
 T019: authContext implementation
-T021: authApi implementation
+T021: authService implementation
 (These have no cross-dependencies and different files)
 
 # Sequential for integration (depends on above):
-T022: LoginPage component (depends on T016, T019, T021)
+T022: LoginPage component (depends on T016, T019, T021, T024b)
 ```
 
 ---
@@ -318,11 +322,11 @@ T022: LoginPage component (depends on T016, T019, T021)
 
 ---
 
-**Total Tasks**: 80 tasks across 8 phases
+**Total Tasks**: 85 tasks across 8 phases
 
 - Phase 1 (Setup): 4 tasks
 - Phase 2 (Foundational): 8 tasks
-- Phase 3 (US1): 12 tasks (tests + implementation)
+- Phase 3 (US1): 17 tasks (tests + implementation)
 - Phase 4 (US2): 6 tasks (tests + implementation)
 - Phase 5 (US3): 7 tasks (tests + implementation)
 - Phase 6 (US4): 5 tasks (tests + implementation)

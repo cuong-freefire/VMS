@@ -8,13 +8,13 @@
 
 ---
 
-## Overview
+## Overview (Tổng quan)
 
 This guide helps you quickly set up and test the registration feature locally. It covers environment setup, database migration, running the application, and testing the 2-step registration flow.
 
 ---
 
-## Prerequisites
+## Prerequisites (Điều kiện tiên quyết)
 
 Before starting, ensure you have:
 
@@ -27,16 +27,16 @@ Before starting, ensure you have:
 
 ---
 
-## 1. Environment Setup
+## 1. Environment Setup (Thiết lập môi trường)
 
-### Step 1.1: Clone Repository
+### Step 1.1: Clone Repository (Tải mã nguồn)
 
 ```bash
 git clone <repository-url>
 cd VMS
 ```
 
-### Step 1.2: Install Dependencies
+### Step 1.2: Install Dependencies (Cài đặt thư viện)
 
 ```bash
 # Install backend dependencies
@@ -48,7 +48,7 @@ cd ../frontend
 npm install
 ```
 
-### Step 1.3: Configure Backend Environment
+### Step 1.3: Configure Backend Environment (Cấu hình môi trường Backend)
 
 Create `.env` file in `backend/` directory:
 
@@ -114,7 +114,7 @@ SMTP_USER=apikey
 SMTP_PASS=your-sendgrid-api-key
 ```
 
-### Step 1.4: Configure Frontend Environment
+### Step 1.4: Configure Frontend Environment (Cấu hình môi trường Frontend)
 
 Create `.env` file in `frontend/` directory:
 
@@ -132,9 +132,9 @@ REACT_APP_API_BASE_URL=http://localhost:5000/api/v1
 
 ---
 
-## 2. Database Setup
+## 2. Database Setup (Thiết lập Database)
 
-### Step 2.1: Create Database
+### Step 2.1: Create Database (Tạo Database)
 
 ```bash
 # Login to MySQL
@@ -150,7 +150,7 @@ SHOW DATABASES;
 exit;
 ```
 
-### Step 2.2: Run Migrations
+### Step 2.2: Run Migrations (Chạy Migrations)
 
 ```bash
 cd backend
@@ -171,7 +171,7 @@ Expected output:
 ✔ Your database is now in sync with your Prisma schema.
 ```
 
-### Step 2.3: Seed Initial Data
+### Step 2.3: Seed Initial Data (Khởi tạo dữ liệu mẫu)
 
 ```bash
 # Seed roles and other master data
@@ -202,9 +202,9 @@ Expected output:
 
 ---
 
-## 3. Running the Application
+## 3. Running the Application (Chạy ứng dụng)
 
-### Step 3.1: Start Backend
+### Step 3.1: Start Backend (Khởi động Backend)
 
 ```bash
 cd backend
@@ -224,7 +224,7 @@ Expected output:
 🔌 Database connected
 ```
 
-### Step 3.2: Start Frontend
+### Step 3.2: Start Frontend (Khởi động Frontend)
 
 Open a new terminal:
 
@@ -246,7 +246,7 @@ You can now view vms-frontend in the browser.
   On Your Network:  http://192.168.1.x:3000
 ```
 
-### Step 3.3: Verify Services
+### Step 3.3: Verify Services (Kiểm tra dịch vụ)
 
 Check if services are running:
 
@@ -264,9 +264,9 @@ curl http://localhost:3000
 
 ---
 
-## 4. Testing Registration Flow
+## 4. Testing Registration Flow (Kiểm thử luồng đăng ký)
 
-### Method A: Using Frontend UI
+### Method A: Using Frontend UI (Dùng giao diện Frontend)
 
 #### Step 1: Navigate to Register Page
 
@@ -315,7 +315,7 @@ Click **"Đăng nhập"**
 
 ---
 
-### Method B: Using cURL (API Testing)
+### Method B: Using cURL (Kiểm thử API)
 
 #### Test 1: Send OTP
 
@@ -385,7 +385,7 @@ Expected output:
 
 ---
 
-### Method C: Using Postman
+### Method C: Using Postman (Dùng Postman)
 
 1. Import Postman collection: `backend/docs/postman/VMS-Auth-Register.json` (if available)
 2. Or manually create requests:
@@ -422,7 +422,7 @@ Expected output:
 
 ---
 
-## 5. Testing Edge Cases
+## 5. Testing Edge Cases (Kiểm thử trường hợp biên)
 
 ### Test Case 1: Email Already Registered
 
@@ -504,9 +504,9 @@ Expected: `400 Bad Request` - "Mã OTP đã hết hạn"
 
 ---
 
-## 6. Debugging Tips
+## 6. Debugging Tips (Mẹo gỡ lỗi)
 
-### Check Backend Logs
+### Check Backend Logs (Xem nhật ký Backend)
 
 ```bash
 cd backend
@@ -523,7 +523,7 @@ Look for:
 - Database query errors
 - Validation errors
 
-### Check Database State
+### Check Database State (Kiểm tra trạng thái Database)
 
 ```bash
 # Check email_verifications table
@@ -536,7 +536,7 @@ mysql -u root -p vms -e "SELECT id, email, full_name, role_id, is_active FROM us
 mysql -u root -p vms -e "SELECT email, attempts, is_locked, locked_until FROM email_verifications WHERE is_locked = TRUE;"
 ```
 
-### Common Issues
+### Common Issues (Vấn đề thường gặp)
 
 **Issue 1: SMTP Connection Error**
 
@@ -588,9 +588,9 @@ Access to XMLHttpRequest blocked by CORS policy
 
 ---
 
-## 7. Cleanup
+## 7. Cleanup (Dọn dẹp)
 
-### Reset Test Data
+### Reset Test Data (Xóa dữ liệu kiểm thử)
 
 ```bash
 # Clear test users
@@ -600,7 +600,7 @@ mysql -u root -p vms -e "DELETE FROM users WHERE email LIKE '%@example.com';"
 mysql -u root -p vms -e "DELETE FROM email_verifications;"
 ```
 
-### Stop Services
+### Stop Services (Dừng dịch vụ)
 
 ```bash
 # Stop backend (Ctrl+C in terminal)
@@ -613,9 +613,9 @@ pkill -f "react-scripts"
 
 ---
 
-## 8. Running Tests
+## 8. Running Tests (Chạy kiểm thử)
 
-### Backend Unit Tests
+### Backend Unit Tests (Kiểm thử đơn vị Backend)
 
 ```bash
 cd backend
@@ -628,7 +628,7 @@ npm test -- auth.register.test.js
 npm run test:coverage
 ```
 
-### Frontend Component Tests
+### Frontend Component Tests (Kiểm thử component Frontend)
 
 ```bash
 cd frontend
@@ -640,7 +640,7 @@ npm test -- Register.test.jsx
 
 ---
 
-## 9. Next Steps
+## 9. Next Steps (Bước tiếp theo)
 
 After successfully testing registration:
 
@@ -651,7 +651,7 @@ After successfully testing registration:
 
 ---
 
-## 10. Additional Resources
+## 10. Additional Resources (Tài nguyên bổ sung)
 
 - **API Contracts**: See `contracts/` directory
 - **Data Model**: See `data-model.md`
