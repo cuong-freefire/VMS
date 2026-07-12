@@ -16,10 +16,10 @@ import authMiddleware from "../middlewares/auth.middleware.js";
 import uploadMiddleware from "../middlewares/upload.middleware.js";
 import { updateProfileSchema } from "../middlewares/validators/profile.validator.js";
 import { getMyProfile, updateMyProfile } from "../controllers/profile.controller.js";
-import { getUsersHandler, getUserByIdHandler, createUserHandler } from "../controllers/user.controller.js";
+import { getUsersHandler, getUserByIdHandler, createUserHandler, updateUserHandler } from "../controllers/user.controller.js";
 import { errorResponse } from "../utils/response.util.js";
 import { validate, validateQuery } from "../middlewares/validators/validate.js";
-import { getUsersSchema, userIdSchema, createUserSchema } from "../middlewares/validators/user.validator.js";
+import { getUsersSchema, userIdSchema, createUserSchema, updateUserSchema } from "../middlewares/validators/user.validator.js";
 import authorize from "../middlewares/authorize.middleware.js";
 
 const router = Router();
@@ -277,6 +277,94 @@ router.get(
     authorize("ADMIN"),
     validateUserId,
     getUserByIdHandler
+);
+
+/**
+ * PATCH /api/v1/users/:id
+ * Cập nhật thông tin người dùng (Admin only)
+ * UC29: Edit User
+ */
+/**
+ * @swagger
+ * /api/v1/users/{id}:
+ *   patch:
+ *     summary: Cập nhật thông tin người dùng (Admin only)
+ *     description: |
+ *       Cập nhật thông tin của một người dùng theo ID.
+ *       Chỉ Admin mới có quyền truy cập. Staff/Manager/Volunteer nhận 403.
+ *       Guest chưa đăng nhập nhận 401.
+ *       Email không thể thay đổi (bất biến).
+ *       Admin không thể tự hạ role của chính mình.
+ *     tags: [User Management]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID của user
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               full_name:
+ *                 type: string
+ *                 description: Họ và tên
+ *               phone:
+ *                 type: string
+ *                 description: Số điện thoại
+ *               avatar_url:
+ *                 type: string
+ *                 format: uri
+ *                 description: URL ảnh đại diện
+ *               role_id:
+ *                 type: integer
+ *                 description: ID của role
+ *               is_active:
+ *                 type: boolean
+ *                 description: Trạng thái hoạt động
+ *           example:
+ *             full_name: "Nguyễn Văn B (Updated)"
+ *             phone: "0909123456"
+ *             role_id: 2
+ *             is_active: true
+ *     responses:
+ *       200:
+ *         description: Cập nhật thành công
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: "Cập nhật thông tin người dùng thành công"
+ *               data:
+ *                 user_id: 1
+ *                 full_name: "Nguyễn Văn B (Updated)"
+ *                 email: "nguyenvanb@example.com"
+ *                 role: "STAFF"
+ *                 is_active: true
+ *       400:
+ *         description: Dữ liệu không hợp lệ hoặc body rỗng
+ *       401:
+ *         description: Chưa xác thực
+ *       403:
+ *         description: Không có quyền hoặc tự hạ role
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Lỗi server
+ */
+router.patch(
+    "/:id",
+    authMiddleware,
+    authorize("ADMIN"),
+    validateUserId,
+    validate(updateUserSchema),
+    updateUserHandler
 );
 
 /**

@@ -100,8 +100,34 @@ async function createUserHandler(req, res, next) {
     }
 }
 
+/**
+ * PATCH /api/v1/users/:id
+ * Cập nhật thông tin người dùng.
+ * Chỉ Admin mới có quyền truy cập (kiểm tra ở middleware).
+ * Email không thể thay đổi. Admin không thể tự hạ role của chính mình.
+ */
+async function updateUserHandler(req, res, next) {
+    try {
+        const userId = parseInt(req.params.id, 10);
+        const currentUserId = req.user.user_id;
+        const user = await userService.updateUserService(userId, req.body, currentUserId);
+
+        return res.status(200).json(
+            successResponse(user, 'Cập nhật thông tin người dùng thành công')
+        );
+    } catch (error) {
+        if (error.status && error.code) {
+            return res.status(error.status).json(
+                errorResponse(error.message, error.code, error.details)
+            );
+        }
+        next(error);
+    }
+}
+
 export {
     getUsersHandler,
     getUserByIdHandler,
-    createUserHandler
+    createUserHandler,
+    updateUserHandler
 };

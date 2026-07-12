@@ -35,6 +35,22 @@ export const createUserSchema = z.object({
 });
 
 /**
+ * Schema validation cho PATCH /api/v1/users/:id request body.
+ * UC29: Edit User — Admin chỉnh sửa thông tin user.
+ * Tất cả fields đều optional (PATCH = partial update).
+ * Email không được phép thay đổi (bất biến).
+ */
+export const updateUserSchema = z.object({
+    full_name: z.string().trim().min(1, 'Full name cannot be empty').optional(),
+    phone: z.string().optional(),
+    avatar_url: z.string().trim().url('Invalid URL format').optional().nullable(),
+    role_id: z.coerce.number().int().positive('Role is required').optional(),
+    is_active: z.boolean().optional()
+}).refine(data => Object.values(data).some(value => value !== undefined), {
+    message: 'No fields to update.'
+});
+
+/**
  * Schema validation cho GET /api/v1/users query params.
  */
 export const getUsersSchema = z.object({

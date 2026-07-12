@@ -30,6 +30,14 @@ import userRepository from '../repositories/user.repository.js';
  * @returns {Promise<Object>} { users, pagination }
  * @throws {ServiceError} 400 nếu params không hợp lệ
  */
+
+const ROLE_PRIORITY = {
+    VOLUNTEER: 1,
+    STAFF: 2,
+    MANAGER: 3,
+    ADMIN: 4
+};
+
 async function getUsers(query) {
     // 1. Parse pagination
     const { skip, take, page, limit } = parsePagination(query);
@@ -234,8 +242,104 @@ async function createUserService(data) {
     }
 }
 
+/**
+ * Update user information.
+ * UC29: Edit User — Admin chỉnh sửa thông tin user.
+ *
+ * Business Logic:
+ * 1. Check user exists → 404 nếu không tìm thấy
+ * 2. Check self-role-downgrade → 403 nếu Admin tự hạ role
+ * 3. Validate role_id tồn tại (nếu có)
+ * 4. Map request fields to Prisma field names
+ * 5. Update user trong database
+ * 6. Format response (không bao gồm password)
+ *
+ * @param {number} userId - User ID từ route param
+ * @param {Object} data - Fields to update từ request body
+ * @param {number} currentUserId - Admin ID từ JWT (req.user.user_id)
+ * @returns {Promise<Object>} Formatted user object
+ * @throws {ServiceError} 400/403/404 errors
+ */
+async function updateUserService(userId, data, currentUserId) {
+    // 1. Check user exists
+    const existingUser = await userRepository.findById(userId);
+    if (!existingUser) {
+        throw new ServiceError(
+            'User not found.',
+            404,
+            'USER_NOT_FOUND'
+        );
+    }
+
+    // 2. Validate role_id (nếu có) và lấy role mới
+    if (data.role_id !== undefined) {
+        const newRole = await userRepository.findRoleById(data.role_id);
+
+        if (!newRole) {
+            throw new ServiceError(
+                'Invalid role.',
+                400,
+                'INVALID_ROLE'
+            );
+        }
+
+        // 3. Admin không được tự hạ quyền của chính mình
+        const currentRolePriority =
+            ROLE_PRIORITY[existingUser.role.name.toUpperCase()];
+        const newRolePriority =
+            ROLE_PRIORITY[newRole.name.toUpperCase()];
+
+        if (
+            currentRolePriority === undefined ||
+            newRolePriority === undefined
+        ) {
+            throw new ServiceError(
+                'Unsupported role.',
+                400,
+                'INVALID_ROLE'
+            );
+        }
+
+        if (
+            userId === currentUserId &&
+            newRolePriority < currentRolePriority
+        ) {
+            throw new ServiceError(
+                'Cannot downgrade your own role.',
+                403,
+                'SELF_ROLE_DOWNGRADE'
+            );
+        }
+    }
+
+    // 4. Map request fields to Prisma field names
+    const updateData = {};
+    if (data.full_name !== undefined) {
+        updateData.fullName = data.full_name.trim();
+    }
+    if (data.phone !== undefined) {
+        updateData.phone = data.phone?.trim() || null;
+    }
+    if (data.avatar_url !== undefined) {
+        updateData.avatarUrl = data.avatar_url;
+    }
+    if (data.role_id !== undefined) {
+        updateData.roleId = data.role_id;
+    }
+    if (data.is_active !== undefined) {
+        updateData.isActive = data.is_active;
+    }
+
+    // 5. Update user trong database
+    const updatedUser = await userRepository.updateUser(userId, updateData);
+
+    // 6. Format response
+    return formatUser(updatedUser);
+}
+
 export default {
     getUsers,
     getUserById,
-    createUserService
+    createUserService,
+    updateUserService
 };

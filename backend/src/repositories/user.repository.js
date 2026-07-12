@@ -109,11 +109,13 @@ const findById = async (userId) => {
             fullName: true,
             phone: true,
             avatarUrl: true,
+            roleId: true,
             isActive: true,
             createdAt: true,
             updatedAt: true,
             role: {
                 select: {
+                    id: true,
                     name: true
                 }
             }
@@ -188,6 +190,42 @@ const createUser = async (data) => {
     });
 };
 
+/**
+ * Update a user by ID.
+ * UC29: Edit User — update thông tin user.
+ * Trả về user đã cập nhật (không bao gồm password).
+ *
+ * @param {number} userId - User ID
+ * @param {Object} data - Fields to update
+ * @param {string} [data.fullName] - Full name
+ * @param {string} [data.phone] - Phone number
+ * @param {string} [data.avatarUrl] - Avatar URL
+ * @param {number} [data.roleId] - Role ID
+ * @param {boolean} [data.isActive] - Active status
+ * @returns {Promise<Object>} Updated user with role info (no password)
+ */
+const updateUser = async (userId, data) => {
+    return prisma.user.update({
+        where: { id: userId },
+        data,
+        select: {
+            id: true,
+            email: true,
+            fullName: true,
+            phone: true,
+            avatarUrl: true,
+            isActive: true,
+            createdAt: true,
+            updatedAt: true,
+            role: {
+                select: {
+                    name: true
+                }
+            }
+        }
+    });
+};
+
 export default {
     findMany,
     count,
@@ -195,5 +233,6 @@ export default {
     findById,
     findByEmail,
     findRoleById,
-    createUser
+    createUser,
+    updateUser
 };
