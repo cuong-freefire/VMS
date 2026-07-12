@@ -1,4 +1,4 @@
-import { signAccessToken } from "../utils/jwt.util.js";
+﻿import { signAccessToken } from "../utils/jwt.util.js";
 import { ServiceError } from "../utils/response.util.js";
 import bcrypt from "bcryptjs";
 import { generateOTP, hashOTP, verifyOTP as verifyOTPHash } from "../utils/otp.util.js";
@@ -427,6 +427,8 @@ const requestResetPassword = async (email) => {
             }
         });
 
+    logger.info({ email: normalizedEmail }, "FORGOT_PASSWORD_OTP_SENT");
+
     return {
         success: true,
         message: "Nếu email tồn tại trong hệ thống, mã OTP đã được gửi. Vui lòng kiểm tra hộp thư.",
@@ -504,6 +506,7 @@ const verifyResetOTP = async (email, otp) => {
         await authRepository.updateVerification(normalizedEmail, updateData, "RESET_PASSWORD");
 
         if (newAttempts >= 5) {
+            logger.warn({ email: normalizedEmail, attempts: newAttempts }, "FORGOT_PASSWORD_LOCKOUT");
             throw new ServiceError(
                 "Bạn đã nhập sai quá 5 lần. Tài khoản bị khóa 15 phút.",
                 429, "EMAIL_LOCKED"
@@ -515,6 +518,8 @@ const verifyResetOTP = async (email, otp) => {
             400, "INVALID_OTP"
         );
     }
+
+    logger.info({ email: normalizedEmail }, "FORGOT_PASSWORD_OTP_VERIFIED");
 
     return {
         verified: true,
@@ -581,7 +586,7 @@ const changePassword = async (userId, oldPassword, newPassword) => {
     const newHash = await bcrypt.hash(newPassword, 12);
 
     // 5. Update password in database
-    await authRepository.updatePassword(user.email, newHash);
+    await authRepository.updatePasswordById(user.id, newHash);
 
     // 6. Audit log success (no passwords in log)
     logger.info({ userId }, "CHANGE_PASSWORD_SUCCESS");
@@ -618,6 +623,8 @@ const resetPassword = async (email, otp, newPassword) => {
 
     await authRepository.updatePassword(normalizedEmail, passwordHash);
     await authRepository.deleteVerification(normalizedEmail, "RESET_PASSWORD");
+
+    logger.info({ email: normalizedEmail }, "FORGOT_PASSWORD_SUCCESS");
 
     return {
         success: true,
