@@ -10,9 +10,9 @@
 
 ## Summary (Tóm tắt)
 
-UC06 triển khai luồng thay đổi mật khẩu an toàn cho người dùng đã đăng nhập. Người dùng cung cấp mật khẩu cũ hiện tại (xác minh quyền sở hữu), nhập mật khẩu mới đáp ứng chính sách bảo mật, và xác nhận. Hệ thống xác minh mật khẩu cũ bằng so sánh bcrypt constant-time, validate mật khẩu mới theo policy (độ dài 8+ chars, uppercase, lowercase, digit, special char), và cập nhật password_hash trong transaction nguyên tử. Phiên làm việc hiện tại được giữ nguyên (không ép logout).
+UC06 triển khai luồng thay đổi mật khẩu an toàn cho người dùng đã đăng nhập. Người dùng cung cấp mật khẩu cũ hiện tại (xác minh quyền sở hữu), nhập mật khẩu mới đáp ứng chính sách bảo mật, và xác nhận. Hệ thống xác minh mật khẩu cũ bằng so sánh bcrypt constant-time, validate mật khẩu mới theo policy (độ dài 8+ chars, uppercase, lowercase, digit, special char), và cập nhật password_hash trong **transaction atomicity**. Phiên làm việc hiện tại được giữ nguyên (không ép logout).
 
-Cách tiếp cận kỹ thuật: Backend sử dụng Express + Prisma + MySQL với kiến trúc phân tầng (Route → Middleware → Controller → Service → Repository), validation Zod ở tầng middleware, bcrypt 12 rounds cho password hashing, transaction database đảm bảo atomicity, audit logging cho mọi lần thay đổi thành công. Frontend dùng React với form 2 trường (oldPassword, newPassword với confirmPassword validation phía client), error handling inline, loading states.
+Cách tiếp cận kỹ thuật: Backend sử dụng Express + Prisma + MySQL với kiến trúc phân tầng (Route → Middleware → Controller → Service → Repository), validation Zod ở tầng middleware, bcrypt 12 rounds cho password hashing, transaction database đảm bảo ***atomicity(Atomicity = "Tất cả hoặc không gì cả" )**, audit logging cho mọi lần thay đổi thành công. Frontend dùng React với form 3 trường (oldPassword, newPassword với confirmPassword validation phía client), error handling inline, loading states.
 
 ## Technical Context (Bối cảnh kỹ thuật)
 
@@ -143,10 +143,10 @@ Web application với backend (Express API) + frontend (React SPA) tách biệt.
 
 **Tasks (Tác vụ nghiên cứu)**:
 
-1. **Constant-Time Password Comparison**: Best practices cho bcrypt.compare() để chống timing attack
+1. **So sánh mật khẩu an toàn**: Sử dụng bcrypt.compare() để so sánh mật khẩu theo thời gian xử lý gần như cố định, giúp giảm nguy cơ bị tấn công Timing Attack.
 2. **Audit Logging Strategy**: Ghi log CHANGE_PASSWORD_SUCCESS/FAILED mà không log mật khẩu
 3. **Database Transaction Rollback**: Xử lý lỗi trong transaction cập nhật password
-4. **Client-Side Confirm Validation**: sessionStorage persistence cho multi-step form
+4. **Xác nhận dữ liệu phía Client**: Sử dụng sessionStorage để lưu tạm dữ liệu giữa các bước của biểu mẫu nhiều bước (multi-step form).
 5. **Error Messages**: User-friendly messages khác nhau cho old password wrong vs new password weak
 
 **Output (Đầu ra)**: `research.md` file với các quyết định kỹ thuật được tài liệu hóa (Decision, Rationale, Alternatives, Implementation).
@@ -326,23 +326,23 @@ async changePassword(userId, oldPassword, newPassword) {
 
 ### Testing Strategy (Chiến lược kiểm thử)
 
-**Backend Tests** (80% coverage target):
+**Kiểm thử Backend** (Mục tiêu: Độ bao phủ mã nguồn ≥ 80%)
 
-1. Happy path: oldPassword correct → password updated
-2. oldPassword wrong → 400 error
-3. newPassword weak → validation error
-4. confirmPassword mismatch → 400 error
-5. No JWT token → 401 error
-6. Concurrent requests → no race condition
-7. SMTP/transaction failure → proper rollback
+1. Trường hợp thành công: Mật khẩu cũ đúng → Cập nhật mật khẩu thành công.
+2. Mật khẩu cũ không đúng → Trả về lỗi 400.
+3. Mật khẩu mới không đáp ứng yêu cầu → Trả về lỗi xác thực (Validation Error).
+4. Mật khẩu xác nhận không khớp → Trả về lỗi 400.
+5. Không có JWT Token hoặc Token không hợp lệ → Trả về lỗi 401.
+6. Nhiều yêu cầu đồng thời (Concurrent Requests) → Không xảy ra xung đột dữ liệu (Race Condition).
+7. Lỗi Transaction hoặc lỗi trong quá trình cập nhật → Rollback toàn bộ thay đổi, đảm bảo dữ liệu nhất quán.
 
-**Frontend Tests** (60% target):
+**Kiểm thử Frontend** (Mục tiêu: Độ bao phủ mã nguồn ≥ 60%)
 
-1. Form renders correctly
-2. Validation errors display
-3. Submit button disabled on validation failure
-4. API error handling
-5. Success toast notification
+1. Biểu mẫu (Form) hiển thị đúng giao diện và đầy đủ các trường dữ liệu.
+2. Hiển thị đúng thông báo lỗi khi dữ liệu nhập không hợp lệ.
+3. Nút **Submit** bị vô hiệu hóa khi biểu mẫu chưa hợp lệ.
+4. Xử lý và hiển thị đúng lỗi trả về từ API.
+5. Hiển thị thông báo thành công (Toast Notification) khi thao tác hoàn tất.
 
 ---
 
@@ -350,30 +350,30 @@ async changePassword(userId, oldPassword, newPassword) {
 
 ### HIGH RISK (Rủi ro cao)
 
-- **Timing Attack**: So sánh mật khẩu không constant-time có thể cho phép kẻ tấn công đoán mật khẩu qua thời gian phản hồi. Risk: Lộ mật khẩu người dùng.
-  - **Mitigation**: Sử dụng bcrypt.compare() vốn đã constant-time. Thêm random delay nhỏ nếu cần.
+- **Timing Attack**: So sánh mật khẩu không an toàn có thể giúp kẻ tấn công suy đoán mật khẩu dựa trên thời gian phản hồi của hệ thống. **Rủi ro**: Lộ thông tin mật khẩu.
+  - **Biện pháp giảm thiểu**: Sử dụng bcrypt.compare() vốn đã constant-time.
 
 - **Password Leak in Logs**: Ghi log mật khẩu plaintext hoặc hashed. Risk: Lộ mật khẩu qua system logs.
-  - **Mitigation**: KHÔNG log bất kỳ field mật khẩu nào. Chỉ log userId + timestamp.
+  - **Biện pháp giảm thiểu**: KHÔNG log bất kỳ field mật khẩu nào. Chỉ log userId + timestamp.
 
 - **IDOR Attack**: userId lấy từ request body thay vì JWT. Risk: User có thể đổi mật khẩu của người khác.
-  - **Mitigation**: userId LUÔN lấy từ req.user.id (JWT đã xác thực).
+  - **Biện pháp giảm thiểu**: userId LUÔN lấy từ req.user.id (JWT đã xác thực).
 
 ### MEDIUM RISK (Rủi ro trung bình)
 
 - **Race Condition**: Nhiều request đổi mật khẩu đồng thời. Risk: Trạng thái không nhất quán.
-  - **Mitigation**: Database transaction với row-level lock.
+  - **Biện pháp giảm thiểu**: Database transaction với row-level lock.
 
 ### LOW RISK (Rủi ro thấp)
 
 - **Brute Force mật khẩu cũ không thành công**: Kẻ tấn công đoán mật khẩu cũ nhiều lần. Risk: Khóa tài khoản không cần thiết.
-  - **Mitigation**: Không giới hạn số lần thử mật khẩu cũ (user đã authenticated). Login endpoint đã có rate limiting riêng.
+  - **Biện pháp giảm thiểu**: Không giới hạn số lần thử mật khẩu cũ (user đã authenticated). Login endpoint đã có rate limiting riêng.
 
 ---
 
 ## Success Criteria Review (Xem xét tiêu chí thành công)
 
-Mapping từ spec.md Success Criteria sang implementation deliverables:
+Mapping từ spec.md Success Criteria sang implementation deliverables(Hạng mục triển khai):
 
 - **SC-001**: Người dùng đã đăng nhập có thể thay đổi mật khẩu thành công khi cung cấp đúng mật khẩu cũ và mật khẩu mới hợp lệ → Verify bằng integration test happy path
 - **SC-002**: Hệ thống từ chối thay đổi mật khẩu nếu mật khẩu cũ không chính xác → Verify bằng integration test error path (400)
@@ -392,8 +392,6 @@ Trước khi merge vào main branch:
 - [ ] Unit test coverage ≥ 80% cho auth.service.js
 - [ ] ESLint 0 errors
 - [ ] Swagger documentation đã cập nhật trong auth.routes.js
-- [ ] share_context.md đã cập nhật API contract
-- [ ] Không có TODO/FIXME comments
 - [ ] Audit log CHANGE_PASSWORD_SUCCESS được ghi nhận
 - [ ] Đã test với MySQL 8.x thực tế (không chỉ mock)
 
@@ -405,6 +403,7 @@ Trước khi merge vào main branch:
    - **Context**: JWT là stateless, không thể invalidate token đã phát hành. Nếu muốn ép logout, cần thêm cơ chế token blacklist hoặc versioning.
    - **Options**: (A) Giữ nguyên session hiện tại, không ép logout thiết bị khác, (B) Ép logout tất cả thiết bị bằng cách tăng token version trong DB
    - **Recommendation**: (A) cho MVP, xem xét (B) cho production
+   - **Choose**: A
 
 ---
 
@@ -413,26 +412,26 @@ Trước khi merge vào main branch:
 1. Phase 0 Execution: Tạo research.md
 2. Phase 1 Execution: Tạo data-model.md, contracts/api-contract.md, contracts/service-contract.md, quickstart.md
 3. Agent Context Update: Cập nhật CLAUDE.md
-4. Constitution Re-check: Xác minh gates vẫn vượt qua
+4. Constitution Re-check (AGENTS.md, CLAUDE.md): Xác minh gates vẫn vượt qua
 5. Run `/speckit-tasks` để generate tasks.md sau khi plan được approve
 
 ---
 
-**Plan Status (Trạng thái kế hoạch)**: READY FOR REVIEW
+**Plan Status (Trạng thái kế hoạch)**: ACCEPTED
 **Estimated Effort (Thời gian ước tính)**: 4-6 hours (breakdown: Phase 0: 1h, Phase 1: 2h, Phase 2: 3h)
 **Priority (Độ ưu tiên)**: P1
 
 **Checklist Phê Duyệt**:
 
-- [x] Technical Context rõ ràng
-- [x] Constitution Check vượt qua
-- [x] Project Structure ánh xạ tới thư mục thực tế
-- [x] Research tasks được xác định
-- [x] Data model được phác thảo
-- [x] API contracts được chỉ định
-- [x] Service contracts được định nghĩa
-- [x] Implementation approach rõ ràng
-- [x] Rủi ro được xác định và có mitigation
-- [x] Success Criteria được mapping sang test deliverables
-- [x] Deployment Checklist đầy đủ
-- [x] Questions for Stakeholders được nêu rõ
+- [x] Bối cảnh kỹ thuật (Technical Context) được mô tả rõ ràng.
+- [x] Đã kiểm tra và đảm bảo tuân thủ đầy đủ các quy tắc của dự án (Constitution Check).
+- [x] Cấu trúc dự án được ánh xạ chính xác với các thư mục thực tế.
+- [x] Các hạng mục nghiên cứu (Research Tasks) đã được xác định.
+- [x] Mô hình dữ liệu (Data Model) đã được thiết kế sơ bộ.
+- [x] Hợp đồng API (API Contracts) đã được xác định.
+- [x] Hợp đồng giữa các tầng dịch vụ (Service Contracts) đã được định nghĩa.
+- [x] Phương án triển khai (Implementation Approach) đã được xác định rõ ràng.
+- [x] Các rủi ro đã được nhận diện và có biện pháp giảm thiểu (Mitigation).
+- [x] Các tiêu chí thành công (Success Criteria) đã được liên kết với các hạng mục kiểm thử (Test Deliverables).
+- [x] Danh sách kiểm tra trước khi triển khai (Deployment Checklist) đã đầy đủ.
+- [x] Các vấn đề cần trao đổi hoặc xác nhận với các bên liên quan (Stakeholders) đã được liệt kê rõ ràng.
