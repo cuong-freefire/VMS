@@ -16,10 +16,10 @@ import authMiddleware from "../middlewares/auth.middleware.js";
 import uploadMiddleware from "../middlewares/upload.middleware.js";
 import { updateProfileSchema } from "../middlewares/validators/profile.validator.js";
 import { getMyProfile, updateMyProfile } from "../controllers/profile.controller.js";
-import { getUsersHandler, getUserByIdHandler } from "../controllers/user.controller.js";
+import { getUsersHandler, getUserByIdHandler, createUserHandler } from "../controllers/user.controller.js";
 import { errorResponse } from "../utils/response.util.js";
 import { validate, validateQuery } from "../middlewares/validators/validate.js";
-import { getUsersSchema, userIdSchema } from "../middlewares/validators/user.validator.js";
+import { getUsersSchema, userIdSchema, createUserSchema } from "../middlewares/validators/user.validator.js";
 import authorize from "../middlewares/authorize.middleware.js";
 
 const router = Router();
@@ -29,7 +29,7 @@ const router = Router();
  * UC27 chỉ cần validate params nên không mở rộng shared validate.js.
  */
 const validateUserId = (req, res, next) => {
-    const result = userIdSchema.safeParse(req.params.id);
+    const result = userIdSchema.safeParse(req.params);
 
     if (!result.success) {
         return res.status(400).json(
@@ -41,7 +41,7 @@ const validateUserId = (req, res, next) => {
     }
 
     // Ghi đè lại params sau khi đã parse (string -> number)
-    req.params.id = result.data;
+    req.params = result.data;
 
     next();
 };
@@ -132,6 +132,94 @@ router.get(
 );
 
 /**
+ * POST /api/v1/users
+ * Tạo người dùng mới (Admin only)
+ * UC28: Add User
+ */
+/**
+ * @swagger
+ * /api/v1/users:
+ *   post:
+ *     summary: Tạo người dùng mới (Admin only)
+ *     description: |
+ *       Tạo một tài khoản người dùng mới trong hệ thống.
+ *       Chỉ Admin mới có quyền truy cập. Staff/Manager/Volunteer nhận 403.
+ *       Guest chưa đăng nhập nhận 401.
+ *       Email phải duy nhất — nếu đã tồn tại trả về 409.
+ *       Mật khẩu được hash bằng bcryptjs trước khi lưu.
+ *     tags: [User Management]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - full_name
+ *               - email
+ *               - password
+ *               - role_id
+ *             properties:
+ *               full_name:
+ *                 type: string
+ *                 description: Họ và tên
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Email đăng nhập
+ *               phone:
+ *                 type: string
+ *                 description: Số điện thoại (optional)
+ *               password:
+ *                 type: string
+ *                 minLength: 8
+ *                 description: Mật khẩu (tối thiểu 8 ký tự)
+ *               role_id:
+ *                 type: integer
+ *                 description: ID của role
+ *           example:
+ *             full_name: "Nguyễn Văn B"
+ *             email: "nguyenvanb@example.com"
+ *             phone: "0987654321"
+ *             password: "password123"
+ *             role_id: 1
+ *     responses:
+ *       201:
+ *         description: Tạo user thành công
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: "Tạo người dùng thành công"
+ *               data:
+ *                 user_id: 2
+ *                 full_name: "Nguyễn Văn B"
+ *                 email: "nguyenvanb@example.com"
+ *                 role: "VOLUNTEER"
+ *                 is_active: true
+ *                 created_at: "2026-06-30T12:00:00.000Z"
+ *       400:
+ *         description: Dữ liệu đầu vào không hợp lệ
+ *       401:
+ *         description: Chưa xác thực
+ *       403:
+ *         description: Không có quyền (không phải Admin)
+ *       409:
+ *         description: Email already exists
+ *       500:
+ *         description: Lỗi server
+ */
+router.post(
+    "/",
+    authMiddleware,
+    authorize("ADMIN"),
+    validate(createUserSchema),
+    createUserHandler
+);
+
+/**
  * GET /api/v1/users/:id
  * Lấy thông tin chi tiết người dùng (Admin only)
  * UC27: View User Detail
@@ -186,8 +274,8 @@ router.get(
 router.get(
     "/:id",
     authMiddleware,
-    validateUserId,
     authorize("ADMIN"),
+    validateUserId,
     getUserByIdHandler
 );
 

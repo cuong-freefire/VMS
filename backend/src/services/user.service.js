@@ -12,6 +12,7 @@
  * - Errors thrown as ServiceError for Controller to catch
  */
 
+import bcrypt from 'bcryptjs';
 import { ServiceError } from '../utils/response.util.js';
 import { parsePagination, createPaginationMeta } from '../utils/pagination.util.js';
 import userRepository from '../repositories/user.repository.js';
@@ -168,7 +169,73 @@ async function getUserById(userId) {
     return formatUser(user);
 }
 
+/**
+ * Create a new user.
+ * UC28: Add User — Admin tạo tài khoản mới.
+ *
+ * Business Logic:
+ * 1. Check email uniqueness (kể cả inactive users) → 409 nếu đã tồn tại
+ * 2. Validate role_id tồn tại → 400 nếu không hợp lệ
+ * 3. Hash password với bcryptjs (12 rounds)
+ * 4. Create user trong database
+ * 5. Format response (không bao gồm password)
+ *
+ * @param {Object} data - User data từ request body
+ * @returns {Promise<Object>} Formatted user object
+ * @throws {ServiceError} 400/409 errors
+ */
+async function createUserService(data) {
+    // 1. Check email uniqueness
+    const email = data.email.toLowerCase().trim();
+    const existingUser = await userRepository.findByEmail(email);
+    if (existingUser) {
+        throw new ServiceError(
+            'Email already exists.',
+            409,
+            'EMAIL_EXISTS'
+        );
+    }
+
+    // 2. Validate role_id tồn tại
+    const role = await userRepository.findRoleById(data.role_id);
+    if (!role) {
+        throw new ServiceError(
+            'Invalid role.',
+            400,
+            'INVALID_ROLE'
+        );
+    }
+
+    // 3. Hash password với bcryptjs (12 rounds)
+    const passwordHash = await bcrypt.hash(data.password, 12);
+
+    // 4. Create user trong database
+    try {
+        const newUser = await userRepository.createUser({
+            email,
+            passwordHash,
+            fullName: data.full_name.trim(),
+            phone: data.phone?.trim() || null,
+            roleId: data.role_id
+        });
+
+        // 5. Format response (reuse formatUser)
+        return formatUser(newUser);
+    } catch (error) {
+        if (error.code === "P2002") {
+            throw new ServiceError(
+                "Email already exists.",
+                409,
+                "EMAIL_EXISTS"
+            );
+        }
+
+        throw error;
+    }
+}
+
 export default {
     getUsers,
-    getUserById
+    getUserById,
+    createUserService
 };

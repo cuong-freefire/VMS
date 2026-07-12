@@ -62,7 +62,7 @@ const findMany = async ({ skip, take, where, orderBy }) => {
  */
 const findRoleNameById = async (roleId) => {
     // JWT không chứa role_id hoặc dữ liệu không hợp lệ
-    if (!roleId) {
+    if (roleId == null) {
         return null;
     }
     
@@ -121,9 +121,79 @@ const findById = async (userId) => {
     });
 };
 
+/**
+ * Find a user by email.
+ * UC28: Add User — check email uniqueness (kể cả inactive users).
+ *
+ * @param {string} email - User email
+ * @returns {Promise<Object|null>} User record or null
+ */
+const findByEmail = async (email) => {
+    return prisma.user.findUnique({
+        where: { email }
+    });
+};
+
+/**
+ * Find a role by ID.
+ * UC28: Add User — validate role_id tồn tại.
+ *
+ * @param {number} roleId - Role ID
+ * @returns {Promise<Object|null>} Role record or null
+ */
+const findRoleById = async (roleId) => {
+    return prisma.role.findUnique({
+        where: { id: roleId }
+    });
+};
+
+/**
+ * Create a new user.
+ * UC28: Add User — tạo user mới, trả về thông tin không bao gồm password.
+ *
+ * @param {Object} data - User data
+ * @param {string} data.email - User email
+ * @param {string} data.passwordHash - Bcrypt hash of password
+ * @param {string} data.fullName - Full name
+ * @param {string} [data.phone] - Phone number
+ * @param {number} data.roleId - Role ID
+ * @returns {Promise<Object>} Created user with role info (no password)
+ */
+const createUser = async (data) => {
+    return prisma.user.create({
+        data: {
+            email: data.email,
+            passwordHash: data.passwordHash,
+            fullName: data.fullName,
+            phone: data.phone || null,
+            roleId: data.roleId,
+            isActive: true,
+            emailVerified: true
+        },
+        select: {
+            id: true,
+            email: true,
+            fullName: true,
+            phone: true,
+            avatarUrl: true,
+            isActive: true,
+            createdAt: true,
+            updatedAt: true,
+            role: {
+                select: {
+                    name: true
+                }
+            }
+        }
+    });
+};
+
 export default {
     findMany,
     count,
     findRoleNameById,
-    findById
+    findById,
+    findByEmail,
+    findRoleById,
+    createUser
 };

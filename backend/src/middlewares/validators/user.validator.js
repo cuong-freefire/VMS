@@ -23,6 +23,18 @@ export const userIdSchema = z.object({
 });
 
 /**
+ * Schema validation cho POST /api/v1/users request body.
+ * UC28: Add User — Admin tạo tài khoản mới.
+ */
+export const createUserSchema = z.object({
+    full_name: z.string().min(1, 'Full name is required'),
+    email: z.string().trim().email('Invalid email format'),
+    phone: z.string().optional(),
+    password: z.string().min(8, 'Password must be at least 8 characters'),
+    role_id: z.coerce.number().int().positive('Role is required')
+});
+
+/**
  * Schema validation cho GET /api/v1/users query params.
  */
 export const getUsersSchema = z.object({

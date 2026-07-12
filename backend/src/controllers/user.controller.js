@@ -77,7 +77,31 @@ async function getUserByIdHandler(req, res, next) {
     }
 }
 
+/**
+ * POST /api/v1/users
+ * Tạo người dùng mới.
+ * Chỉ Admin mới có quyền truy cập (kiểm tra ở middleware).
+ * Mật khẩu được hash bằng bcryptjs trước khi lưu.
+ */
+async function createUserHandler(req, res, next) {
+    try {
+        const user = await userService.createUserService(req.body);
+
+        return res.status(201).json(
+            successResponse(user, 'Tạo người dùng thành công')
+        );
+    } catch (error) {
+        if (error.status && error.code) {
+            return res.status(error.status).json(
+                errorResponse(error.message, error.code, error.details)
+            );
+        }
+        next(error);
+    }
+}
+
 export {
     getUsersHandler,
-    getUserByIdHandler
+    getUserByIdHandler,
+    createUserHandler
 };
