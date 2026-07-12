@@ -6,20 +6,23 @@
 
 ## 1. OTP Generation Best Practices
 
-**Decision**: Use `crypto.randomInt(100000, 999999)` for 6-digit OTP generation
+**Decision**: Use `crypto.randomInt(0, 1000000).toString().padStart(6, 0)` for 6-digit OTP generation
 
 **Rationale**:
+
 - `crypto.randomInt()` is cryptographically secure PRNG from Node.js `crypto` module
-- Directly generates integer in range [100000, 999999] without modulo bias
-- Simpler than `randomBytes()` + conversion logic
+- `padStart(6, "'0'")` ensures leading zeros (e.g., "000123") for full 1M range (000000-999999)
+- Covers full 6-digit range without bias
 - Node.js >= 14.10.0 (VMS uses modern Node)
 
 **Alternatives Considered**:
+
 - `crypto.randomBytes(3)` + modulo: Creates bias in distribution
 - `Math.random()`: NOT cryptographically secure, predictable
-- UUID/nanoid: Overkill for short-lived OTP, harder for users to type
+- `crypto.randomInt(100000, 999999)`: Excludes leading-zero values (000000-099999)
 
 **Implementation Notes**:
+
 ```javascript
 // backend/src/utils/otp.util.js
 import crypto from 'crypto';
@@ -38,6 +41,7 @@ OTP collision is statistically negligible (1M possible values, TTL 10 min, expec
 **Decision**: Single `email_verifications` table with `type` discriminator (Source of truth: `DATABASE.md §3.1`)
 
 **Schema**:
+
 ```prisma
 enum VerificationType {
   REGISTER
@@ -64,6 +68,7 @@ model EmailVerification {
 ```
 
 **Rationale**:
+
 - Single table reduces code duplication (validation, cleanup logic)
 - `type` field allows filtering by use case while sharing lockout logic
 - UNIQUE(email, type) enforces 1 active record per email per flow — upsert replaces old record
@@ -71,11 +76,13 @@ model EmailVerification {
 - Cooldown tính từ `last_sent_at` (60 giây), phân biệt với TTL
 
 **Alternatives Considered**:
+
 - Separate tables (`otp_register`, `otp_reset_password`): Duplicate logic, harder to maintain
 - No `type` field: Cannot distinguish register vs reset in shared table
 - `is_active` soft delete flag: **REJECTED** — UNIQUE constraint + upsert đã đảm bảo 1 record active, soft delete không cần thiết và gây nhầm lẫn với `is_locked`
 
 **Implementation Notes**:
+
 - Unique constraint `(email, type)` đảm bảo chỉ có 1 record mỗi flow — dùng upsert khi tạo OTP mới
 - OTP mới → upsert record (reset `attempts=0`, `is_locked=false`, cập nhật `otp_hash`, `created_at`, `last_sent_at`)
 - Query pattern: `findUnique({ where: { email_type: { email, type: 'RESET_PASSWORD' } } })`
@@ -88,17 +95,20 @@ model EmailVerification {
 **Decision**: Always return success response + generate fake OTP for non-existing emails (discard without sending)
 
 **Rationale**:
+
 - Response time MUST be identical whether email exists or not
 - Generate OTP for non-existing emails to match database write latency
 - Do NOT send email for non-existing users (silent discard)
 - Frontend always shows "Nếu email tồn tại, OTP đã được gửi" (conditional phrasing)
 
 **Alternatives Considered**:
+
 - Return error for non-existing email: **REJECTED** (enables user enumeration)
 - Always send email: **REJECTED** (wastes resources, potential spam abuse)
 - Add artificial delay for non-existing emails: **REJECTED** (timing still detectable via variance)
 
 **Implementation Notes**:
+
 ```javascript
 // backend/src/services/auth.service.js
 async requestResetPassword(email) {
@@ -137,16 +147,19 @@ Timing attack mitigation: Database query time variance is negligible (indexed qu
 **Decision**: Store `locked_until` in same `otp_verifications` record
 
 **Rationale**:
+
 - Lockout is OTP-specific state, belongs in OTP record
 - Simplifies query: `WHERE locked_until > NOW()` in same table lookup
 - No need for separate `lockout` table (reduces joins)
 - Lockout cleared when new OTP generated (overwrite old record via `is_active = false`)
 
 **Alternatives Considered**:
+
 - Separate `account_lockouts` table: **REJECTED** (over-engineering for OTP-only lockout)
 - Global user lockout: **REJECTED** (out of scope for UC07, belongs in login flow)
 
 **Implementation Notes**:
+
 ```javascript
 // Check lockout BEFORE checking cooldown
 const latestOTP = await OtpRepository.findLatest(email, 'RESET_PASSWORD');
@@ -175,11 +188,13 @@ Lockout triggers after 5 failed attempts: `UPDATE email_verifications SET attemp
 **Decision**: Upsert khi tạo OTP mới (thay thế record cũ qua UNIQUE constraint) + hard DELETE sau reset thành công
 
 **Rationale**:
+
 - UNIQUE(email, type) đã đảm bảo mỗi email chỉ có 1 record mỗi flow — upsert tự nhiên thay thế record cũ mà không cần soft delete
 - Hard DELETE sau reset thành công (FR-012): OTP đã dùng không cần giữ lại, audit trail được ghi qua Pino log
 - Lazy delete OTP hết hạn chưa dùng: xóa trong cùng transaction khi user tạo OTP mới (hoặc bỏ qua nếu upsert đã ghi đè)
 
 **Alternatives Considered**:
+
 - Soft delete (`is_active = false`): **REJECTED** — không tồn tại cột `is_active` trong schema. UNIQUE constraint + upsert đã đủ để đảm bảo tính duy nhất
 - Never delete: **REJECTED** (unbounded table growth)
 - MySQL Event Scheduler: **REJECTED** cho MVP (over-engineering), sẽ xem xét Phase 2
@@ -187,6 +202,7 @@ Lockout triggers after 5 failed attempts: `UPDATE email_verifications SET attemp
 **Implementation Notes**:
 
 **Upsert khi tạo OTP mới** (thay thế hoàn toàn record cũ):
+
 ```javascript
 // Upsert: nếu record (email, RESET_PASSWORD) đã tồn tại → ghi đè; nếu chưa → tạo mới
 await prisma.emailVerification.upsert({
@@ -212,6 +228,7 @@ await prisma.emailVerification.upsert({
 ```
 
 **Hard DELETE sau reset thành công** (trong transaction cùng với update password):
+
 ```javascript
 await prisma.$transaction([
   prisma.user.update({
@@ -225,6 +242,7 @@ await prisma.$transaction([
 ```
 
 **Cleanup tùy chọn** cho OTP hết hạn chưa dùng (lazy delete, không bắt buộc):
+
 ```sql
 -- Chạy định kỳ hoặc tích hợp vào cron job chung
 DELETE FROM email_verifications 
@@ -240,16 +258,19 @@ DELETE FROM email_verifications
 **Decision**: Async email sending with try-catch + silent logging (do NOT block API response)
 
 **Rationale**:
+
 - Email service failure MUST NOT crash API or expose system state
 - Zero user enumeration requires identical response regardless of email send success
 - Logging email errors helps ops debug, but frontend never sees them
 
 **Alternatives Considered**:
+
 - Blocking email send: **REJECTED** (slow API response, reveals email existence via timeout)
 - Queue-based email (Bull/BullMQ): **REJECTED** (over-engineering for MVP, adds Redis dependency)
 - Retry logic: **REJECTED** (complicates flow, 10-min TTL makes retry risky)
 
 **Implementation Notes**:
+
 ```javascript
 // backend/src/services/email.service.js
 import nodemailer from 'nodemailer';
@@ -287,6 +308,7 @@ export async function sendResetPasswordOTP(email, otp) {
 ```
 
 **Environment Variables**:
+
 ```text
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
@@ -303,93 +325,43 @@ Frontend displays generic success message regardless of email send outcome.
 
 ## 7. Frontend State Management
 
-**Decision**: React Context + sessionStorage for state persistence across 3 pages
+**Decision**: Single-page component with `useState` local stepper (3 steps internally), NO Context or sessionStorage
 
 **Rationale**:
-- React Context shares state between Email/OTP/NewPassword pages without prop drilling
-- sessionStorage persists email + verification token across page refreshes (fallback to /forgot-password if missing)
-- URL params NOT used (exposes email in browser history, shareable links bypass flow)
-- Redux overkill for single-feature state
+
+- All 3 steps in same component `ForgotPasswordPage.jsx`, uses `useState` to manage `step` and `email`
+- OTP managed via `react-hook-form` `watch`/`setValue`, no separate state needed
+- `useCountdown` hook manages resend OTP timer (60s)
+- Avoids leaking email in URL, sessionStorage, or browser history
+- Refresh page resets to Step 1 (spec EC5)
 
 **Alternatives Considered**:
-- URL params (`?email=...`): **REJECTED** (privacy leak, users can share link to skip email entry)
+
+- React Context + sessionStorage: **REJECTED** (unnecessary, spec requires reset on refresh)
+- URL params: **REJECTED** (privacy leak)
 - localStorage: **REJECTED** (persists after tab close, security risk)
-- Redux: **REJECTED** (over-engineering for 3-page flow)
+- Redux: **REJECTED** (over-engineering)
+- 3 separate pages + 3 routes: **REJECTED** (needs complex router guards, exposes state via URL)
 
 **Implementation Notes**:
 
-**Context Provider**:
 ```javascript
-// frontend/src/contexts/ResetPasswordContext.jsx
-import { createContext, useState, useEffect } from 'react';
-
-export const ResetPasswordContext = createContext();
-
-export function ResetPasswordProvider({ children }) {
-  const [email, setEmail] = useState(() => 
-    sessionStorage.getItem('reset_email') || ''
-  );
-  const [otpVerified, setOtpVerified] = useState(() => 
-    sessionStorage.getItem('reset_otp_verified') === 'true'
-  );
-
-  useEffect(() => {
-    if (email) sessionStorage.setItem('reset_email', email);
-    else sessionStorage.removeItem('reset_email');
-  }, [email]);
-
-  useEffect(() => {
-    if (otpVerified) sessionStorage.setItem('reset_otp_verified', 'true');
-    else sessionStorage.removeItem('reset_otp_verified');
-  }, [otpVerified]);
-
-  const clearResetState = () => {
-    setEmail('');
-    setOtpVerified(false);
-    sessionStorage.removeItem('reset_email');
-    sessionStorage.removeItem('reset_otp_verified');
-  };
-
-  return (
-    <ResetPasswordContext.Provider value={{
-      email, setEmail,
-      otpVerified, setOtpVerified,
-      clearResetState
-    }}>
-      {children}
-    </ResetPasswordContext.Provider>
-  );
-}
-```
-
-**Route Guards**:
-```javascript
-// frontend/src/pages/ResetPasswordOTPPage.jsx
-import { useContext, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ResetPasswordContext } from '../contexts/ResetPasswordContext';
-
-export default function ResetPasswordOTPPage() {
-  const { email } = useContext(ResetPasswordContext);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!email) {
-      // Redirect to email entry if no email in context
-      navigate('/forgot-password', { replace: true });
-    }
-  }, [email, navigate]);
-
-  // Component logic...
-}
+// frontend/src/components/pages/auth/ForgotPasswordPage.jsx
+const [step, setStep] = useState(1);
+const [email, setEmail] = useState('');
+const { register, handleSubmit, watch, setValue } = useForm({...});
+const { seconds, isActive, start } = useCountdown();
 ```
 
 **State Cleanup**:
-- Clear context + sessionStorage after successful password reset
-- Clear on manual logout
-- sessionStorage auto-clears on tab close (security boundary)
+
+- Refresh page resets to Step 1 (natural due to useState)
+- After successful password reset navigate('/login')
+- No sessionStorage cleanup needed since not used
 
 ---
+
+## Summary of Key Decisions
 
 ## Summary of Key Decisions
 

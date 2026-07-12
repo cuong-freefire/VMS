@@ -1,4 +1,4 @@
-﻿# CONTEXT.md — Feature: Authentication Forgot Password (UC07)
+# CONTEXT.md — Feature: Authentication Forgot Password (UC07)
 
 # Người viết: CuongLH | Ngày: 30/06/2026
 
@@ -29,17 +29,17 @@ Người dùng có thể quên mật khẩu đăng nhập vào hệ thống VMS.
   - Lockout xảy ra sau 5 lần nhập sai OTP, khóa trong 15 phút bằng `is_locked` và `locked_until`.
   - Sau reset mật khẩu thành công: **hard DELETE** bản ghi `email_verifications` có `type = 'RESET_PASSWORD'`.
 - **Bảo mật Mật khẩu:** Mật khẩu mới bắt buộc được hash một chiều bằng `bcryptjs` (BCRYPT_SALT_ROUNDS từ `.env`, mặc định 12) trước khi cập nhật.
-- **API Response:** Tuân thủ ADR-006 — `{ success, data?, error? }`; message nằm trong `data.message`.
+- **API Response:** Tuân thủ ADR-006 — `{ success, data?, message? }`; message nằm trong `data.message`.
 - **Audit Log (MVP):** Ghi log Pino cho các sự kiện forgot-password (OTP sent, verified, success, lockout). Không log OTP plaintext, password, hoặc hash.
 
 ## 5. ASSUMPTIONS (Giả định)
 
 - Bảng `email_verifications` đã tồn tại từ UC04 (sau migration thêm `type`) và được tái sử dụng cho UC07.
 - Dịch vụ gửi mail được xử lý fail-safe: lỗi gửi mail không làm crash API.
-- Frontend có cơ chế giữ state giữa 3 bước: nhập email, nhập OTP, nhập mật khẩu mới (`ForgotPasswordStep1/2/3`, `ForgotPasswordContext`).
+- Frontend dùng single-page component (`ForgotPasswordPage.jsx`) với `useState` stepper nội bộ (3 bước trong 1 component, 1 route `/forgot-password`). KHÔNG dùng React Context, sessionStorage, hoặc nhi�u route/page riêng. Refresh page → reset v� Step 1 (tự nhiên do useState).
 - Chỉ tài khoản đang hoạt động (`is_active = true`) mới có thể hoàn tất đổi mật khẩu.
 - User có thể forgot password ngay cả khi `email_verified = false`; sau reset vẫn phải verify email trước khi login (theo rule hệ thống).
 
 ## 6. OPEN QUESTIONS
 
-Không còn câu hỏi mở. Các quyết định thiết kế đã được chốt và đồng bộ với `DATABASE.md`, UC04, và bộ artifact UC07.
+Không còn câu hỏi mở. Các quyết định thiết kế đã được chốt và đồng bộ với `DATABASE.md`, UC04, và UC07.
