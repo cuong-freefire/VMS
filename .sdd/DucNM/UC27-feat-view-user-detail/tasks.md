@@ -25,7 +25,7 @@
 
 **Purpose**: Mở rộng infrastructure đã có từ UC26 cho UC27
 
-- [ ] T001 Thêm validation schema cho user ID param trong `backend/src/validators/user.validator.js` — `userIdSchema` với Zod `coerce.number().int().positive()`
+- [x] T001 Thêm validation schema cho user ID param trong `backend/src/middlewares/validators/user.validator.js` — `userIdSchema` với Zod `coerce.number().int().positive()`
 
 ---
 
@@ -45,15 +45,15 @@
 
 ### Implementation cho User Story 1
 
-- [ ] T007 [US1] Implement `findUserById` trong `backend/src/repositories/user.repository.js` — dùng Prisma `findUnique` với `select` fields + `include role`
-- [ ] T008 [US1] Implement `getUserById` trong `backend/src/services/user.service.js` — validation userId + gọi repository + 404 handling
-- [ ] T009 [US1] Implement `getUserByIdHandler` trong `backend/src/controllers/user.controller.js` — gọi service + trả về response chuẩn ADR-006
-- [ ] T010 [US1] Thêm route `GET /:id` trong `backend/src/routes/user.routes.js` — middleware chain: authMiddleware → authorize('ADMIN') → getUserByIdHandler. **Đặt sau route `/` để tránh conflict**.
-- [ ] T011 [US1] Thêm Swagger JSDoc cho endpoint `GET /api/v1/users/:id` trong `backend/src/routes/user.routes.js`
-- [ ] T012 [US1] Implement frontend API client — thêm `getUserById(id)` trong `frontend/src/api/userApi.js`
-- [ ] T013 [US1] Implement React hook `useUserDetail` trong `frontend/src/hooks/useUserDetail.js` — quản lý state: user, loading, error, notFound
-- [ ] T014 [US1] Implement `UserDetailPage.jsx` với MUI Paper + Table layout trong `frontend/src/components/pages/UserDetailPage.jsx`
-- [ ] T015 [US1] Thêm route `/users/:id` trong `frontend/src/App.js` — dẫn đến UserDetailPage
+- [x] T007 [US1] Implement `findUserById` trong `backend/src/repositories/user.repository.js` — dùng Prisma `findUnique` với `select` fields + `include role`
+- [x] T008 [US1] Implement `getUserById` trong `backend/src/services/user.service.js` — validation userId + gọi repository + 404 handling
+- [x] T009 [US1] Implement `getUserByIdHandler` trong `backend/src/controllers/user.controller.js` — gọi service + trả về response chuẩn ADR-006
+- [x] T010 [US1] Thêm route `GET /:id` trong `backend/src/routes/user.routes.js` — middleware chain: authMiddleware → authorize('ADMIN') → getUserByIdHandler. **Đặt sau route `/` để tránh conflict**.
+- [x] T011 [US1] Thêm Swagger JSDoc cho endpoint `GET /api/v1/users/:id` trong `backend/src/routes/user.routes.js`
+- [ ] T012 [US1] Implement frontend API client — thêm `getUserById(id)` trong `frontend/src/api/userApi.js` (SKIP: frontend tasks)
+- [ ] T013 [US1] Implement React hook `useUserDetail` trong `frontend/src/hooks/useUserDetail.js` (SKIP: frontend tasks)
+- [ ] T014 [US1] Implement `UserDetailPage.jsx` (SKIP: frontend tasks)
+- [ ] T015 [US1] Thêm route trong `frontend/src/App.js` (SKIP: frontend tasks)
 
 **Checkpoint**: User Story 1 hoàn thành — Admin có thể xem chi tiết user thành công.
 
@@ -75,9 +75,9 @@
 
 ### Implementation cho User Story 2
 
-- [ ] T021 [US2] Middleware chain đã implement ở T010 — `authorize('ADMIN')` xử lý 403, `authMiddleware` xử lý 401. **(Không cần code mới — verify authorize middleware từ UC26 đã đủ)**
-- [ ] T022 [US2] Frontend: Xử lý 404 response trong `useUserDetail.js` — set `notFound = true` khi status 404
-- [ ] T023 [US2] Frontend: Xử lý 401 response trong `userApi.js` — redirect về login nếu 401 (nếu chưa có sẵn)
+- [x] T021 [US2] Middleware chain đã implement ở T010 — `authorize('ADMIN')` xử lý 403, `authMiddleware` xử lý 401. **(Verify: authorize middleware từ UC26 đã đủ)**
+- [ ] T022 [US2] Frontend: Xử lý 404 response trong `useUserDetail.js` (SKIP: frontend tasks)
+- [ ] T023 [US2] Frontend: Xử lý 401 response trong `userApi.js` (SKIP: frontend tasks)
 
 **Checkpoint**: User Story 2 hoàn thành — endpoint được bảo vệ đúng phân quyền.
 

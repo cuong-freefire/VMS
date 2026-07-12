@@ -50,6 +50,34 @@ async function getUsersHandler(req, res, next) {
     }
 }
 
+/**
+ * GET /api/v1/users/:id
+ * Lấy thông tin chi tiết của một người dùng theo ID.
+ * Chỉ Admin mới có quyền truy cập (kiểm tra ở middleware).
+ * Vẫn trả về user bị soft-delete (is_active = false).
+ *
+ * Route params:
+ *   - id: User ID (số nguyên dương)
+ */
+async function getUserByIdHandler(req, res, next) {
+    try {
+        const userId = req.params.id;
+        const user = await userService.getUserById(userId);
+
+        return res.status(200).json(
+            successResponse(user, 'Lấy thông tin người dùng thành công')
+        );
+    } catch (error) {
+        if (error.status && error.code) {
+            return res.status(error.status).json(
+                errorResponse(error.message, error.code, error.details)
+            );
+        }
+        next(error);
+    }
+}
+
 export {
-    getUsersHandler
+    getUsersHandler,
+    getUserByIdHandler
 };

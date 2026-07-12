@@ -1,11 +1,13 @@
 /**
  * User Repository - Database operations for User Management module
- * Owner: Member 4 - DucNM (UC26)
+ * Owner: Member 4 - DucNM (UC26, UC27)
  *
  * Responsibilities:
  * - Query users with pagination, search, filter, sort
  * - Count total users matching filter criteria
- *
+ * - Find user by ID with role information
+ * - Find role name by role ID
+ * 
  * Rules:
  * - All database access goes through Prisma ORM
  * - No business logic, only data layer operations
@@ -89,8 +91,39 @@ const count = async (where) => {
     return prisma.user.count({ where });
 };
 
+/**
+ * Find a single user by ID with role info.
+ * UC27: View User Detail — lookup user for detail page.
+ * Không filter is_active — Admin cần thấy cả inactive users.
+ *
+ * @param {number} userId - User ID
+ * @returns {Promise<Object|null>} User record with role or null
+ */
+const findById = async (userId) => {
+    // Trả về cả user đang inactive theo yêu cầu UC27
+    return prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+            id: true,
+            email: true,
+            fullName: true,
+            phone: true,
+            avatarUrl: true,
+            isActive: true,
+            createdAt: true,
+            updatedAt: true,
+            role: {
+                select: {
+                    name: true
+                }
+            }
+        }
+    });
+};
+
 export default {
     findMany,
     count,
-    findRoleNameById
+    findRoleNameById,
+    findById
 };

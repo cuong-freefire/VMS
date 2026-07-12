@@ -3,11 +3,24 @@
  *
  * Validation cho các query params của User Management API.
  * Bao gồm: phân trang, tìm kiếm, lọc theo role, sắp xếp.
+ * Mở rộng cho UC27: userId schema cho route param.
  *
- * Owner: Member 4 - DucNM (UC26)
+ * Owner: Member 4 - DucNM (UC26, UC27)
  */
 
 import { z } from 'zod';
+
+/**
+ * Schema validation cho userId route param.
+ * Yêu cầu: số nguyên dương.
+ * Dùng trong GET /api/v1/users/:id
+ */
+export const userIdSchema = z.object({
+    id: z.coerce
+        .number()
+        .int()
+        .positive("User ID phải là số nguyên dương")
+});
 
 /**
  * Schema validation cho GET /api/v1/users query params.

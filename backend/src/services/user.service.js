@@ -145,6 +145,30 @@ function formatUser(user) {
     };
 }
 
+/**
+ * Get user detail by ID.
+ * UC27: View User Detail — Admin xem chi tiết user.
+ * Vẫn trả về user bị soft-delete (is_active = false).
+ *
+ * @param {number} userId - User ID
+ * @returns {Promise<Object>} Formatted user object
+ * @throws {ServiceError} 404 nếu user không tồn tại
+ */
+async function getUserById(userId) {
+    const user = await userRepository.findById(userId);
+
+    if (!user) {
+        throw new ServiceError(
+            'User not found.',
+            404,
+            'USER_NOT_FOUND'
+        );
+    }
+
+    return formatUser(user);
+}
+
 export default {
-    getUsers
+    getUsers,
+    getUserById
 };

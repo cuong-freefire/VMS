@@ -16,13 +16,35 @@ import authMiddleware from "../middlewares/auth.middleware.js";
 import uploadMiddleware from "../middlewares/upload.middleware.js";
 import { updateProfileSchema } from "../middlewares/validators/profile.validator.js";
 import { getMyProfile, updateMyProfile } from "../controllers/profile.controller.js";
-import { getUsersHandler } from "../controllers/user.controller.js";
+import { getUsersHandler, getUserByIdHandler } from "../controllers/user.controller.js";
 import { errorResponse } from "../utils/response.util.js";
 import { validate, validateQuery } from "../middlewares/validators/validate.js";
-import { getUsersSchema } from "../middlewares/validators/user.validator.js";
+import { getUsersSchema, userIdSchema } from "../middlewares/validators/user.validator.js";
 import authorize from "../middlewares/authorize.middleware.js";
 
 const router = Router();
+
+/**
+ * Validate route parameter :id cho User Management.
+ * UC27 chỉ cần validate params nên không mở rộng shared validate.js.
+ */
+const validateUserId = (req, res, next) => {
+    const result = userIdSchema.safeParse(req.params.id);
+
+    if (!result.success) {
+        return res.status(400).json(
+            errorResponse(
+                result.error.issues[0].message,
+                "VALIDATION_ERROR"
+            )
+        );
+    }
+
+    // Ghi đè lại params sau khi đã parse (string -> number)
+    req.params.id = result.data;
+
+    next();
+};
 
 /**
  * GET /api/v1/users
@@ -107,6 +129,66 @@ router.get(
     authorize("ADMIN"),
     validateQuery(getUsersSchema),
     getUsersHandler
+);
+
+/**
+ * GET /api/v1/users/:id
+ * Lấy thông tin chi tiết người dùng (Admin only)
+ * UC27: View User Detail
+ */
+/**
+ * @swagger
+ * /api/v1/users/{id}:
+ *   get:
+ *     summary: Lấy thông tin chi tiết người dùng (Admin only)
+ *     description: |
+ *       Trả về thông tin chi tiết của một người dùng theo ID.
+ *       Chỉ Admin mới có quyền truy cập. Staff/Manager/Volunteer nhận 403.
+ *       Guest chưa đăng nhập nhận 401.
+ *       Nếu ID không tồn tại, trả về 404.
+ *       Vẫn trả về user bị soft-delete (is_active = false).
+ *     tags: [User Management]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID của user
+ *     responses:
+ *       200:
+ *         description: Thành công, trả về thông tin chi tiết user
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: "Lấy thông tin người dùng thành công"
+ *               data:
+ *                 user_id: 1
+ *                 full_name: "Nguyễn Văn A"
+ *                 email: "nguyenvana@example.com"
+ *                 role: "VOLUNTEER"
+ *                 is_active: true
+ *                 created_at: "2026-01-15T08:30:00.000Z"
+ *       400:
+ *         description: User ID không hợp lệ
+ *       401:
+ *         description: Chưa xác thực
+ *       403:
+ *         description: Không có quyền (không phải Admin)
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Lỗi server
+ */
+router.get(
+    "/:id",
+    authMiddleware,
+    validateUserId,
+    authorize("ADMIN"),
+    getUserByIdHandler
 );
 
 /**
