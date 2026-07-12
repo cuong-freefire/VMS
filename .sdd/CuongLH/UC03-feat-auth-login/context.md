@@ -20,7 +20,7 @@ Hệ thống VMS có 5 nhóm người dùng phân quyền rõ rệt (Guest, Volu
 ## 4. CONSTRAINTS (Ràng buộc cứng)
 
 - **Tech Stack Backend:** Bắt buộc dùng `bcryptjs` để kiểm tra hash mật khẩu (12 rounds, hardcoded). Bắt buộc tạo JWT token (7d, hardcoded). Validate dữ liệu đầu vào bằng `Zod` trước khi query database. Sử dụng `ServiceError` class để throw error từ Service layer (message, status, code, details).
-- **Tech Stack Frontend:** Phải có trạng thái loading, chặn double-submit khi đang gọi API, và báo lỗi bằng `react-toastify`. Phân biệt toast.warning (ACCOUNT_LOCKED - autoClose 8000ms) và toast.error (các lỗi khác). Xử lý response từ axiosApi đã có interceptor tự unwrap `response.data`.
+- **Tech Stack Frontend:** Phải có trạng thái loading, chặn double-submit khi đang gọi API, và báo lỗi bằng `react-toastify`. Phân biệt toast.warning (ACCOUNT_LOCKED - autoClose 8000ms) và toast.error (các lỗi khác). Xử lý response từ axiosApi đã có interceptor tự xử lý `response.data`.
 - **Security:** Tuyệt đối không lưu mật khẩu hoặc token dưới dạng plaintext trong logs. Dùng Pino logger (không dùng console.log). Error message không được rò rỉ việc "email có tồn tại hay không" để chống dò quét (ví dụ: chỉ báo "Email hoặc mật khẩu chưa chính xác", code "UNAUTHORIZED").
 - **API First:** Bắt buộc phải có comment Swagger JSDoc đầy đủ cho endpoint `POST /api/v1/auth/login`.
 - **Response Format:** Tuân thủ `response.util.js`: `successResponse(data, message)` → `{success, message, data}`, `errorResponse(message, code, details)` → `{success, message, code, details}`.
@@ -29,7 +29,7 @@ Hệ thống VMS có 5 nhóm người dùng phân quyền rõ rệt (Guest, Volu
 
 - Giả định người dùng đăng nhập bằng Email và Password.
 - Giả định mật khẩu trong Database đã được hash bằng bcrypt từ lúc Đăng ký (Register).
-- Giả định Backend sẽ trả về JWT token thông qua HttpOnly Cookie để đảm bảo bảo mật (chống XSS) thay vì trả về JSON thường. Frontend không lưu token trong Local Storage và không cần gắn thủ công vào Header, mà chỉ cần gọi axiosApi đã được cấu hình tại **frontend\src\api\axiosApi.js** có sẵn withCredentials: true để tự gắn cookie mỗi lần request từ frontend về backend.
+- Giả định Backend sẽ trả về JWT token thông qua HttpOnly Cookie để đảm bảo bảo mật (chống XSS(Cross-Site Scripting)) thay vì trả về JSON thường. Frontend không lưu token trong Local Storage và không cần gắn thủ công vào Header, mà chỉ cần gọi axiosApi đã được cấu hình tại **frontend\src\api\axiosApi.js** có sẵn withCredentials: true để tự gắn cookie mỗi lần request từ frontend về backend.
 
 ## 6. OPEN QUESTIONS (Cần chốt trước khi viết SPEC.md)
 
