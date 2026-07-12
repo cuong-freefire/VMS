@@ -90,6 +90,42 @@ const router = Router();
  *               message: Email hoặc mật khẩu chưa chính xác
  *               code: UNAUTHORIZED
  *               details: null
+ *       403:
+ *         description: |
+ *           Tài khoản bị vô hiệu hóa hoặc email chưa được xác thực:
+ *           - ACCOUNT_DISABLED: Tài khoản đã bị Admin vô hiệu hóa
+ *           - EMAIL_NOT_VERIFIED: Email chưa được xác thực qua OTP
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             examples:
+ *               accountDisabled:
+ *                 summary: Tài khoản bị vô hiệu hóa
+ *                 value:
+ *                   success: false
+ *                   message: Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên.
+ *                   code: ACCOUNT_DISABLED
+ *                   details: null
+ *               emailNotVerified:
+ *                 summary: Email chưa được xác thực
+ *                 value:
+ *                   success: false
+ *                   message: Email chưa được xác thực. Vui lòng kiểm tra hộp thư để xác thực tài khoản.
+ *                   code: EMAIL_NOT_VERIFIED
+ *                   details: null
+ *       429:
+ *         description: Tài khoản tạm thời bị khóa do nhập sai mật khẩu quá nhiều lần (5 lần/15 phút)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               success: false
+ *               message: Tài khoản tạm thời bị khóa do nhập sai mật khẩu quá nhiều lần. Vui lòng thử lại sau 15 phút.
+ *               code: ACCOUNT_LOCKED
+ *               details:
+ *                 locked_until: "2026-06-29T10:30:00.000Z"
  *       500:
  *         description: Lỗi server (database, internal error)
  *         content:

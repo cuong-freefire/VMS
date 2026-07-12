@@ -1,8 +1,8 @@
-﻿# Tasks: Quên Mật Khẩu (Forgot Password)
+# Tasks: Quên Mật Khẩu (Forgot Password)
 
 **Input**: Design documents from `.sdd/CuongLH/UC07-feat-auth-forgot-password/`
 
-**Prerequisites**: plan.md (ACCEPTED), spec.md (APPROVED), research.md, data-model.md, contracts/api-contracts.md
+**Điều kiện tiên quyết**: plan.md (ACCEPTED), spec.md (APPROVED), research.md, data-model.md, contracts/api-contracts.md
 
 **Tests**: Có — spec.md yêu cầu test coverage 80% cho services, 60% cho controllers.
 
@@ -26,7 +26,7 @@
 **Purpose**: Kiểm tra các thành phần đã có từ UC04, xác nhận sẵn sàng cho UC07
 
 - [ ] T001 Kiểm tra Prisma schema `email_verifications` có cột `type` enum (REGISTER, RESET_PASSWORD) trong `backend/prisma/schema.prisma`
-- [ ] T002 [P] Kiểm tra biến môi trường SMTP (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS) có trong `backend/.env`
+- [ ] T002 [P] Kiểm tra biến môi trường SMTP (SMTP_FROM_NAME, SMTP_USER, SMTP_PASS) có trong `backend/.env`
 - [ ] T003 [P] Chạy `npx prisma generate` để sinh Prisma Client mới nhất trong `backend/`
 
 ---
@@ -37,12 +37,12 @@
 
 **⚠️ CRITICAL**: Không User Story nào được code trước khi Phase này xong
 
-- [ ] T004 Xác nhận `otp.util.js` có hàm `generateOTP()` dùng `crypto.randomInt(100000, 999999)` trong `backend/src/utils/otp.util.js`
+- [ ] T004 Xác nhận `otp.util.js` có hàm `generateOTP()` sử dụng `crypto.randomInt(0, 1000000).toString().padStart(6, '0')` để tạo mã OTP gồm 6 chữ số trong `backend/src/utils/otp.util.js`
 - [ ] T005 [P] Xác nhận `email.service.js` có transporter NodeMailer đã config trong `backend/src/services/email.service.js`
-- [ ] T006 [P] Xác nhận `user.repository.js` có hàm `findByEmail()` và `updatePassword()` trong `backend/src/repositories/user.repository.js`
+- [ ] T006 [P] Xác nhận `auth.repository.js` có hàm `findByEmail()` và `updatePassword()` trong `backend/src/repositories/auth.repository.js`
 - [ ] T007 [P] Xác nhận `response.util.js` có hàm `success()` và `error()` chuẩn ADR-006 trong `backend/src/utils/response.util.js`
 - [ ] T008 Xác nhận `auth.routes.js` đã có cấu trúc router và export trong `backend/src/routes/auth.routes.js`
-- [ ] T009 [P] Xác nhận `auth.validator.js` đã export validator middleware trong `backend/src/middlewares/validators/auth.validator.js`
+- [ ] T009 [P] Xác nhận `validate.js` đã export validator middleware dùng chung trong `backend/src/middlewares/validators/validate.js`
 
 **Checkpoint**: Foundation ready — có thể bắt đầu code các User Story
 
@@ -58,8 +58,8 @@
 
 - [ ] T010 [US1] Implement `requestResetPassword(email)` trong `backend/src/services/auth.service.js` — Tạo OTP, hash bcrypt, lưu DB (upsert theo email+type), gửi email async. Với email không tồn tại: tạo fake OTP, không lưu DB, không gửi email, vẫn trả success
 - [ ] T011 [US1] Implement `verifyResetOTP(email, otp)` trong `backend/src/services/auth.service.js` — Tìm record theo (email, RESET_PASSWORD), kiểm tra hết hạn (created_at + 10 phút), so sánh bcrypt, xử lý attempts, return verified=true nếu đúng
-- [ ] T012 [US1] Implement `resetPassword(email, otp, newPassword)` trong `backend/src/services/auth.service.js` — Gọi verifyResetOTP re-validate, kiểm tra user is_active, hash mật khẩu mới, transaction: update password + DELETE OTP record
-- [ ] T013 [P] [US1] Implement `sendResetPasswordOTP(email, otp)` template trong `backend/src/services/email.service.js` — Gửi email HTML đơn giản chứa OTP 6 số, try-catch lỗi im lặng, log Pino
+- [ ] T012 [US1] Implement `resetPassword(email, otp, newPassword)` trong `backend/src/services/auth.service.js` — Gọi verifyResetOTP re-validate, kiểm tra user is_active, hash mật khẩu mới, sequential: updatePassword + DELETE OTP record
+- [ ] T013 [P] [US1] Implement `sendResetPasswordEmail()` trong `backend/src/services/email.service.js` — Gửi email HTML đơn giản chứa OTP 6 số, try-catch lỗi im lặng, log Pino
 
 ### Backend: API Layer (Validator + Controller + Routes)
 
@@ -70,21 +70,14 @@
   - `POST /api/v1/auth/forgot-password/verify-otp` + validate(verifyOTPSchema)
   - `POST /api/v1/auth/forgot-password/reset` + validate(resetPasswordSchema)
 
-### Frontend: State & Context
-
-- [ ] T017 [US1] Tạo `ForgotPasswordContext.jsx` trong `frontend/src/contexts/ForgotPasswordContext.jsx` — Lưu email, otpVerified flag, currentStep, persist qua sessionStorage, có hàm clearResetState()
-
 ### Frontend: Pages
 
-- [ ] T018 [P] [US1] Tạo `ForgotPasswordStep1.jsx` trong `frontend/src/pages/auth/ForgotPasswordStep1.jsx` — Form nhập email, validate email format, gọi API request, hiển thị thông báo chung chung, chuyển Step 2
-- [ ] T019 [P] [US1] Tạo `ForgotPasswordStep2.jsx` trong `frontend/src/pages/auth/ForgotPasswordStep2.jsx` — Form OTPInput 6 chữ số (dùng lại OTPInput component), countdown 10 phút, gọi API verify, chuyển Step 3
-- [ ] T020 [P] [US1] Tạo `ForgotPasswordStep3.jsx` trong `frontend/src/pages/auth/ForgotPasswordStep3.jsx` — Form nhập mật khẩu mới + xác nhận, validate độ mạnh (8 ký tự, hoa, thường, số, đặc biệt), gọi API reset, redirect /login
+- [ ] T018 [US1] Tạo `ForgotPasswordPage.jsx` trong `frontend/src/components/pages/auth/ForgotPasswordPage.jsx` — Stepper 3 bước nội bộ, quản lý state bằng useState (step, email). Step 1: form nhập email → gọi forgotPasswordRequest, setEmail + chuyển Step 2. Step 2: OTPInput 6 chữ số (dùng lại component OTPInput.jsx) + countdown gửi lại (useCountdown), gọi forgotPasswordVerifyOtp, chuyển Step 3. Step 3: form PasswordInput (mới + xác nhận) + PasswordRequirements, gọi forgotPasswordReset, toast success → navigate('/login', { state: { passwordReset: true } }). KHÔNG persist state — refresh → reset về Step 1
 
 ### Frontend: Route & Navigation
 
-- [ ] T021 [US1] Thêm route `/forgot-password` vào `frontend/src/App.js` — Bọc bằng ForgotPasswordContext Provider, render ForgotPasswordFlow container
-- [ ] T022 [US1] Tạo `ForgotPasswordFlow.jsx` trong `frontend/src/components/auth/ForgotPasswordFlow.jsx` — Container quản lý 3 step, điều hướng qua context.currentStep, route guard (nếu chưa có email thì redirect Step 1)
-- [ ] T023 [P] [US1] Thêm 3 hàm API vào `frontend/src/services/authApi.js` — `requestResetPassword(email)`, `verifyResetOTP(email, otp)`, `resetPassword(email, otp, newPassword)` dùng Axios POST
+- [ ] T019 [US1] Thêm route `/forgot-password` vào `frontend/src/App.js` — Import ForgotPasswordPage, đặt trong AuthLayout (đã có sẵn), bọc bởi GuestRoute. KHÔNG cần Context Provider riêng, không cần Flow container
+- [ ] T020 [P] [US1] Thêm 3 hàm API vào `frontend/src/services/auth.service.js` — `forgotPasswordRequest(email)` → POST /api/v1/auth/forgot-password/request, `forgotPasswordVerifyOtp({ email, otp })` → POST /api/v1/auth/forgot-password/verify-otp, `forgotPasswordReset({ email, otp, newPassword })` → POST /api/v1/auth/forgot-password/reset
 
 ### Tests cho User Story 1+4
 
@@ -108,7 +101,7 @@
 
 - [ ] T029 [US2] Bổ sung logic lockout vào `verifyResetOTP()` trong `backend/src/services/auth.service.js` — Sau mỗi lần sai: increment attempts, nếu attempts >= 5: SET is_locked=true, locked_until=NOW()+15min, return 429
 - [ ] T030 [US2] Bổ sung check `locked_until` TRƯỚC cooldown trong `requestResetPassword()` trong `backend/src/services/auth.service.js` — Nếu locked_until > NOW(): từ chối với 429 + thời gian còn lại
-- [ ] T031 [US2] Cập nhật `ForgotPasswordStep2.jsx` trong `frontend/src/pages/auth/ForgotPasswordStep2.jsx` — Hiển thị thông báo lỗi lockout với thời gian đếm ngược, vô hiệu hóa input OTP khi bị khóa
+- [ ] T031 [US2] Cập nhật logic Step 2 trong `ForgotPasswordPage.jsx` trong `frontend/src/components/pages/auth/ForgotPasswordPage.jsx` — Hiển thị thông báo lỗi lockout với thời gian đếm ngược, vô hiệu hóa input OTP khi bị khóa
 
 ### Tests for User Story 2
 
@@ -131,7 +124,7 @@
 - [ ] T035 [US3] Bổ sung logic cooldown vào `requestResetPassword()` trong `backend/src/services/auth.service.js` — Check last_sent_at + 60s > NOW(): từ chối 429 + thời gian còn lại
 - [ ] T036 [US3] Bổ sung logic hết hạn OTP vào `verifyResetOTP()` trong `backend/src/services/auth.service.js` — Check created_at + 10 phút < NOW(): từ chối 400 "OTP đã hết hạn"
 - [ ] T037 [US3] Bổ sung upsert logic vào `requestResetPassword()` trong `backend/src/services/auth.service.js` — Khi tạo OTP mới: upsert record (ghi đè otp_hash, reset created_at, attempts=0, is_locked=false)
-- [ ] T038 [US3] Cập nhật `ForgotPasswordStep2.jsx` trong `frontend/src/pages/auth/ForgotPasswordStep2.jsx` — Thêm nút "Gửi lại OTP" với cooldown timer 60s, reset OTP countdown về 10 phút khi gửi lại, hiển thị thông báo OTP hết hạn
+- [ ] T038 [US3] Cập nhật logic Step 2 trong `ForgotPasswordPage.jsx` trong `frontend/src/components/pages/auth/ForgotPasswordPage.jsx` — Thêm nút "Gửi lại OTP" với cooldown timer 60s, reset OTP countdown về 10 phút khi gửi lại, hiển thị thông báo OTP hết hạn
 
 ### Tests for User Story 3
 
@@ -147,9 +140,9 @@
 
 **Purpose**: Unit test cho các component frontend
 
-- [ ] T042 [P] Viết component test cho `ForgotPasswordStep1` — render form, validate email, gọi API thành công/lỗi trong `frontend/tests/auth/ForgotPasswordStep1.test.jsx`
-- [ ] T043 [P] Viết component test cho `ForgotPasswordStep2` — render OTP input, countdown timer, lockout message trong `frontend/tests/auth/ForgotPasswordStep2.test.jsx`
-- [ ] T044 [P] Viết component test cho `ForgotPasswordStep3` — render password form, validate độ mạnh, xác nhận khớp, gọi API thành công/lỗi, redirect login trong `frontend/tests/auth/ForgotPasswordStep3.test.jsx`
+- [ ] T042 [P] Viết component test cho `ForgotPasswordPage` (Step 1: render form, validate email, gọi API thành công/lỗi) trong `frontend/tests/auth/ForgotPasswordPage.test.jsx`
+- [ ] T043 [P] Viết component test cho `ForgotPasswordPage` (Step 2: render OTPInput, countdown timer, lockout message) trong `frontend/tests/auth/ForgotPasswordPage.test.jsx`
+- [ ] T044 [P] Viết component test cho `ForgotPasswordPage` (Step 3: render password form, validate độ mạnh, xác nhận khớp, gọi API thành công/lỗi, redirect login) trong `frontend/tests/auth/ForgotPasswordPage.test.jsx`
 
 ---
 

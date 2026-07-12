@@ -237,10 +237,19 @@ frontend/
 **Decision**: Tất cả API response PHẢI dùng format:
 
 ```javascript
+// Success: successResponse(data, message)
 {
-  success: boolean,
-  data?: any,      // Present when success = true
-  error?: string   // Present when success = false
+  success: true,
+  message: string,  // Default: "Success"
+  data: any         // Response payload
+}
+
+// Error: errorResponse(message, code, details?)
+{
+  success: false,
+  message: string,    // Human-readable error
+  code: string,       // Machine-readable code (e.g. "UNAUTHORIZED")
+  details?: any       // Optional extra info (e.g. {locked_until})
 }
 ```
 

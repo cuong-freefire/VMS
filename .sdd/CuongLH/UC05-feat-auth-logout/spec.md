@@ -73,7 +73,7 @@ Là Người dùng, tôi muốn hệ thống vẫn xóa thông tin định danh 
 
 **FR-011 (Access Control)**: WHERE người dùng đã đăng xuất cố gắng truy cập vào trang yêu cầu xác thực, THE system SHALL chuyển hướng về trang đăng nhập với thông báo "Vui lòng đăng nhập để tiếp tục".
 
-**FR-012 (Single Session)**: THE system SHALL implement Single Active Session model, nghĩa là khi người dùng đăng nhập trên thiết bị mới, phiên làm việc cũ trên thiết bị khác sẽ tự động bị vô hiệu hóa (theo DATABASE.md - user_sessions có UNIQUE constraint trên user_id).
+**FR-012 (Single Session)**: THE system SHALL implement Stateless JWT Logout. Việc đăng xuất chỉ xóa cookie `token` phía client (httpOnly), không cần invalidate token trên server. Token sẽ tự động hết hạn sau thời gian định trước (7 ngày). Do VMS sử dụng Single Active Session model (DATABASE.md - `user_sessions` có UNIQUE constraint trên `user_id`), chỉ có 1 active session tại mọi thời điểm.
 
 ### Non-Functional Requirements
 

@@ -38,13 +38,13 @@ Tính năng đăng nhập an toàn cho VMS, cho phép người dùng (Volunteer,
 
 **Performance Goals**:
 
-- Login API response time < 200ms (p95) với 100 concurrent requests
+- Login API response time < 200ms với 100 concurrent requests
 - JWT generation + bcrypt verification < 300ms
 - Frontend page load (LoginPage) < 1 second
 
 **Constraints**:
 
-- MUST use HttpOnly Cookie for JWT (KHÔNG localStorage) per ADR-002
+- MUST use HttpOnly Cookie for JWT (KHÔNG localStorage) per ADR-002 (CLAUDE.md)
 - MUST enforce Single Active Session (1 user = 1 session) per SPEC US4
 - MUST soft delete users (is_active flag) per ADR-005
 - MUST use bcrypt salt rounds = 12 per DATABASE.md
@@ -54,7 +54,7 @@ Tính năng đăng nhập an toàn cho VMS, cho phép người dùng (Volunteer,
 
 - MVP target: 100-500 concurrent users
 - Expected active users: ~1,000 volunteers + 50 staff + 10 managers + 5 admins
-- Login frequency: ~2-5 logins/user/week
+- Tần xuất login: ~2-5 logins/user/week
 
 ## Constitution Check
 
@@ -72,7 +72,7 @@ Tính năng đăng nhập an toàn cho VMS, cho phép người dùng (Volunteer,
 
 ✅ **PASS**: userId lấy từ JWT → Middleware `authenticate` inject `req.user`, Service KHÔNG đọc từ req.body
 
-✅ **PASS**: Không commit secrets → AUTH_SECRET, JWT_SECRET trong .env, file .env trong .gitignore
+✅ **PASS**: Không commit secrets → SECRET_KEY, JWT_SECRET trong .env, file .env trong .gitignore
 
 ✅ **PASS**: Input validation → Zod validator middleware cho email format và required fields
 
@@ -144,10 +144,9 @@ backend/
 │   │   └── auth.routes.js              # [NEW] Route: POST /api/v1/auth/login
 │   ├── middlewares/
 │   │   ├── auth.middleware.js          # [NEW] authenticate() middleware: verify JWT → check jti → check expiresAt → clear cookie → inject req.user
-│   │   └── errorHandler.middleware.js  # [EXISTING] Centralized error handler
 │   ├── validators/
 │   │   ├── auth.validator.js           # [NEW] Zod schemas cho login input (email.max(255), .toLowerCase(), .trim())
-│   │   └── validate.js                 # [NEW] Shared validation middleware factory (safeParse + strip)
+│   │   └── validate.js                 # [NEW] Shared validation middleware factory (safeParse)
 │   ├── utils/
 │   │   ├── jwt.util.js                 # [NEW] JWT sign/verify helpers + setTokenToCookie
 │   │   └── response.util.js            # [NEW] Response formatter: {success, message, data/code, details} + ServiceError
@@ -172,8 +171,8 @@ frontend/
 │   │   ├── layouts/
 │   │   │   └── AuthLayout.jsx          # [NEW] Auth page wrapper: VMS branding + Outlet
 │   │   └── guards/
-│   │       ├── ProtectedRoute.jsx      # [NEW] Redirect unauthenticated → /login
-│   │       ├── GuestRoute.jsx          # [NEW] Redirect authenticated → role home
+│   │       ├── ProtectedRoute.jsx      # [NEW] Chuyển hướng người dùng chưa xác thực → /login
+│   │       ├── GuestRoute.jsx          # [NEW] Chuyển hướng sau khi xác thực → role home
 │   │       └── RoleRoute.jsx           # [NEW] Block users without required role
 │   ├── api/
 │   │   └── axiosApi.js                 # [EXISTING] Axios client: withCredentials + response interceptor (401→redirect, 403→redirect, 500→log)
@@ -187,12 +186,12 @@ frontend/
 └── tests/
     └── components/
         └── pages/
-            └── LoginPage.test.jsx      # [NEW] LoginPage component tests
+            └── LoginPage.jsx           # [NEW] LoginPage component
 ```
 
 **Structure Decision**:
 
-VMS là web application với separate backend và frontend. UC03 follow **Option 2** từ template.
+VMS là web application với separate backend và frontend..
 
 **Key directories**:
 

@@ -101,7 +101,7 @@ Kẻ tấn công cố gắng dò quét email nào tồn tại trong hệ thống
 
 #### FR-004: Xác thực OTP
 
-**WHEN** người dùng submit mã OTP tại Trang 2, **THE system SHALL** kiểm tra mã OTP có khớp với `otp_hash` trong bảng `email_verifications`, chưa hết hạn (trong vòng 10 phút từ `created_at`), không bị khóa (`is_locked = false`), và thuộc `type = 'RESET_PASSWORD'`.
+**WHEN** người dùng submit mã OTP tại Trang 2, **THE system SHALL** kiểm tra mã OTP có khớp với `otp_hash` trong bảng `email_verifications`, chưa hết hạn (trong vòng 10 phút từ `last_send_at`), không bị khóa (`is_locked = false`), và thuộc `type = 'RESET_PASSWORD'`.
 
 #### FR-005: Đếm số lần nhập sai OTP
 
@@ -157,7 +157,7 @@ Kẻ tấn công cố gắng dò quét email nào tồn tại trong hệ thống
 
 ### Key Entities *(Business Level Only)*
 
-- **Email Verification Record (`email_verifications`)**: Đại diện cho mã xác thực OTP được tạo cho khôi phục mật khẩu. Bao gồm: email, `otp_hash` (bcrypt), `type = 'RESET_PASSWORD'`, `created_at` (TTL 10 phút), `last_sent_at` (cooldown 60s), `attempts`, `is_locked`, `locked_until`. Dùng chung bảng với luồng Register (1-Table Design, phân biệt bằng `type`).
+- **Email Verification Record (`email_verifications`)**: Đại diện cho mã xác thực OTP được tạo cho khôi phục mật khẩu. Bao gồm: email, `otp_hash` (bcrypt), `type = 'RESET_PASSWORD'`, `created_at` (Time khỏi tạo), `last_sent_at` (cooldown 60s, TTL 10 phút), `attempts`, `is_locked`, `locked_until`. Dùng chung bảng với luồng Register (1-Table Design, phân biệt bằng `type`).
 
 - **User Account**: Tài khoản người dùng trong hệ thống, bao gồm email (định danh duy nhất) và mật khẩu đã được mã hóa một chiều. Mật khẩu sẽ được cập nhật sau khi người dùng hoàn tất luồng khôi phục mật khẩu thành công.
 
@@ -171,18 +171,18 @@ Kẻ tấn công cố gắng dò quét email nào tồn tại trong hệ thống
 
 ### Security
 
-- **NFR-004**: Mã OTP phải được tạo ngẫu nhiên với entropy đủ cao để chống brute-force (6 chữ số = 1.000.000 tổ hợp)
+- **NFR-004**: Mã OTP phải được tạo ngẫu nhiên với entropy( mức độ ngẫu nhiên hoặc độ khó đoán ) đủ cao để chống brute-force (6 chữ số = 1.000.000 tổ hợp)
 - **NFR-005**: Mật khẩu mới phải được mã hóa một chiều với thuật toán mạnh và không thể giải mã ngược
 - **NFR-006**: Hệ thống phải che giấu hoàn toàn thông tin về sự tồn tại của tài khoản để chống dò quét (zero user enumeration)
 - **NFR-007**: Response time giữa email tồn tại và không tồn tại phải tương đương nhau để tránh timing attack
 
-### Usability
+### Usability (Khả năng sử dụng)
 
 - **NFR-008**: Thông báo lỗi phải rõ ràng, cụ thể và hướng dẫn người dùng cách khắc phục (ví dụ: "Vui lòng đợi 45 giây nữa trước khi gửi lại" thay vì "Cooldown active")
 - **NFR-009**: Giao diện 3 trang phải có chỉ dẫn rõ ràng về bước hiện tại và bước tiếp theo
 - **NFR-010**: Email chứa OTP phải có định dạng dễ đọc, rõ ràng về mục đích và thời gian hết hạn
 
-### Reliability
+### Reliability (Độ tin cậy)
 
 - **NFR-011**: Hệ thống phải xử lý gracefully khi dịch vụ gửi email bên thứ ba không khả dụng, không crash toàn bộ API
 - **NFR-012**: Race condition khi nhiều request đồng thời phải được xử lý đúng, chỉ giữ OTP mới nhất
@@ -229,7 +229,7 @@ Kẻ tấn công cố gắng dò quét email nào tồn tại trong hệ thống
 - Người dùng có quyền truy cập vào email đã đăng ký và có thể đọc email trong vòng 10 phút
 - Dịch vụ gửi email bên thứ ba (SMTP/Nodemailer) đã được cấu hình đúng và hoạt động ổn định với uptime ít nhất 99%
 - Người dùng đã có tài khoản trong hệ thống (`users.email` tồn tại); không yêu cầu `email_verified = true` để reset mật khẩu
-- Frontend được xây dựng bằng React và có khả năng quản lý state giữa các trang mà không cần reload
+- Frontend được xây dựng bằng React và quản lý state bằng `useState` trong cùng 1 component (`ForgotPasswordPage.jsx`) cho cả 3 bước, không cần reload hay chuyển trang. KHÔNG dùng React Context hoặc sessionStorage. Refresh page → reset về Step 1.
 - Bảng `email_verifications` đã tồn tại (UC04) với cột `type` và đang được dùng chung cho Register và Reset Password
 - Múi giờ server và client không ảnh hưởng đến tính toán thời gian hết hạn OTP và lockout (server time là chuẩn)
 
@@ -245,5 +245,5 @@ Các tính năng sau KHÔNG nằm trong phạm vi của feature này và KHÔNG 
 - **Tự động đăng nhập sau khi đổi mật khẩu thành công**: Sau khi đổi mật khẩu, người dùng phải tự đăng nhập lại bằng mật khẩu mới. Hệ thống không tự động tạo session cho người dùng vì lý do bảo mật.
 - **Gửi thông báo email khi mật khẩu được thay đổi**: Tính năng gửi email thông báo "Mật khẩu của bạn vừa được thay đổi" sẽ được cân nhắc trong v2.
 - **Lịch sử thay đổi mật khẩu**: Hệ thống không lưu lịch sử các lần thay đổi mật khẩu của người dùng.
-- **Multi-factor Authentication (MFA) trong quá trình khôi phục**: Luồng khôi phục này không yêu cầu thêm bước MFA ngoài OTP qua email.
+- **Xác thực đa yếu tố (MFA) khi khôi phục tài khoản**: Luồng khôi phục mật khẩu chỉ yêu cầu xác minh bằng mã OTP gửi qua email, không áp dụng thêm các bước xác thực khác như ứng dụng Authenticator, SMS OTP hoặc khóa bảo mật.
 - **Khôi phục tài khoản bị vô hiệu hóa hoặc xóa**: Tính năng này chỉ áp dụng cho tài khoản đang hoạt động (active). Tài khoản đã bị vô hiệu hóa hoặc xóa không thể khôi phục mật khẩu.

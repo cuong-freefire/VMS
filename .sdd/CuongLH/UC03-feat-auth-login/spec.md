@@ -58,7 +58,7 @@ Là Admin của hệ thống, tôi muốn hệ thống tự động khóa tính 
 
 **Acceptance Scenarios**:
 
-1. **Given** người dùng có tài khoản hợp lệ "<user@vms.com>", **When** người dùng nhập sai password 5 lần liên tiếp trong vòng ngắn, **Then** hệ thống khóa tính năng đăng nhập của tài khoản này trong 15 phút và trả về HTTP 429 với message "Tài khoản tạm thời bị khóa do nhập sai mật khẩu quá nhiều lần. Vui lòng thử lại sau 15 phút.", error code "ACCOUNT_LOCKED", và `locked_until` timestamp trong `details`.
+1. **Given** người dùng có tài khoản hợp lệ "<user@vms.com>", **When** người dùng nhập sai password 5 lần liên tiếp, **Then** hệ thống khóa tính năng đăng nhập của tài khoản này trong 15 phút và trả về HTTP 429 với message "Tài khoản tạm thời bị khóa do nhập sai mật khẩu quá nhiều lần. Vui lòng thử lại sau 15 phút.", error code "ACCOUNT_LOCKED", và `locked_until` timestamp trong `details`.
 
 2. **Given** tài khoản "<user@vms.com>" đang bị khóa do nhập sai 5 lần, **When** người dùng thử đăng nhập với password đúng trong thời gian khóa, **Then** hệ thống vẫn trả về HTTP 429 và không cho phép đăng nhập.
 
@@ -78,7 +78,7 @@ Là Admin của hệ thống, tôi muốn mỗi tài khoản chỉ có một phi
 
 **Acceptance Scenarios**:
 
-1. **Given** người dùng đã đăng nhập thành công trên thiết bị A và nhận được JWT với `jti_1`, **When** người dùng đăng nhập lại cùng tài khoản trên thiết bị B và nhận được JWT với `jti_2`, **Then** hệ thống lưu `jti_2` và ghi đè `jti_1` trong `user_sessions` qua Prisma `upsert`.
+1. **Given** người dùng đã đăng nhập thành công trên thiết bị A và nhận được JWT với `jti_1` (Json web token id), **When** người dùng đăng nhập lại cùng tài khoản trên thiết bị B và nhận được JWT với `jti_2`, **Then** hệ thống lưu `jti_2` và ghi đè `jti_1` trong `user_sessions` qua Prisma `upsert`.
 
 2. **Given** token cũ với `jti_1` đã bị ghi đè bởi `jti_2`, **When** người dùng sử dụng token cũ (`jti_1`) để gọi protected API, **Then** hệ thống trả về HTTP 401 với message "Tài khoản của bạn đã được đăng nhập trên một thiết bị khác." và error code "LOGGED_IN_ELSEWHERE", đồng thời clear cookie.
 

@@ -81,7 +81,7 @@ Set-Cookie: token=<JWT_TOKEN>; HttpOnly; Secure; SameSite=Lax; Max-Age=604800; P
 ```json
 {
   "success": true,
-  "message": "Dang nhap thanh cong",
+  "message": "Đăng nhập thành công",
   "data": {
     "user": {
       "id": "number",
@@ -301,7 +301,7 @@ Set-Cookie: token=<JWT_TOKEN>; HttpOnly; Secure; SameSite=Lax; Max-Age=604800; P
 **Signing**:
 
 - Algorithm: HS256 (HMAC SHA-256)
-- Secret: `AUTH_SECRET` from .env (min 256 bits)
+- Secret: `SECRET_KEY` from .env (min 256 bits)
 
 ---
 
@@ -340,7 +340,7 @@ Set-Cookie: token=<JWT_TOKEN>; HttpOnly; Secure; SameSite=Lax; Max-Age=604800; P
 7. [Service] Generate JWT
    jti = `${user.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
    payload = { user_id, email, role_id, role_name, jti }
-   token = jwt.sign(payload, AUTH_SECRET, { expiresIn: '7d' })
+   token = jwt.sign(payload, SECRET_KEY, { expiresIn: '7d' })
 
 8. [Service] Upsert session (Single Active Session)
    Query: UPSERT user_sessions SET jti = ?, expires_at = ? WHERE user_id = ?
@@ -353,7 +353,7 @@ Set-Cookie: token=<JWT_TOKEN>; HttpOnly; Secure; SameSite=Lax; Max-Age=604800; P
     res.cookie('token', token, { httpOnly, secure, sameSite, maxAge })
 
 11. [Controller] Return success response
-    res.json({ success: true, message: 'Dang nhap thanh cong', data: { user: {...} } })
+    res.json({ success: true, message: 'Đăng nhập thành công', data: { user: {...} } })
 ```
 
 ### Error Path: Account Locked
@@ -573,7 +573,7 @@ const LoginPage = () => {
 ### Security Tests
 
 - [ ] JWT payload chứa đúng fields: user_id, email, role_id, jti, iat, exp
-- [ ] JWT signature valid với AUTH_SECRET
+- [ ] JWT signature valid với SECRET_KEY
 - [ ] JWT expires_at = iat + 7 days
 - [ ] Cookie httpOnly = true (cannot access via document.cookie)
 - [ ] Cookie secure = true in production
@@ -634,7 +634,7 @@ const LoginPage = () => {
                   example: true
                 message:
                   type: string
-                  example: "Dang nhap thanh cong"
+                  example: "Đăng nhập thành công"
                 data:
                   type: object
                   properties:
