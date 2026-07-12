@@ -16,6 +16,7 @@
 import express from 'express';
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
+import categoryRoutes from './routes/category.routes.js';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 
@@ -84,6 +85,8 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/user', userRoutes);
 // 6.3 Admin User Management routes (UC26: View User List)
 app.use('/api/v1/users', userRoutes);
+// 6.4 Category Management routes (UC31: View Category List)
+app.use('/api/v1/categories', categoryRoutes);
 
 app.get('/', (req, res) => {
   res.cookie('testCookie', 'testValue', {
