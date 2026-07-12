@@ -1,4 +1,4 @@
-﻿# API Contract: Send OTP
+# API Contract: Send OTP
 
 **Endpoint**: `POST /api/v1/auth/register/send-otp`
 
@@ -149,15 +149,15 @@ const sendOTPSchema = z.object({
 {
   "success": false,
   "error": "Vui lòng đợi 45 giây trước khi gửi lại OTP.",
-  "remaining_seconds": 45
+  "remainingSeconds": 45
 }
 ```
 
-**Trigger**: Less than 60 seconds since `last_sent_at` timestamp
+**Trigger**: Less than 60 seconds since `lastSentAt` timestamp
 
 **Additional Field**:
 
-- `remaining_seconds`: Number of seconds until cooldown expires
+- `remainingSeconds`: Number of seconds until cooldown expires
 
 ---
 
@@ -167,15 +167,13 @@ const sendOTPSchema = z.object({
 {
   "success": false,
   "error": "Email đã bị khóa do nhập sai OTP quá nhiều lần. Vui lòng thử lại sau 12 phút.",
-  "locked_until": "2026-06-29T10:15:00.000Z"
+  "lockedUntil": "2026-06-29T10:15:00.000Z"
 }
 ```
 
-**Trigger**: Email has `is_locked = true` and `locked_until > NOW()` in `email_verifications` table
+**Trigger**: Email has `isLocked = true` and `lockedUntil > NOW()` in `email_verifications` table
 
-**Additional Field**:
-
-- `locked_until`: ISO 8601 timestamp when lock expires
+**Response Format**: Uses standard ServiceError format with `success`, `message`, `code` fields.
 
 ---
 
@@ -193,7 +191,7 @@ const sendOTPSchema = z.object({
 **Behavior**:
 
 - Error logged to backend (critical level)
-- OTP record still created in database (can be used if email delivers late)
+- OTP record still created in database. Email sending is fire-and-forget (async).
 - Frontend should show retry button
 
 ---
@@ -233,13 +231,13 @@ const sendOTPSchema = z.object({
    └─ Record exists → Continue to Step 5
 
 5. Check if email is locked
-   ├─ is_locked = TRUE AND locked_until > NOW() → 429 Locked
-   ├─ is_locked = TRUE AND locked_until <= NOW() → Reset lock, Continue
-   └─ is_locked = FALSE → Continue
+   ├─ isLocked = TRUE AND lockedUntil > NOW() → 429 Locked
+   ├─ isLocked = TRUE AND lockedUntil <= NOW() → Reset lock, Continue
+   └─ isLocked = FALSE → Continue
 
 6. Check cooldown
-   ├─ (NOW() - last_sent_at) < 60 seconds → 429 Cooldown
-   └─ (NOW() - last_sent_at) >= 60 seconds → Continue
+   ├─ (NOW() - lastSentAt) < 60 seconds → 429 Cooldown
+   └─ (NOW() - lastSentAt) >= 60 seconds → Continue
 
 7. Generate 6-digit OTP
    - Use crypto.randomInt(100000, 999999)
@@ -253,18 +251,18 @@ const sendOTPSchema = z.object({
    - INSERT or UPDATE (if exists)
    - Fields:
      * email: normalized email
-     * otp_hash: bcrypt hash
-     * created_at: NOW()
-     * last_sent_at: NOW()
+     * otpHash: bcrypt hash
+     * lastSentAt: NOW()
+     * lastSentAt: NOW()
      * attempts: 0 (reset counter)
-     * is_locked: FALSE (unlock if was locked)
-     * locked_until: NULL
+     * isLocked: FALSE (unlock if was locked)
+     * lockedUntil: NULL
 
 10. Send email via NodeMailer
     - To: user's email
     - Subject: "Mã xác thực đăng ký VMS"
     - Body: Plain text with OTP
-    - Template: See email.util.js
+    - Template: See email.service.js (sendVerificationEmail)
     ├─ Success → Continue
     └─ Failure → Log error, return 503
 
@@ -315,14 +313,14 @@ Existing Record (locked, not expired) → [REJECTED] → 429 error
 **Action**: INSERT or UPDATE
 
 ```sql
-INSERT INTO email_verifications (email, otp_hash, created_at, last_sent_at, attempts, is_locked, locked_until)
+INSERT INTO email_verifications (email, otpHash, lastSentAt, lastSentAt, attempts, isLocked, lockedUntil)
 VALUES ('user@vms.com', '$2a$10$...', NOW(), NOW(), 0, FALSE, NULL)
 ON DUPLICATE KEY UPDATE
-  otp_hash = VALUES(otp_hash),
-  last_sent_at = VALUES(last_sent_at),
+  otpHash = VALUES(otpHash),
+  lastSentAt = VALUES(lastSentAt),
   attempts = 0,
-  is_locked = FALSE,
-  locked_until = NULL;
+  isLocked = FALSE,
+  lockedUntil = NULL;
 ```
 
 ---
@@ -338,11 +336,16 @@ Xin chào,
 
 Bạn đã yêu cầu đăng ký tài khoản tình nguyện viên tại VMS.
 
-Mã xác thực OTP của bạn là: 123456
+Mã xác thực của bạn là: 123456
 
-Mã này có hiệu lực trong 10 phút kể từ khi nhận được email này.
+Mã này có hiệu lực trong 10 phút. Vui lòng không chia sẻ mã này với bất kỳ ai.
 
-Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email này.
+Hướng dẫn:
+1. Quay lại ứng dụng VMS
+2. Nhập mã xác thực: 123456
+3. Hoàn tất đăng ký tài khoản
+
+Nếu bạn không yêu cầu đăng ký này, vui lòng bỏ qua email này.
 
 ---
 Volunteer Management System (VMS)
@@ -411,13 +414,13 @@ POST /api/v1/auth/register/send-otp
 **Expected**:
 
 - Status: 429
-- Response: "Vui lòng đợi X giây..." with remaining_seconds
+- Response: "Vui lòng đợi X giây..." with remainingSeconds
 
 ---
 
 #### TC-04: Email Locked
 
-**Precondition**: Email has is_locked=TRUE, locked_until in future
+**Precondition**: Email has isLocked=TRUE, lockedUntil in future
 
 **Request**:
 
@@ -431,7 +434,7 @@ POST /api/v1/auth/register/send-otp
 **Expected**:
 
 - Status: 429
-- Response: "Email đã bị khóa..." with locked_until timestamp
+- Response: "Email đã bị khóa..." with lockedUntil timestamp
 
 ---
 
