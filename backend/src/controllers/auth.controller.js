@@ -69,14 +69,6 @@ export async function verifyOTPController(req, res) {
     }
 }
 
-/**
- * Logout controller - Clear JWT cookie
- * Implements UC05: User Story 1
- * Idempotent design: always returns 200 regardless of auth state.
- * Stateless JWT - no server-side session invalidation.
- * Token cleared from browser via clearCookie, expires naturally.
- */
-
 export async function requestResetPassword(req, res) {
     try {
         const { email } = req.body;
@@ -134,6 +126,13 @@ export async function changePassword(req, res) {
     }
 }
 
+/**
+ * Logout controller - Clear JWT cookie
+ * Implements UC05: User Story 1
+ * Idempotent design: always returns 200 regardless of auth state.
+ * Stateless JWT - no server-side session invalidation.
+ * Token cleared from browser via clearCookie, expires naturally.
+ */
 export async function logout(req, res) {
     try {
         res.clearCookie('token', {

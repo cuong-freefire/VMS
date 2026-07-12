@@ -256,7 +256,8 @@ const getJtiByUserId = async (userId) => {
             jti: true,
             expiresAt: true
         }
-    })
+    });
+    if (!response) return null;
     return { jti: response.jti, expiresAt: response.expiresAt };
 }
 
@@ -267,7 +268,8 @@ const deleteSessionByUserId = async (userId) => {
             jti: true,
             expiresAt: true
         }
-    })
+    });
+    if (!response) return null;
     return { jti: response.jti, expiresAt: response.expiresAt };
 }
 

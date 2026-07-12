@@ -60,6 +60,36 @@ export default async function authMiddleware(req, res, next) {
         );
     }
 
+    const user = await authRepository.findUserByEmail(decode.email);
+    if (!user) {
+        return res.status(401).json(
+            errorResponse('Phiên đăng nhập không hợp lệ.', 'TOKEN_INVALID')
+        );
+    }
+
+    if (!user.isActive) {
+        res.clearCookie('token', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax'
+        });
+        return res.status(403).json(
+            errorResponse(
+                'Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên.',
+                'ACCOUNT_DISABLED'
+            )
+        );
+    }
+
+    if (!user.emailVerified) {
+        return res.status(403).json(
+            errorResponse(
+                'Email chưa được xác thực. Vui lòng kiểm tra hộp thư để xác thực tài khoản.',
+                'EMAIL_NOT_VERIFIED'
+            )
+        );
+    }
+
     req.user = decode;
     next();
 }
