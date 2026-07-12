@@ -12,6 +12,7 @@
  * - Manager/Admin → thấy tất cả (active + inactive)
  */
 
+import { ServiceError } from '../utils/response.util.js';
 import categoryRepository from '../repositories/category.repository.js';
 
 /**
@@ -63,6 +64,79 @@ async function getCategories(currentUser) {
     };
 }
 
+/**
+ * Map type string từ request body sang Prisma EventCategoryType enum.
+ * "location" → "LOCATION", "event_type" → "TYPE", "time_frame" → "TIME"
+ */
+const typeMap = {
+    'location': 'LOCATION',
+    'event_type': 'TYPE',
+    'time_frame': 'TIME'
+};
+
+/**
+ * Create a new category.
+ * UC32: Add Category — Manager/Admin thêm danh mục mới.
+ *
+ * Business Logic:
+ * 1. Normalize input
+ * 2. Map type string sang Prisma enum
+ * 3. Check uniqueness: cùng name trong cùng type → 409 nếu trùng
+ * 4. Create category trong database
+ * 5. Format response
+ *
+ * @param {Object} data - Category data từ request body
+ * @returns {Promise<Object>} Formatted category object
+ * @throws {ServiceError} 409 nếu tên đã tồn tại trong cùng type
+ */
+async function createCategoryService(data) {
+    // Chuẩn hóa dữ liệu
+    const name = data.name.trim();
+
+    // Map type string sang Prisma enum
+    const categoryType = typeMap[data.type];
+    if (!categoryType) {
+        throw new ServiceError(
+            'Invalid category type.',
+            400,
+            'INVALID_CATEGORY_TYPE'
+        );
+    }
+    
+    // Check uniqueness: cùng name trong cùng type
+    const existing = await categoryRepository.findByNameAndType(name, categoryType);
+    if (existing) {
+        throw new ServiceError(
+            'Category name already exists in this type.',
+            409,
+            'CATEGORY_EXISTS'
+        );
+    }
+
+    // Create category trong database
+    try {
+        const newCategory = await categoryRepository.createCategory({
+            name,
+            categoryType,
+            description: data.description
+        });
+
+        // Format response
+        return formatCategory(newCategory);
+    } catch (error) {
+        if (error.code === 'P2002') {
+            throw new ServiceError(
+                'Category name already exists in this type.',
+                409,
+                'CATEGORY_EXISTS'
+            );
+        }
+
+        throw error;
+    }
+}
+
 export default {
-    getCategories
+    getCategories,
+    createCategoryService
 };

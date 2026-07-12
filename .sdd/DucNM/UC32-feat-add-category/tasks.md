@@ -25,9 +25,9 @@
 
 **Purpose**: Cập nhật Prisma schema và tạo Zod validation
 
-- [ ] T001 Thêm composite unique constraint `@@unique([name, type])` vào Category model trong `backend/prisma/schema.prisma`
-- [ ] T002 Chạy Prisma migration: `npx prisma migrate dev --name add_category_unique_constraint`
-- [ ] T003 [P] Tạo `createCategorySchema` (Zod) trong `backend/src/validators/category.validator.js` — name (min 1), description (optional), type (enum: location, event_type, time_frame)
+- [x] T001 Composite unique `@@unique([name, categoryType])` đã có sẵn trong Prisma schema
+- [x] T002 Không cần chạy migration — constraint đã tồn tại
+- [x] T003 [P] Tạo `createCategorySchema` (Zod) trong `backend/src/validators/category.validator.js` — name (min 1), description (optional), type (enum: location, event_type, time_frame)
 
 ---
 
@@ -47,12 +47,12 @@
 
 ### Implementation cho User Story 1
 
-- [ ] T009 [US1] Implement `findCategoryByNameAndType` trong `backend/src/repositories/category.repository.js` — dùng Prisma `findFirst` với where { name, type }
-- [ ] T010 [US1] Implement `createCategory` trong `backend/src/repositories/category.repository.js` — dùng Prisma `create`
-- [ ] T011 [US1] Implement `createCategoryService` trong `backend/src/services/category.service.js` — validation → unique check → create → return
-- [ ] T012 [US1] Implement `createCategoryHandler` trong `backend/src/controllers/category.controller.js` — gọi service + trả về 201
-- [ ] T013 [US1] Thêm route `POST /` trong `backend/src/routes/category.routes.js` — middleware chain: authMiddleware → authorize('MANAGER', 'ADMIN') → createCategoryHandler
-- [ ] T014 [US1] Thêm Swagger JSDoc cho endpoint `POST /api/v1/categories` trong `backend/src/routes/category.routes.js`
+- [x] T009 [US1] Implement `findByNameAndType` trong `backend/src/repositories/category.repository.js` — dùng Prisma `findFirst` với where { name, categoryType }
+- [x] T010 [US1] Implement `createCategory` trong `backend/src/repositories/category.repository.js` — dùng Prisma `create`
+- [x] T011 [US1] Implement `createCategoryService` trong `backend/src/services/category.service.js` — type mapping → unique check → create → format
+- [x] T012 [US1] Implement `createCategoryHandler` trong `backend/src/controllers/category.controller.js` — gọi service + trả về 201
+- [x] T013 [US1] Thêm route `POST /` trong `backend/src/routes/category.routes.js` — middleware chain: authMiddleware → authorize('MANAGER', 'ADMIN') → validate(createCategorySchema) → createCategoryHandler
+- [x] T014 [US1] Thêm Swagger JSDoc cho endpoint `POST /api/v1/categories` trong `backend/src/routes/category.routes.js`
 
 **Checkpoint**: User Story 1 hoàn thành — Manager/Admin tạo được category mới.
 
@@ -73,8 +73,8 @@
 
 ### Implementation cho User Story 2
 
-- [ ] T019 [US2] Zod schema `createCategorySchema` đã implement ở T003 — validation tự động từ Zod safeParse
-- [ ] T020 [US2] Frontend: Validation đồng bộ với React Hook Form + Zod resolver trong `AddCategoryPage.jsx`
+- [x] T019 [US2] Zod schema `createCategorySchema` đã implement ở T003 — validation tự động từ Zod safeParse
+- [ ] T020 [US2] Frontend: Validation đồng bộ (SKIP: frontend tasks)
 
 **Checkpoint**: User Story 2 hoàn thành — Validation hoạt động cả FE và BE.
 
@@ -95,7 +95,7 @@
 
 ### Implementation cho User Story 3
 
-- [ ] T025 [US3] Middleware chain đã implement ở T013 — `authorize('MANAGER', 'ADMIN')` xử lý 403, `authMiddleware` xử lý 401. **(Không cần code mới)**
+- [x] T025 [US3] Middleware chain đã implement ở T013 — `authorize('MANAGER', 'ADMIN')` xử lý 403, `authMiddleware` xử lý 401. **(Verify: authorize middleware từ UC26 đã đủ)**
 
 **Checkpoint**: User Story 3 hoàn thành — endpoint được bảo vệ đúng phân quyền.
 

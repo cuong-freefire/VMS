@@ -55,8 +55,56 @@ const findRoleNameById = async (roleId) => {
     return role?.name ?? null;
 };
 
+/**
+ * Find category by name and type.
+ * UC32: Add Category — check uniqueness (cùng name trong cùng type).
+ *
+ * @param {string} name - Category name
+ * @param {string} categoryType - Category type (LOCATION, TIME, TYPE)
+ * @returns {Promise<Object|null>} Category record or null
+ */
+const findByNameAndType = async (name, categoryType) => {
+    return prisma.eventCategory.findFirst({
+        where: {
+            name,
+            categoryType
+        }
+    });
+};
+
+/**
+ * Create a new category.
+ * UC32: Add Category — tạo category mới.
+ *
+ * @param {Object} data - Category data
+ * @param {string} data.name - Category name
+ * @param {string} data.categoryType - Category type enum
+ * @param {string} [data.description] - Optional description
+ * @returns {Promise<Object>} Created category
+ */
+const createCategory = async (data) => {
+    return prisma.eventCategory.create({
+        data: {
+            name: data.name,
+            categoryType: data.categoryType,
+            description: data.description || null
+        },
+        select: {
+            id: true,
+            name: true,
+            description: true,
+            categoryType: true,
+            isActive: true,
+            createdAt: true,
+            updatedAt: true
+        }
+    });
+};
+
 export default {
     findAll,
-    findRoleNameById
+    findRoleNameById,
+    findByNameAndType,
+    createCategory
 };
 

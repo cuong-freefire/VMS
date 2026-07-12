@@ -43,6 +43,29 @@ async function getCategoriesHandler(req, res, next) {
     }
 }
 
+/**
+ * POST /api/v1/categories
+ * Tạo danh mục mới.
+ * Chỉ Manager/Admin mới có quyền truy cập (kiểm tra ở middleware).
+ */
+async function createCategoryHandler(req, res, next) {
+    try {
+        const category = await categoryService.createCategoryService(req.body);
+
+        return res.status(201).json(
+            successResponse(category, 'Tạo danh mục thành công')
+        );
+    } catch (error) {
+        if (error.status && error.code) {
+            return res.status(error.status).json(
+                errorResponse(error.message, error.code, error.details)
+            );
+        }
+        next(error);
+    }
+}
+
 export {
-    getCategoriesHandler
+    getCategoriesHandler,
+    createCategoryHandler
 };
