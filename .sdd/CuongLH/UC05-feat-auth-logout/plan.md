@@ -37,7 +37,7 @@ Technical approach: Sử dụng kiến trúc Stateless JWT, việc đăng xuất
 **Performance Goals**:
 
 - Logout hoàn tất trong < 1 giây (NFR-001)
-- UI update trong < 200ms sau khi cookie cleared (SC-003)
+- UI update trong < 200ms sau khi AuthContext cleared (SC-004)
 - API response time < 100ms (p95)
 
 **Constraints**:
@@ -46,7 +46,7 @@ Technical approach: Sử dụng kiến trúc Stateless JWT, việc đăng xuất
 - PHẢI xóa cookie trên cả client và server side (set cookie với maxAge = 0)
 - Frontend PHẢI clear AuthContext trước khi redirect
 - Logout PHẢI idempotent (xử lý multiple clicks an toàn)
-- Offline resilience: Client phải clear cookie ngay cả khi API call fails
+- Offline resilience: Client phải clear AuthContext ngay cả khi API call fails (httpOnly cookie không thể bị xóa bởi JavaScript phía client)
 
 **Scale/Scope**:
 
