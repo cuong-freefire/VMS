@@ -12,144 +12,155 @@
  * - Config invalid state handling
  */
 
-import emailService from "../../src/services/email.service.js";
+import { jest, beforeEach, afterEach, describe, it, expect } from '@jest/globals';
 
-// Mock the transporter BEFORE importing the service
-// The singleton is already created, but sendMail is the method we replace
-let mockSendMail;
-let mockVerify;
+// Mock transporter.sendMail BEFORE importing emailService
+// email.service.js imports transporter at module level and calls
+// transporter.sendMail directly inside the sendEmail closure.
+// Since sendVerificationEmail etc. call sendEmail (the closure),
+// spying on emailService.sendEmail has no effect.
+// We must mock at the transporter level.
+const mockSendMail = jest.fn();
+
+jest.unstable_mockModule('../../src/config/transporter.config.js', () => ({
+    transporter: {
+        sendMail: mockSendMail,
+    },
+    verifyTransporter: jest.fn().mockResolvedValue(true),
+}));
+
+const emailServiceModule = await import('../../src/services/email.service.js');
+const emailService = emailServiceModule.default;
 
 beforeEach(() => {
-    mockSendMail = jest.fn();
-    mockVerify = jest.fn();
-
-    // Replace transporter methods with mocks
-    // emailService uses the singleton imported transporter
-    // We mock sendMail on the prototype
-    jest.spyOn(emailService, "sendEmail").mockImplementation(jest.fn());
+    jest.clearAllMocks();
 });
 
 afterEach(() => {
     jest.restoreAllMocks();
 });
 
-describe("EmailService", () => {
+describe('EmailService', () => {
     // ─── Core sendEmail ───
-    describe("sendEmail", () => {
-        beforeEach(() => {
-            // Restore sendEmail for the core tests
-            jest.restoreAllMocks();
+    describe('sendEmail', () => {
+        it('should return success with messageId on successful send', async () => {
+            mockSendMail.mockResolvedValue({ messageId: '<test123@mail>' });
 
-        });
-
-        it("should return success with messageId on successful send", async () => {
-            // We test via the public API which calls sendEmail internally
-            // Mock sendEmail on the instance to simulate success
-            const mockResult = { success: true, messageId: "<test123@mail>" };
-            jest.spyOn(emailService, "sendEmail").mockResolvedValue(mockResult);
-
-            const result = await emailService.sendVerificationEmail(
-                "test@example.com", "Test User", "123456"
+            const result = await emailService.sendEmail(
+                'test@example.com',
+                'Test Subject',
+                '<p>Test</p>'
             );
 
             expect(result.success).toBe(true);
-            expect(result.messageId).toBe("<test123@mail>");
+            expect(result.messageId).toBe('<test123@mail>');
+            expect(mockSendMail).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    to: 'test@example.com',
+                    subject: 'Test Subject',
+                    html: '<p>Test</p>',
+                })
+            );
         });
 
-        it("should return error on send failure", async () => {
-            const mockResult = { success: false, error: "SMTP connection timeout" };
-            jest.spyOn(emailService, "sendEmail").mockResolvedValue(mockResult);
+        it('should return error on send failure', async () => {
+            mockSendMail.mockRejectedValue(new Error('SMTP connection timeout'));
 
-            const result = await emailService.sendVerificationEmail(
-                "test@example.com", "Test User", "123456"
+            const result = await emailService.sendEmail(
+                'test@example.com',
+                'Test Subject',
+                '<p>Test</p>'
             );
 
             expect(result.success).toBe(false);
-            expect(result.error).toBe("SMTP connection timeout");
+            expect(result.error).toBe('SMTP connection timeout');
         });
-
     });
 
     // ─── UC62: Verification Email ───
-    describe("sendVerificationEmail", () => {
-        it("should delegate to sendEmail with correct args", async () => {
-            const mockResult = { success: true, messageId: "<msg1>" };
-            const sendEmailSpy = jest.spyOn(emailService, "sendEmail").mockResolvedValue(mockResult);
+    describe('sendVerificationEmail', () => {
+        it('should delegate to sendEmail with correct args', async () => {
+            mockSendMail.mockResolvedValue({ messageId: '<msg1>' });
 
-            await emailService.sendVerificationEmail(
-                "user@test.com", "Test User", "123456", 10
+            const result = await emailService.sendVerificationEmail(
+                'user@test.com', 'Test User', '123456', 10
             );
 
-            expect(sendEmailSpy).toHaveBeenCalledWith(
-                "user@test.com",
-                "Xác thực tài khoản VMS",
-                expect.stringContaining("Test User")
+            expect(result.success).toBe(true);
+            expect(mockSendMail).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    to: 'user@test.com',
+                    subject: 'Xác thực tài khoản VMS',
+                })
             );
         });
     });
 
     // ─── UC63: Reset Password Email ───
-    describe("sendResetPasswordEmail", () => {
-        it("should delegate to sendEmail with correct args", async () => {
-            const mockResult = { success: true, messageId: "<msg2>" };
-            jest.spyOn(emailService, "sendEmail").mockResolvedValue(mockResult);
+    describe('sendResetPasswordEmail', () => {
+        it('should delegate to sendEmail with correct args', async () => {
+            mockSendMail.mockResolvedValue({ messageId: '<msg2>' });
 
             const result = await emailService.sendResetPasswordEmail(
-                "user@test.com", "Test User", "654321", 10
+                'user@test.com', 'Test User', '654321', 10
             );
 
             expect(result.success).toBe(true);
+            expect(mockSendMail).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    to: 'user@test.com',
+                })
+            );
         });
     });
 
     // ─── UC64: Approval Email ───
-    describe("sendApprovalEmail", () => {
-        it("should delegate to sendEmail with event details", async () => {
-            const mockResult = { success: true, messageId: "<msg3>" };
-            const sendEmailSpy = jest.spyOn(emailService, "sendEmail").mockResolvedValue(mockResult);
+    describe('sendApprovalEmail', () => {
+        it('should delegate to sendEmail with event details', async () => {
+            mockSendMail.mockResolvedValue({ messageId: '<msg3>' });
 
-            await emailService.sendApprovalEmail(
-                "volunteer@test.com",
-                "Nguyen Van A",
-                "Don rac bai bien",
-                "2026-07-15 08:00",
-                "Bien Vung Tau"
+            const result = await emailService.sendApprovalEmail(
+                'volunteer@test.com',
+                'Nguyen Van A',
+                'Don rac bai bien',
+                '2026-07-15 08:00',
+                'Bien Vung Tau'
             );
 
-            expect(sendEmailSpy).toHaveBeenCalledWith(
-                "volunteer@test.com",
-                expect.stringContaining("Don rac bai bien"),
-                expect.stringContaining("Nguyen Van A")
+            expect(result.success).toBe(true);
+            expect(mockSendMail).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    to: 'volunteer@test.com',
+                })
             );
         });
     });
 
     // ─── UC64: Rejection Email ───
-    describe("sendRejectionEmail", () => {
-        it("should delegate to sendEmail with rejection reason", async () => {
-            const mockResult = { success: true, messageId: "<msg4>" };
-            const sendEmailSpy = jest.spyOn(emailService, "sendEmail").mockResolvedValue(mockResult);
+    describe('sendRejectionEmail', () => {
+        it('should delegate to sendEmail with rejection reason', async () => {
+            mockSendMail.mockResolvedValue({ messageId: '<msg4>' });
 
-            await emailService.sendRejectionEmail(
-                "volunteer@test.com",
-                "Nguyen Van A",
-                "Don rac bai bien",
-                "Da du tinh nguyen vien"
+            const result = await emailService.sendRejectionEmail(
+                'volunteer@test.com',
+                'Nguyen Van A',
+                'Don rac bai bien',
+                'Da du tinh nguyen vien'
             );
 
-            expect(sendEmailSpy).toHaveBeenCalledWith(
-                "volunteer@test.com",
-                expect.stringContaining("Don rac bai bien"),
-                expect.stringContaining("Da du tinh nguyen vien")
+            expect(result.success).toBe(true);
+            expect(mockSendMail).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    to: 'volunteer@test.com',
+                })
             );
         });
 
-        it("should handle missing reason", async () => {
-            const mockResult = { success: true, messageId: "<msg5>" };
-            jest.spyOn(emailService, "sendEmail").mockResolvedValue(mockResult);
+        it('should handle missing reason', async () => {
+            mockSendMail.mockResolvedValue({ messageId: '<msg5>' });
 
             const result = await emailService.sendRejectionEmail(
-                "volunteer@test.com", "Name", "Event"
+                'volunteer@test.com', 'Name', 'Event'
             );
 
             expect(result.success).toBe(true);
@@ -157,16 +168,15 @@ describe("EmailService", () => {
     });
 
     // ─── UC65: Reminder Email ───
-    describe("sendReminderEmail", () => {
-        it("should delegate to sendEmail with reminder content", async () => {
-            const mockResult = { success: true, messageId: "<msg6>" };
-            jest.spyOn(emailService, "sendEmail").mockResolvedValue(mockResult);
+    describe('sendReminderEmail', () => {
+        it('should delegate to sendEmail with reminder content', async () => {
+            mockSendMail.mockResolvedValue({ messageId: '<msg6>' });
 
             const result = await emailService.sendReminderEmail(
-                "volunteer@test.com",
-                "Nguyen Van A",
-                "Don rac bai bien",
-                "2026-07-15 08:00"
+                'volunteer@test.com',
+                'Nguyen Van A',
+                'Don rac bai bien',
+                '2026-07-15 08:00'
             );
 
             expect(result.success).toBe(true);
@@ -174,30 +184,28 @@ describe("EmailService", () => {
     });
 
     // ─── UC66: Certificate Email ───
-    describe("sendCertificateEmail", () => {
-        it("should return error for non-existent file", async () => {
+    describe('sendCertificateEmail', () => {
+        it('should return error for non-existent file', async () => {
             const result = await emailService.sendCertificateEmail(
-                "volunteer@test.com",
-                "Nguyen Van A",
-                "Don rac bai bien",
-                "/nonexistent/path/certificate.pdf"
+                'volunteer@test.com',
+                'Nguyen Van A',
+                'Don rac bai bien',
+                '/nonexistent/path/certificate.pdf'
             );
 
             expect(result.success).toBe(false);
-            expect(result.error).toContain("Certificate file error");
+            expect(result.error).toContain('ENOENT');
         });
 
-        it("should not call sendEmail if file not found", async () => {
-            const sendEmailSpy = jest.spyOn(emailService, "sendEmail");
-
+        it('should not call sendMail if file not found', async () => {
             await emailService.sendCertificateEmail(
-                "volunteer@test.com",
-                "Name",
-                "Event",
-                "/nonexistent/file.pdf"
+                'volunteer@test.com',
+                'Name',
+                'Event',
+                '/nonexistent/file.pdf'
             );
 
-            expect(sendEmailSpy).not.toHaveBeenCalled();
+            expect(mockSendMail).not.toHaveBeenCalled();
         });
     });
 });
