@@ -65,7 +65,41 @@ async function createCategoryHandler(req, res, next) {
     }
 }
 
+/**
+ * PATCH /api/v1/categories/:id
+ * Cập nhật thông tin danh mục.
+ * Chỉ Manager/Admin mới có quyền truy cập (kiểm tra ở middleware).
+ * Type không thể thay đổi.
+ */
+async function updateCategoryHandler(req, res, next) {
+    try {
+        const categoryId = Number.parseInt(req.params.id, 10);
+        if (Number.isNaN(categoryId)) {
+            return res.status(400).json(
+                errorResponse(
+                    'Invalid category ID.',
+                    'INVALID_CATEGORY_ID'
+                )
+            );
+        }
+
+        const category = await categoryService.updateCategoryService(categoryId, req.body);
+
+        return res.status(200).json(
+            successResponse(category, 'Cập nhật danh mục thành công')
+        );
+    } catch (error) {
+        if (error.status && error.code) {
+            return res.status(error.status).json(
+                errorResponse(error.message, error.code, error.details)
+            );
+        }
+        next(error);
+    }
+}
+
 export {
     getCategoriesHandler,
-    createCategoryHandler
+    createCategoryHandler,
+    updateCategoryHandler
 };

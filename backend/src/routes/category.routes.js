@@ -15,8 +15,8 @@ import authMiddleware from "../middlewares/auth.middleware.js";
 import authorize from "../middlewares/authorize.middleware.js";
 import optionalAuth from "../middlewares/optionalAuth.middleware.js";
 import { validate } from "../middlewares/validators/validate.js";
-import { getCategoriesHandler, createCategoryHandler } from "../controllers/category.controller.js";
-import { createCategorySchema } from "../validators/category.validator.js";
+import { getCategoriesHandler, createCategoryHandler, updateCategoryHandler } from "../controllers/category.controller.js";
+import { createCategorySchema, updateCategorySchema } from "../validators/category.validator.js";
 
 const router = Router();
 
@@ -138,6 +138,86 @@ router.post(
     authorize("MANAGER", "ADMIN"),
     validate(createCategorySchema),
     createCategoryHandler
+);
+
+/**
+ * PATCH /api/v1/categories/:id
+ * Cập nhật danh mục (UC33: Edit Category)
+ * Chỉ Manager/Admin mới có quyền truy cập.
+ */
+/**
+ * @swagger
+ * /api/v1/categories/{id}:
+ *   patch:
+ *     summary: Cập nhật danh mục (Manager/Admin only)
+ *     description: |
+ *       Cập nhật thông tin danh mục theo ID.
+ *       Chỉ Manager và Admin mới có quyền truy cập.
+ *       Staff/Volunteer nhận 403. Guest nhận 401.
+ *       Type không thể thay đổi (bất biến).
+ *       Tên mới phải unique trong cùng type — nếu trùng trả về 409.
+ *     tags: [Category Management]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID của danh mục
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Tên danh mục
+ *               description:
+ *                 type: string
+ *                 description: Mô tả
+ *               is_active:
+ *                 type: boolean
+ *                 description: Trạng thái hoạt động
+ *           example:
+ *             name: "Giáo dục (Updated)"
+ *             description: "Các sự kiện giáo dục cập nhật"
+ *             is_active: true
+ *     responses:
+ *       200:
+ *         description: Cập nhật thành công
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: "Cập nhật danh mục thành công"
+ *               data:
+ *                 category_id: 1
+ *                 name: "Giáo dục (Updated)"
+ *                 type: "event_type"
+ *                 is_active: true
+ *       400:
+ *         description: Dữ liệu không hợp lệ hoặc body rỗng
+ *       401:
+ *         description: Chưa xác thực
+ *       403:
+ *         description: Không có quyền
+ *       404:
+ *         description: Category not found
+ *       409:
+ *         description: Category name already exists in this type
+ *       500:
+ *         description: Lỗi server
+ */
+router.patch(
+    "/:id",
+    authMiddleware,
+    authorize("MANAGER", "ADMIN"),
+    validate(updateCategorySchema),
+    updateCategoryHandler
 );
 
 export default router;

@@ -56,20 +56,39 @@ const findRoleNameById = async (roleId) => {
 };
 
 /**
- * Find category by name and type.
+ * Find category by ID.
+ * UC33: Edit Category — check category tồn tại.
+ *
+ * @param {number} id - Category ID
+ * @returns {Promise<Object|null>} Category record or null
+ */
+const findById = async (id) => {
+    return prisma.eventCategory.findUnique({
+        where: { id }
+    });
+};
+
+/**
+ * Find category by name and type, optionally exclude a specific ID.
  * UC32: Add Category — check uniqueness (cùng name trong cùng type).
+ * UC33: Edit Category — check uniqueness khi đổi tên, exclude chính category đang edit.
  *
  * @param {string} name - Category name
  * @param {string} categoryType - Category type (LOCATION, TIME, TYPE)
+ * @param {number} [excludeId] - Optional ID to exclude (for edit)
  * @returns {Promise<Object|null>} Category record or null
  */
-const findByNameAndType = async (name, categoryType) => {
-    return prisma.eventCategory.findFirst({
-        where: {
-            name,
-            categoryType
-        }
-    });
+const findByNameAndType = async (name, categoryType, excludeId) => {
+    const where = {
+        name,
+        categoryType
+    };
+
+    if (excludeId !== undefined) {
+        where.NOT = { id: excludeId };
+    }
+
+    return prisma.eventCategory.findFirst({ where });
 };
 
 /**
@@ -101,10 +120,39 @@ const createCategory = async (data) => {
     });
 };
 
+/**
+ * Update a category by ID.
+ * UC33: Edit Category — update thông tin category.
+ *
+ * @param {number} id - Category ID
+ * @param {Object} data - Fields to update
+ * @param {string} [data.name] - Category name
+ * @param {string} [data.description] - Description
+ * @param {boolean} [data.isActive] - Active status
+ * @returns {Promise<Object>} Updated category
+ */
+const updateCategory = async (id, data) => {
+    return prisma.eventCategory.update({
+        where: { id },
+        data,
+        select: {
+            id: true,
+            name: true,
+            description: true,
+            categoryType: true,
+            isActive: true,
+            createdAt: true,
+            updatedAt: true
+        }
+    });
+};
+
 export default {
     findAll,
     findRoleNameById,
     findByNameAndType,
-    createCategory
+    createCategory,
+    findById,
+    updateCategory
 };
 

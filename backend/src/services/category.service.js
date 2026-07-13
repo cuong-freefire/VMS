@@ -46,7 +46,6 @@ async function getCategories(currentUser) {
         roleName = await categoryRepository.findRoleNameById(
             currentUser.role_id
         );
-
     }
 
     const normalizedRole = roleName?.toUpperCase();
@@ -102,7 +101,7 @@ async function createCategoryService(data) {
             'INVALID_CATEGORY_TYPE'
         );
     }
-    
+
     // Check uniqueness: cùng name trong cùng type
     const existing = await categoryRepository.findByNameAndType(name, categoryType);
     if (existing) {
@@ -136,7 +135,96 @@ async function createCategoryService(data) {
     }
 }
 
+/**
+ * Update category information.
+ * UC33: Edit Category — Manager/Admin chỉnh sửa danh mục.
+ *
+ * Business Logic:
+ * 1. Check category exists → 404 nếu không tìm thấy
+ * 2. If name changed, check uniqueness trong cùng type (exclude self) → 409 nếu trùng
+ * 3. Map request fields to Prisma field names
+ * 4. Update category trong database
+ * 5. Format response
+ *
+ * @param {number} categoryId - Category ID từ route param
+ * @param {Object} data - Fields to update từ request body
+ * @returns {Promise<Object>} Formatted category object
+ * @throws {ServiceError} 400/404/409 errors
+ */
+async function updateCategoryService(categoryId, data) {
+
+    // Validate category ID
+    if (!Number.isInteger(categoryId) || categoryId <= 0) {
+        throw new ServiceError(
+            'Invalid category id.',
+            400,
+            'INVALID_CATEGORY_ID'
+        );
+    }
+
+    // 1. Check category exists
+    const existing = await categoryRepository.findById(categoryId);
+    if (!existing) {
+        throw new ServiceError(
+            'Category not found.',
+            404,
+            'CATEGORY_NOT_FOUND'
+        );
+    }
+
+    const normalizedName = data.name !== undefined
+            ? data.name.trim()
+            : undefined;
+
+    // 2. If name changed, check uniqueness trong cùng type (exclude self)
+    if (normalizedName !== undefined && normalizedName !== existing.name) {
+        const conflict = await categoryRepository.findByNameAndType(
+            normalizedName,
+            existing.categoryType,
+            categoryId // exclude self
+        );
+        if (conflict) {
+            throw new ServiceError(
+                'Category name already exists in this type.',
+                409,
+                'CATEGORY_EXISTS'
+            );
+        }
+    }
+
+    // 3. Map request fields to Prisma field names
+    const updateData = {};
+    if (normalizedName !== undefined) {
+        updateData.name = normalizedName;
+    }
+    if (data.description !== undefined) {
+        updateData.description = data.description ?? null;
+    }
+    if (data.is_active !== undefined) {
+        updateData.isActive = data.is_active;
+    }
+
+    // 4. Update category trong database
+    try {
+        const updatedCategory = await categoryRepository.updateCategory(categoryId, updateData);
+
+        // 5. Format response
+        return formatCategory(updatedCategory);
+    } catch (error) {
+        if (error.code === 'P2002') {
+            throw new ServiceError(
+                'Category name already exists in this type.',
+                409,
+                'CATEGORY_EXISTS'
+            );
+        }
+
+        throw error;
+    }
+}
+
 export default {
     getCategories,
-    createCategoryService
+    createCategoryService,
+    updateCategoryService
 };
