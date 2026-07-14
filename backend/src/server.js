@@ -24,9 +24,9 @@ const PORT = process.env.PORT_BE || 5000;
  */
 app.listen(PORT, () => {
   // Log thông tin startup
-  logger.info(`🚀 API server is running on http://localhost:${PORT}`);
-  logger.info(`📚 Swagger UI: http://localhost:3636`);
-  logger.info(`🔗 Environment: ${process.env.NODE_ENV || 'development'}`);
+  logger.info(`[SERVER] API server is running on http://localhost:${PORT}`);
+  logger.info(`[SWAGGER] UI: http://localhost:3636`);
+  logger.info(`[ENV] ${process.env.NODE_ENV || 'development'}`);
 });
 
 

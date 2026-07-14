@@ -26,6 +26,8 @@ export const findUserWithSkills = async (userId) => {
       avatarUrl: true,
       createdAt: true,
       isActive: true,
+      roleId: true,
+      role: true,
       userSkills: {
         where: { skill: { isActive: true } },
         select: { skill: { select: { id: true, name: true } } },
@@ -53,6 +55,8 @@ export const updateUser = async (userId, updateData) => {
       phone: true,
       avatarUrl: true,
       createdAt: true,
+      role: true,
+      roleId: true,
       isActive: true,
       userSkills: {
         where: { skill: { isActive: true } },

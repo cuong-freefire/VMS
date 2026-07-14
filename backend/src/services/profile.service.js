@@ -25,6 +25,8 @@ const formatProfile = (profile) => {
     email: profile.email,
     phone_number: profile.phone ?? null,
     avatar_url: profile.avatarUrl ?? null,
+    role_id: profile.roleId,
+    role_name: profile.role.name,
     created_at: profile.createdAt ? profile.createdAt.toISOString() : null,
     skills,
   };
@@ -41,7 +43,7 @@ export const getUserProfile = async (userId) => {
     return formatProfile(profile);
   } catch (error) {
     if (error instanceof ServiceError) throw error;
-    logger.error("Unexpected error in getUserProfile", { userId, error });
+    logger.error({ userId, error }, "Unexpected error in getUserProfile");
     throw new ServiceError("Có lỗi xảy ra trong quá trình xử lý", 500, "INTERNAL_SERVER_ERROR");
   }
 };
@@ -78,7 +80,7 @@ export const updateProfile = async (userId, data, file) => {
       try {
         uploadResult = await uploadImage(file.buffer, 'avatars');
       } catch (uploadError) {
-        logger.error("Cloudinary upload failed", { userId, error: uploadError.message });
+        logger.error({ userId, error: uploadError.message }, "Cloudinary upload failed");
         throw new ServiceError("Không thể tải ảnh lên. Vui lòng thử lại sau.", 500, "CLOUDINARY_ERROR");
       }
       finalUpdateData.avatarUrl = uploadResult.secure_url;
@@ -90,11 +92,12 @@ export const updateProfile = async (userId, data, file) => {
     } catch (dbError) {
       if (file && finalUpdateData.avatarUrl) {
         try {
+          // Nếu upload fail thì xoá ảnh trong cloudinary
           const { extractPublicId, deleteImage } = await import("./cloudinary.service.js");
           const newPublicId = extractPublicId(finalUpdateData.avatarUrl);
           if (newPublicId) await deleteImage(newPublicId);
         } catch (cleanupError) {
-          logger.error("Failed to clean up orphaned image", { userId, error: cleanupError.message });
+          logger.error({ userId, error: cleanupError.message }, "Failed to clean up orphaned image");
         }
       }
       throw dbError;
@@ -106,12 +109,12 @@ export const updateProfile = async (userId, data, file) => {
       if (key === "avatarUrl") return "avatar_url";
       return key;
     });
-    logger.info("Profile updated successfully", { userId, changedFields });
+    logger.info({ userId, changedFields }, "Profile updated successfully");
 
     return formatProfile(updatedUser);
   } catch (error) {
     if (error instanceof ServiceError) throw error;
-    logger.error("Unexpected error in updateProfile", { userId, error });
+    logger.error({ userId, ERROR: error }, "Unexpected error in updateProfile");
     throw new ServiceError("Có lỗi xảy ra trong quá trình xử lý", 500, "INTERNAL_SERVER_ERROR");
   }
 };

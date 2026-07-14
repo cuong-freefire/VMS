@@ -451,8 +451,8 @@ const handleMulterUpload = (req, res, next) => {
  */
 router.patch(
     "/me",
-    handleMulterUpload,
     authMiddleware,
+    handleMulterUpload,
     validate(updateProfileSchema),
     updateMyProfile
 );
