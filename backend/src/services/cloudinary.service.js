@@ -8,8 +8,8 @@
  * Module: Profile Management
  */
 
-import cloudinary from "../config/cloudinary.config";
-import logger from "../config/logger.config";
+import cloudinary from "../config/cloudinary.config.js";
+import logger from "../config/logger.config.js";
 
 /**
  * Upload ảnh từ buffer lên Cloudinary.
