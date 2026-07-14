@@ -1,4 +1,4 @@
-﻿# Kế Hoạch Triển Khai: Xem Hồ Sơ Cá Nhân (View Profile)
+# Kế Hoạch Triển Khai: Xem Hồ Sơ Cá Nhân (View Profile)
 
 **Nhánh**: `feat/UC18-view-profile` | **Ngày**: 2026-07-07 | **Spec**: [spec.md](./spec.md)
 
@@ -167,10 +167,10 @@ frontend/
 ├── src/
 │   ├── components/
 │   │   └── pages/
-│   │       └── ProfilePage.jsx      # [TẠO MỚI] Trang hiển thị hồ sơ
+│   │       └── ProfileViewPage.jsx      # [TẠO MỚI] Trang hiển thị hồ sơ
 │   │
 │   ├── api/
-│   │   └── profileApi.js            # [TẠO MỚI] API client (Axios)
+│   │   └── user.service.js            # [TẠO MỚI] API client (Axios)
 │   │
 │   └── services/
 │       └── profile.service.js       # [TẠO MỚI] Frontend service layer

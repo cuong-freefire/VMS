@@ -70,6 +70,8 @@ curl -X GET http://localhost:5000/api/v1/user/me \
     "email": "user@example.com",
     "phone_number": "0123456789",
     "avatar_url": "https://cloudinary.com/vms/avatars/user123.jpg",
+    "role_name": "VOLUNTEER",
+    "created_at": "2025-01-01T00:00:00.000Z",
     "skills": [
       {
         "skill_id": 1,
@@ -209,12 +211,12 @@ curl -X GET http://localhost:5000/api/v1/user/me \
 ### React Component Example
 
 ```jsx
-// src/components/pages/ProfilePage.jsx
+// src/components/pages/profile/ProfileViewPage.jsx
 import { useEffect, useState } from 'react';
-import { getMyProfile } from '../../api/profileApi';
+import { userService } from '../../services/user.service';
 import { useNavigate } from 'react-router-dom';
 
-function ProfilePage() {
+function ProfileViewPage() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -223,7 +225,7 @@ function ProfilePage() {
   useEffect(() => {
     async function fetchProfile() {
       try {
-        const response = await getMyProfile();
+        const response = await userService.getMe();
         setProfile(response.data);
       } catch (err) {
         if (err.response?.status === 401) {
@@ -289,7 +291,7 @@ function ProfilePage() {
   );
 }
 
-export default ProfilePage;
+export default ProfileViewPage;
 ```
 
 ---
@@ -297,36 +299,37 @@ export default ProfilePage;
 ### API Client Module
 
 ```javascript
-// src/api/profileApi.js
-import axios from './axiosApi';
+// src/services/user.service.js
+import axiosApi from '../api/axiosApi';
 
 /**
  * Get current user's profile
  * @returns {Promise<{ success: boolean, message: string, data: ProfileData }>}
  */
-export async function getMyProfile() {
-  const response = await axios.get('/user/me', {
-    withCredentials: true  // IMPORTANT: Send httpOnly cookie
-  });
-  return response.data;
-}
+export const userService = { {
+    async getMe() {
+    return axiosApi.get('/api/v1/user/me', {
+      headers: { 'Cache-Control': 'no-cache' }
+    });
+  },
+};
 ```
 
-**Note**: Axios instance phải config withCredentials: true globally:
+**Note**: Axios instance phải config withCredentials: true:
 
 ```javascript
 // src/api/axiosApi.js
 import axios from 'axios';
 
-const axiosInstance = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api/v1',
+const axiosApi = axios.create({
+  baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000',
   withCredentials: true,  // Enable sending cookies
   headers: {
     'Content-Type': 'application/json'
   }
 });
 
-export default axiosInstance;
+export default axiosApi;
 ```
 
 ---
