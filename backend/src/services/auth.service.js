@@ -111,7 +111,6 @@ async function loginService(email, password) {
             id: user.id,
             email: user.email,
             full_name: user.fullName,
-            role_id: user.roleId,
             role_name: user.role.name,
             avatar_url: user.avatarUrl,
             phone: user.phone,

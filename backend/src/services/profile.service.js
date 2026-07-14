@@ -25,7 +25,6 @@ const formatProfile = (profile) => {
     email: profile.email,
     phone_number: profile.phone ?? null,
     avatar_url: profile.avatarUrl ?? null,
-    role_id: profile.roleId,
     role_name: profile.role.name,
     created_at: profile.createdAt ? profile.createdAt.toISOString() : null,
     skills,

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * User Routes
  *
  * Các endpoint liên quan đến thông tin người dùng:
@@ -28,7 +28,7 @@ const router = Router();
  *     summary: Xem hồ sơ cá nhân (View Profile)
  *     description: |
  *       Trả về thông tin hồ sơ cá nhân của người dùng đã đăng nhập (Private Profile).
- *       Bao gồm: họ tên, email, số điện thoại, ảnh đại diện và danh sách kỹ năng.
+ *       Bao gồm: họ tên, email, số điện thoại, ảnh đại diện, vai trò, ngày tham gia và danh sách kỹ năng.
  *       Dữ liệu nhạy cảm (password_hash, role_id, ...) đã được loại bỏ khỏi response.
  *
  *       **Nguyên tắc bảo mật**:
@@ -70,6 +70,12 @@ const router = Router();
  *                       type: string
  *                       nullable: true
  *                       example: "https://cloudinary.com/avatars/user123.jpg"
+ *                     role_name:
+ *                       type: string
+ *                       example: "VOLUNTEER"
+ *                     created_at:
+ *                       type: string
+ *                       example: "2025-01-01T00:00:00.000Z"
  *                     skills:
  *                       type: array
  *                       items:
