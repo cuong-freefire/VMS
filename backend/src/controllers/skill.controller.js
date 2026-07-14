@@ -43,6 +43,29 @@ async function getSkillsHandler(req, res, next) {
     }
 }
 
+/**
+ * POST /api/v1/skills
+ * Tạo kỹ năng mới.
+ * Chỉ Manager/Admin mới có quyền truy cập (kiểm tra ở middleware).
+ */
+async function createSkillHandler(req, res, next) {
+    try {
+        const skill = await skillService.createSkillService(req.body);
+
+        return res.status(201).json(
+            successResponse(skill, 'Tạo kỹ năng thành công')
+        );
+    } catch (error) {
+        if (error.status && error.code) {
+            return res.status(error.status).json(
+                errorResponse(error.message, error.code, error.details)
+            );
+        }
+        next(error);
+    }
+}
+
 export {
-    getSkillsHandler
+    getSkillsHandler,
+    createSkillHandler
 };

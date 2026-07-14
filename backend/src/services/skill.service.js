@@ -1,6 +1,6 @@
 /**
  * Skill Service - Business logic for Skill Management module
- * Owner: Member 4 - DucNM (UC34)
+ * Owner: Member 4 - DucNM (UC34, UC35)
  *
  * Responsibilities:
  * - Get list of skills with role-based visibility
@@ -13,6 +13,7 @@
  * - Pattern giống Category service (UC31)
  */
 
+import { ServiceError } from '../utils/response.util.js';
 import skillRepository from '../repositories/skill.repository.js';
 
 const MANAGER_ROLE_ID = 3;
@@ -42,11 +43,19 @@ function formatSkill(skill) {
  * @returns {Promise<Object>} { skills: Array }
  */
 async function getSkills(currentUser) {
-    const roleId = currentUser?.role_id;
+    let roleName = null;
 
-    // Manager (3) và Admin (4) thấy tất cả skills
-    // Staff (2), Volunteer (1), Guest (null) chỉ thấy active
-    const showAll = roleId === MANAGER_ROLE_ID || roleId === ADMIN_ROLE_ID;
+    if (currentUser?.role_id) {
+        roleName = await skillRepository.findRoleNameById(
+            currentUser.role_id
+        );
+    }
+
+    const normalizedRole = roleName?.toUpperCase();
+
+    const showAll =
+        normalizedRole === 'MANAGER' ||
+        normalizedRole === 'ADMIN';
 
     const where = showAll ? {} : { isActive: true };
 
@@ -57,6 +66,41 @@ async function getSkills(currentUser) {
     };
 }
 
+/**
+ * Create a new skill.
+ * UC35: Add Skill — Manager/Admin thêm kỹ năng mới.
+ *
+ * Business Logic:
+ * 1. Check uniqueness: name không được trùng → 409 nếu đã tồn tại
+ * 2. Create skill trong database
+ * 3. Format response
+ *
+ * @param {Object} data - Skill data từ request body
+ * @returns {Promise<Object>} Formatted skill object
+ * @throws {ServiceError} 409 nếu tên đã tồn tại
+ */
+async function createSkillService(data) {
+    // 1. Check uniqueness: name unique trên toàn bảng
+    const existing = await skillRepository.findByName(data.name);
+    if (existing) {
+        throw new ServiceError(
+            'Skill name already exists.',
+            409,
+            'SKILL_EXISTS'
+        );
+    }
+
+    // 2. Create skill trong database
+    const newSkill = await skillRepository.createSkill({
+        name: data.name,
+        description: data.description
+    });
+
+    // 3. Format response
+    return formatSkill(newSkill);
+}
+
 export default {
-    getSkills
+    getSkills,
+    createSkillService
 };

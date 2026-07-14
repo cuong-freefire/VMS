@@ -11,8 +11,12 @@
  */
 
 import { Router } from "express";
+import authMiddleware from "../middlewares/auth.middleware.js";
+import authorize from "../middlewares/authorize.middleware.js";
 import optionalAuth from "../middlewares/optionalAuth.middleware.js";
-import { getSkillsHandler } from "../controllers/skill.controller.js";
+import { validate } from "../middlewares/validators/validate.js";
+import { getSkillsHandler, createSkillHandler } from "../controllers/skill.controller.js";
+import { createSkillSchema } from "../validators/skill.validator.js";
 
 const router = Router();
 
@@ -59,6 +63,74 @@ router.get(
     "/",
     optionalAuth,
     getSkillsHandler
+);
+
+/**
+ * POST /api/v1/skills
+ * Tạo kỹ năng mới (UC35: Add Skill)
+ * Chỉ Manager/Admin mới có quyền truy cập.
+ */
+/**
+ * @swagger
+ * /api/v1/skills:
+ *   post:
+ *     summary: Tạo kỹ năng mới (Manager/Admin only)
+ *     description: |
+ *       Tạo một kỹ năng mới trong hệ thống.
+ *       Chỉ Manager và Admin mới có quyền truy cập.
+ *       Staff/Volunteer nhận 403. Guest nhận 401.
+ *       Tên kỹ năng phải unique — nếu trùng trả về 409.
+ *     tags: [Skill Management]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Tên kỹ năng
+ *               description:
+ *                 type: string
+ *                 description: Mô tả (optional)
+ *           example:
+ *             name: "Photography"
+ *             description: "Kỹ năng chụp ảnh sự kiện"
+ *     responses:
+ *       201:
+ *         description: Tạo skill thành công
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: "Tạo kỹ năng thành công"
+ *               data:
+ *                 skill_id: 5
+ *                 name: "Photography"
+ *                 description: "Kỹ năng chụp ảnh sự kiện"
+ *                 is_active: true
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ *       401:
+ *         description: Chưa xác thực
+ *       403:
+ *         description: Không có quyền
+ *       409:
+ *         description: Skill name already exists
+ *       500:
+ *         description: Lỗi server
+ */
+router.post(
+    "/",
+    authMiddleware,
+    authorize("MANAGER", "ADMIN"),
+    validate(createSkillSchema),
+    createSkillHandler
 );
 
 export default router;
