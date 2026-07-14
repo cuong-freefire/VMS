@@ -1,4 +1,4 @@
-﻿# Data Model: UC18 - View Profile
+# Data Model: UC18 - View Profile
 
 **Date**: 2026-06-30
 **Owner**: CuongLH (Member 1 - Profile Management)
@@ -319,6 +319,8 @@ WHERE u.id = ?;
   email: "<user@example.com>",
   phone_number: "0123456789",
   avatar_url: "<https://cloudinary.com/avatar.jpg>",
+  role_name: "VOLUNTEER",
+  created_at: "2025-01-01T00:00:00.000Z",
   skills: [
     { skill_id: 1, skill_name: "Giao tiếp" },
     { skill_id: 3, skill_name: "Tiếng Anh" }
@@ -343,6 +345,8 @@ return {
   email: user.email,
   phone_number: user.phone ?? null,
   avatar_url: user.avatar_url,
+  role_name: user.role.name,                              // derived from Prisma relation
+  created_at: user.created_at ? user.created_at.toISOString() : null,  // ISO 8601
   skills
 };
 ```
@@ -357,16 +361,17 @@ return {
 - email: string
 - phone_number: string | null
 - avatar_url: string | null
+- role_name: string (derived from ole.name Prisma relation, NOT ole_id raw FK)
+- created_at: string (ISO 8601 - ngày tham gia)
 - skills: Array<{ skill_id: number, skill_name: string }>
 
 ### ❌ FORBIDDEN Fields (NEVER expose)
 
 - id (user internal ID)
 - password_hash (security critical)
-- role_id (internal authorization)
 - is_active (internal flag)
 - email_verified (internal flag)
-- created_at, updated_at (internal metadata)
+- updated_at (internal metadata)
 - iat, exp (JWT metadata)
 
 **Why use Prisma select**:
@@ -403,6 +408,8 @@ return {
   email: "<newuser@example.com>",
   phone_number: null,
   avatar_url: null,
+  role_name: "VOLUNTEER",
+  created_at: "2025-01-01T00:00:00.000Z",
   skills: []  // Empty array (NOT null, NOT undefined)
 }
 ```

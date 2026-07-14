@@ -32,8 +32,7 @@ interface ProfileData {
   full_name: string;
   email: string;
   phone_number: string | null;
-  avatar_url: string | null;
-  skills: Array<{
+  avatar_url: string | null;`n  role_name: string;`n  created_at: string;`n  skills: Array<{
     skill_id: number;
     skill_name: string;
   }>;
@@ -47,8 +46,7 @@ interface ProfileData {
   full_name: "Nguyễn Văn A",
   email: "<user@example.com>",
   phone_number: "0123456789",
-  avatar_url: "<https://cloudinary.com/avatar.jpg>",
-  skills: [
+  avatar_url: "<https://cloudinary.com/avatar.jpg>",`n  role_name: "VOLUNTEER",`n  created_at: "2025-01-01T00:00:00.000Z",`n  skills: [
     { skill_id: 1, skill_name: "Giao tiếp" },
     { skill_id: 3, skill_name: "Tiếng Anh" }
   ]
@@ -319,12 +317,14 @@ class ProfileService {
         skill_name: us.skill.name
       }));
       
-      // Step 4: Return sanitized data
+      // Step 4: Return sanitized data (role_name from Prisma relation, NOT role_id)
       return {
         full_name: profile.full_name,
         email: profile.email,
         phone_number: profile.phone ?? null,
         avatar_url: profile.avatar_url || null,
+        role_name: profile.role.name,
+        created_at: profile.created_at ? profile.created_at.toISOString() : null,
         skills
       };
       
