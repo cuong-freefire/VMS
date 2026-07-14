@@ -6,7 +6,8 @@
  * - Query all skills
  * - Find skill by name
 *  - Create skill
-*  - Lookup role name
+ * - Find skill by ID
+ * - Update skill
  * Rules:
  * - All database access goes through Prisma ORM
  * - No business logic, only data layer operations
@@ -95,9 +96,68 @@ const createSkill = async (data) => {
     });
 };
 
+/**
+ * Find skill by ID.
+ * UC36: Edit Skill — check skill tồn tại.
+ *
+ * @param {number} id - Skill ID
+ * @returns {Promise<Object|null>} Skill record or null
+ */
+const findById = async (id) => {
+    return prisma.skill.findUnique({
+        where: { id }
+    });
+};
+
+/**
+ * Find skill by name, excluding a specific ID.
+ * UC36: Edit Skill — check uniqueness khi đổi tên, exclude chính skill đang edit.
+ *
+ * @param {string} name - Skill name
+ * @param {number} excludeId - ID to exclude
+ * @returns {Promise<Object|null>} Skill record or null
+ */
+const findByNameExcluding = async (name, excludeId) => {
+    return prisma.skill.findFirst({
+        where: {
+            name,
+            NOT: { id: excludeId }
+        }
+    });
+};
+
+/**
+ * Update a skill by ID.
+ * UC36: Edit Skill — update thông tin skill.
+ *
+ * @param {number} id - Skill ID
+ * @param {Object} data - Fields to update
+ * @param {string} [data.name] - Skill name
+ * @param {string} [data.description] - Description
+ * @param {boolean} [data.isActive] - Active status
+ * @returns {Promise<Object>} Updated skill
+ */
+const updateSkill = async (id, data) => {
+    return prisma.skill.update({
+        where: { id },
+        data,
+        select: {
+            id: true,
+            name: true,
+            description: true,
+            isActive: true,
+            createdAt: true,
+            updatedAt: true
+        }
+    });
+};
+
 export default {
     findAll,
     findRoleNameById,
     findByName,
-    createSkill
+    createSkill,
+    findById,
+    findByNameExcluding,
+    updateSkill
 };

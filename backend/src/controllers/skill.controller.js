@@ -1,6 +1,6 @@
 /**
  * Skill Controller - HTTP layer for Skill Management module
- * Owner: Member 4 - DucNM (UC34)
+ * Owner: Member 4 - DucNM (UC34, UC35, UC36)
  *
  * Responsibilities:
  * - Handle HTTP request/response for skill management endpoints
@@ -65,7 +65,32 @@ async function createSkillHandler(req, res, next) {
     }
 }
 
+/**
+ * PATCH /api/v1/skills/:id
+ * Cập nhật thông tin kỹ năng.
+ * Chỉ Manager/Admin mới có quyền truy cập (kiểm tra ở middleware).
+ * Skill name phải unique.
+ */
+async function updateSkillHandler(req, res, next) {
+    try {
+        const skillId = parseInt(req.params.id, 10);
+        const skill = await skillService.updateSkillService(skillId, req.body);
+
+        return res.status(200).json(
+            successResponse(skill, 'Cập nhật kỹ năng thành công')
+        );
+    } catch (error) {
+        if (error.status && error.code) {
+            return res.status(error.status).json(
+                errorResponse(error.message, error.code, error.details)
+            );
+        }
+        next(error);
+    }
+}
+
 export {
     getSkillsHandler,
-    createSkillHandler
+    createSkillHandler,
+    updateSkillHandler
 };

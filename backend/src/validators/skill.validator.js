@@ -24,3 +24,16 @@ export const createSkillSchema = z.object({
     name: z.string().trim().min(1, 'Skill name is required'),
     description: z.string().optional()
 }).strict();
+
+/**
+ * Schema validation cho PATCH /api/v1/skills/:id request body.
+ * UC36: Edit Skill — Manager/Admin chỉnh sửa kỹ năng.
+ * Tất cả fields đều optional (PATCH = partial update).
+ */
+export const updateSkillSchema = z.object({
+    name: z.string().trim().min(1, 'Skill name cannot be empty').optional(),
+    description: z.string().optional(),
+    is_active: z.boolean().optional()
+}).strict().refine(data => Object.keys(data).length > 0, {
+    message: 'No fields to update.'
+});

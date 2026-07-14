@@ -15,8 +15,8 @@ import authMiddleware from "../middlewares/auth.middleware.js";
 import authorize from "../middlewares/authorize.middleware.js";
 import optionalAuth from "../middlewares/optionalAuth.middleware.js";
 import { validate } from "../middlewares/validators/validate.js";
-import { getSkillsHandler, createSkillHandler } from "../controllers/skill.controller.js";
-import { createSkillSchema } from "../validators/skill.validator.js";
+import { getSkillsHandler, createSkillHandler, updateSkillHandler } from "../controllers/skill.controller.js";
+import { createSkillSchema, updateSkillSchema } from "../validators/skill.validator.js";
 
 const router = Router();
 
@@ -131,6 +131,84 @@ router.post(
     authorize("MANAGER", "ADMIN"),
     validate(createSkillSchema),
     createSkillHandler
+);
+
+/**
+ * PATCH /api/v1/skills/:id
+ * Cập nhật kỹ năng (UC36: Edit Skill)
+ * Chỉ Manager/Admin mới có quyền truy cập.
+ */
+/**
+ * @swagger
+ * /api/v1/skills/{id}:
+ *   patch:
+ *     summary: Cập nhật kỹ năng (Manager/Admin only)
+ *     description: |
+ *       Cập nhật thông tin kỹ năng theo ID.
+ *       Chỉ Manager và Admin mới có quyền truy cập.
+ *       Staff/Volunteer nhận 403. Guest nhận 401.
+ *       Tên mới phải unique — nếu trùng trả về 409.
+ *     tags: [Skill Management]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID của kỹ năng
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Tên kỹ năng
+ *               description:
+ *                 type: string
+ *                 description: Mô tả
+ *               is_active:
+ *                 type: boolean
+ *                 description: Trạng thái hoạt động
+ *           example:
+ *             name: "Giao tiếp (Updated)"
+ *             description: "Kỹ năng giao tiếp cập nhật"
+ *             is_active: true
+ *     responses:
+ *       200:
+ *         description: Cập nhật thành công
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: "Cập nhật kỹ năng thành công"
+ *               data:
+ *                 skill_id: 1
+ *                 name: "Giao tiếp (Updated)"
+ *                 is_active: true
+ *       400:
+ *         description: Dữ liệu không hợp lệ hoặc body rỗng
+ *       401:
+ *         description: Chưa xác thực
+ *       403:
+ *         description: Không có quyền
+ *       404:
+ *         description: Skill not found
+ *       409:
+ *         description: Skill name already exists
+ *       500:
+ *         description: Lỗi server
+ */
+router.patch(
+    "/:id",
+    authMiddleware,
+    authorize("MANAGER", "ADMIN"),
+    validate(updateSkillSchema),
+    updateSkillHandler
 );
 
 export default router;
