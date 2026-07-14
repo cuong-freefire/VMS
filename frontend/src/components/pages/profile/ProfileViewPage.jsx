@@ -37,7 +37,20 @@ export default function ProfileViewPage() {
             {user.avatar_url ? <img src={user.avatar_url} alt={user.full_name} style={{ width: '100%%', height: '100%%', objectFit: 'cover' }} /> : (user.full_name?.[0]?.toUpperCase() || <User size={36} />)}
           </div>
           <h1 style={{ fontSize: 'var(--font-size-h2)', fontWeight: 'var(--font-weight-semibold)', color: 'var(--text-primary)', margin: '0 0 4px' }}>{user.full_name || 'Người dùng VMS'}</h1>
-          <span style={{ fontSize: 'var(--font-size-small)', backgroundColor: 'var(--green-light)', color: 'var(--green-primary)', padding: '2px 12px', borderRadius: 'var(--radius-pill)', fontWeight: 'var(--font-weight-semibold)' }}>Tình nguyện viên</span>
+          <span style={{ fontSize: 'var(--font-size-small)', backgroundColor: 'var(--green-light)', color: 'var(--green-primary)', padding: '2px 12px', borderRadius: 'var(--radius-pill)', fontWeight: 'var(--font-weight-semibold)' }}>
+            {
+              user?.role_name === 'VOLUNTEER' ?
+                'Tình nguyện viên'
+                :
+                user?.role_name === 'STAFF' ?
+                'Nhân viên'
+                :
+                user?.role_name === 'MANAGER' ?
+                'Người quản lý'
+                :
+                'ADMIN'
+            }
+          </span>
         </div>
 
         <div style={{ marginBottom: 'var(--space-4)' }}>
