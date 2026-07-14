@@ -25,11 +25,11 @@
 
 **Purpose**: Thiết lập database model và infrastructure dùng chung
 
-- [ ] T001 Thêm Category model vào Prisma schema trong `backend/prisma/schema.prisma` — fields: category_id, name, description (optional), type, is_active (default true), created_at, updated_at
-- [ ] T002 Chạy Prisma migration: `npx prisma migrate dev --name add_category_model`
-- [ ] T003 [P] Tạo `optionalAuth` middleware trong `backend/src/middleware/optionalAuth.middleware.js` — giống authMiddleware nhưng không trả về 401, chỉ set req.user = null nếu không có token
-- [ ] T004 [P] Tạo category repository trong `backend/src/repositories/category.repository.js` — hàm `findAllCategories(where)`
-- [ ] T005 Tạo category validator trong `backend/src/validators/category.validator.js` — (optional, có thể bỏ qua vì GET không cần params)
+- [x] T001 Category model (EventCategory) đã có sẵn trong `backend/prisma/schema.prisma`
+- [x] T002 Không cần chạy migration — model đã tồn tại
+- [x] T003 [P] Tạo `optionalAuth` middleware trong `backend/src/middlewares/optionalAuth.middleware.js`
+- [x] T004 [P] Tạo category repository trong `backend/src/repositories/category.repository.js`
+- [x] T005 Bỏ qua — GET không cần params validation
 
 ---
 
@@ -48,11 +48,11 @@
 
 ### Implementation cho User Story 1
 
-- [ ] T010 [US1] Implement `category.service.js` — hàm `getCategories(currentUser)` với role-based visibility trong `backend/src/services/category.service.js`
-- [ ] T011 [US1] Implement `category.controller.js` — handler `getCategoriesHandler` trong `backend/src/controllers/category.controller.js`
-- [ ] T012 [US1] Tạo `category.routes.js` — route `GET /` với optionalAuth middleware trong `backend/src/routes/category.routes.js`
-- [ ] T013 [US1] Cập nhật `backend/src/app.js` — mount `categoryRoutes` tại prefix `/api/v1/categories`
-- [ ] T014 [US1] Thêm Swagger JSDoc cho endpoint `GET /api/v1/categories` trong `backend/src/routes/category.routes.js`
+- [x] T010 [US1] Implement `category.service.js` — hàm `getCategories(currentUser)` với role-based visibility trong `backend/src/services/category.service.js`
+- [x] T011 [US1] Implement `category.controller.js` — handler `getCategoriesHandler` trong `backend/src/controllers/category.controller.js`
+- [x] T012 [US1] Tạo `category.routes.js` — route `GET /` với optionalAuth middleware trong `backend/src/routes/category.routes.js`
+- [x] T013 [US1] Cập nhật `backend/src/app.js` — mount `categoryRoutes` tại prefix `/api/v1/categories`
+- [x] T014 [US1] Thêm Swagger JSDoc cho endpoint `GET /api/v1/categories` trong `backend/src/routes/category.routes.js`
 
 **Checkpoint**: User Story 1 hoàn thành — Manager/Admin xem được tất cả categories.
 
@@ -71,7 +71,7 @@
 
 ### Implementation cho User Story 2
 
-- [ ] T017 [US2] Role-based visibility logic đã implement ở T010 — Staff tự động chỉ thấy active (role !== 'MANAGER' && role !== 'ADMIN')
+- [x] T017 [US2] Role-based visibility logic đã implement ở T010 — Staff tự động chỉ thấy active (role_id !== 3 && role_id !== 4)
 
 **Checkpoint**: User Story 2 hoàn thành — Staff xem được categories active.
 
@@ -92,8 +92,8 @@
 
 ### Implementation cho User Story 3
 
-- [ ] T022 [US3] Optional auth middleware đã implement ở T003 — Guest không token vẫn vào được controller
-- [ ] T023 [US3] Role-based visibility logic đã implement ở T010 — Guest (req.user = null) và Volunteer tự động chỉ thấy active
+- [x] T022 [US3] Optional auth middleware đã implement ở T003 — Guest không token vẫn vào được controller
+- [x] T023 [US3] Role-based visibility logic đã implement ở T010 — Guest (req.user = null) và Volunteer tự động chỉ thấy active
 
 **Checkpoint**: User Story 3 hoàn thành — Guest và Volunteer xem được categories active (phục vụ UC11).
 

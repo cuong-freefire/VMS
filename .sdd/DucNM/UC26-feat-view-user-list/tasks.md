@@ -25,12 +25,12 @@
 
 **Purpose**: Thiết lập cấu trúc dự án và infrastructure dùng chung cho tất cả user stories
 
-- [ ] T001 Tạo Prisma schema User và Role models trong `backend/prisma/schema.prisma`
-- [ ] T002 [P] Tạo authorize middleware trong `backend/src/middleware/authorize.middleware.js`
-- [ ] T003 [P] Tạo pagination utility trong `backend/src/utils/pagination.util.js`
-- [ ] T004 Tạo Zod validator trong `backend/src/validators/user.validator.js`
-- [ ] T005 [P] Tạo user repository trong `backend/src/repositories/user.repository.js`
-- [ ] T006 Cập nhật `backend/src/routes/user.routes.js` — mount route GET /users với auth + authorize middleware
+- [x] T001 Tạo Prisma schema User và Role models trong `backend/prisma/schema.prisma` (đã có sẵn)
+- [x] T002 [P] Tạo authorize middleware trong `backend/src/middlewares/authorize.middleware.js`
+- [x] T003 [P] Tạo pagination utility trong `backend/src/utils/pagination.util.js`
+- [x] T004 Tạo Zod validator trong `backend/src/middlewares/validators/user.validator.js`
+- [x] T005 [P] Tạo user repository trong `backend/src/repositories/user.repository.js`
+- [x] T006 Cập nhật `backend/src/routes/user.routes.js` — mount route GET /users với auth + authorize middleware
 
 ---
 
@@ -49,13 +49,13 @@
 
 ### Implementation cho User Story 1
 
-- [ ] T011 [US1] Implement `user.service.js` — hàm `getUsers(query)` với pagination (skip/take) trong `backend/src/services/user.service.js`
-- [ ] T012 [US1] Implement `user.controller.js` — handler `getUsersHandler` gọi service và trả về response theo chuẩn ADR-006 trong `backend/src/controllers/user.controller.js`
-- [ ] T013 [US1] Cập nhật `backend/src/app.js` — mount `userRoutes` tại prefix `/api/v1/users`
-- [ ] T014 [US1] Implement frontend API client trong `frontend/src/api/userApi.js` — hàm `getUsers(params)`
-- [ ] T015 [US1] Implement React hook `useUsers` trong `frontend/src/hooks/useUsers.js` với state management cho pagination
-- [ ] T016 [US1] Implement `UserListPage.jsx` với MUI DataGrid hiển thị danh sách users trong `frontend/src/components/pages/UserListPage.jsx`
-- [ ] T017 [US1] Thêm Swagger JSDoc cho endpoint GET /api/v1/users trong `backend/src/routes/user.routes.js`
+- [x] T011 [US1] Implement `user.service.js` — hàm `getUsers(query)` với pagination (skip/take) trong `backend/src/services/user.service.js`
+- [x] T012 [US1] Implement `user.controller.js` — handler `getUsersHandler` gọi service và trả về response theo chuẩn ADR-006 trong `backend/src/controllers/user.controller.js`
+- [x] T013 [US1] Cập nhật `backend/src/app.js` — mount `userRoutes` tại prefix `/api/v1/users`
+- [ ] T014 [US1] Implement frontend API client trong `frontend/src/api/userApi.js` — hàm `getUsers(params)` (SKIP: frontend tasks)
+- [ ] T015 [US1] Implement React hook `useUsers` trong `frontend/src/hooks/useUsers.js` với state management cho pagination (SKIP: frontend tasks)
+- [ ] T016 [US1] Implement `UserListPage.jsx` với MUI DataGrid hiển thị danh sách users trong `frontend/src/components/pages/UserListPage.jsx` (SKIP: frontend tasks)
+- [x] T017 [US1] Thêm Swagger JSDoc cho endpoint GET /api/v1/users trong `backend/src/routes/user.routes.js`
 
 **Checkpoint**: User Story 1 hoàn thành — Admin có thể xem danh sách users với phân trang.
 
@@ -75,10 +75,10 @@
 
 ### Implementation cho User Story 2
 
-- [ ] T021 [P] [US2] Mở rộng `user.service.js` — thêm role filter vào Prisma `where` clause trong `backend/src/services/user.service.js`
-- [ ] T022 [US2] Thêm validation cho role param trong `user.validator.js` — sử dụng Zod enum trong `backend/src/validators/user.validator.js`
-- [ ] T023 [US2] Thêm role filter UI: `RoleFilter.jsx` component với Select dropdown trong `frontend/src/components/ui/RoleFilter.jsx`
-- [ ] T024 [US2] Mở rộng `useUsers` hook — thêm state `role` và handler `handleRoleFilter` trong `frontend/src/hooks/useUsers.js`
+- [x] T021 [P] [US2] Mở rộng `user.service.js` — thêm role filter vào Prisma `where` clause trong `backend/src/services/user.service.js`
+- [x] T022 [US2] Thêm validation cho role param trong `user.validator.js` — sử dụng Zod enum trong `backend/src/middlewares/validators/user.validator.js`
+- [ ] T023 [US2] Thêm role filter UI: `RoleFilter.jsx` component với Select dropdown trong `frontend/src/components/ui/RoleFilter.jsx` (SKIP: frontend tasks)
+- [ ] T024 [US2] Mở rộng `useUsers` hook — thêm state `role` và handler `handleRoleFilter` trong `frontend/src/hooks/useUsers.js` (SKIP: frontend tasks)
 
 **Checkpoint**: User Story 2 hoàn thành — Admin có thể lọc danh sách users theo role.
 
@@ -100,9 +100,9 @@
 
 ### Implementation cho User Story 3
 
-- [ ] T030 [US3] Implement `authorize.middleware.js` — kiểm tra `req.user.role` có nằm trong allowedRoles không trong `backend/src/middleware/authorize.middleware.js`
-- [ ] T031 [US3] Middleware chain: `authMiddleware` → `authorize('ADMIN')` → getUsersHandler trong `backend/src/routes/user.routes.js`
-- [ ] T032 [US3] Frontend: Xử lý 401/403 response trong `userApi.js` — redirect về login nếu 401 trong `frontend/src/api/userApi.js`
+- [x] T030 [US3] Implement `authorize.middleware.js` — kiểm tra `req.user.role` có nằm trong allowedRoles không trong `backend/src/middlewares/authorize.middleware.js`
+- [x] T031 [US3] Middleware chain: `authMiddleware` → `authorize('ADMIN')` → getUsersHandler trong `backend/src/routes/user.routes.js`
+- [ ] T032 [US3] Frontend: Xử lý 401/403 response trong `userApi.js` — redirect về login nếu 401 trong `frontend/src/api/userApi.js` (SKIP: frontend tasks)
 
 **Checkpoint**: User Story 3 hoàn thành — Phân quyền bảo vệ endpoint đúng theo spec.
 
@@ -122,12 +122,12 @@
 
 ### Implementation cho User Story 1b
 
-- [ ] T036 [P] [US1b] Mở rộng `user.service.js` — thêm search (contains + insensitive) vào Prisma where trong `backend/src/services/user.service.js`
-- [ ] T037 [P] [US1b] Mở rộng `user.service.js` — thêm sort parsing (field:direction) trong `backend/src/services/user.service.js`
-- [ ] T038 [US1b] Thêm validation cho search và sort params trong `user.validator.js` trong `backend/src/validators/user.validator.js`
-- [ ] T039 [US1b] Thêm SearchBar component trong `frontend/src/components/ui/SearchBar.jsx`
-- [ ] T040 [US1b] Mở rộng `useUsers` hook — thêm state `search`, `sort` và handlers trong `frontend/src/hooks/useUsers.js`
-- [ ] T041 [US1b] Mở rộng `UserListPage.jsx` — tích hợp search bar, sorting UI trong `frontend/src/components/pages/UserListPage.jsx`
+- [x] T036 [P] [US1b] Mở rộng `user.service.js` — thêm search (contains + insensitive) vào Prisma where trong `backend/src/services/user.service.js`
+- [x] T037 [P] [US1b] Mở rộng `user.service.js` — thêm sort parsing (field:direction) trong `backend/src/services/user.service.js`
+- [x] T038 [US1b] Thêm validation cho search và sort params trong `user.validator.js` trong `backend/src/middlewares/validators/user.validator.js`
+- [ ] T039 [US1b] Thêm SearchBar component trong `frontend/src/components/ui/SearchBar.jsx` (SKIP: frontend tasks)
+- [ ] T040 [US1b] Mở rộng `useUsers` hook — thêm state `search`, `sort` và handlers trong `frontend/src/hooks/useUsers.js` (SKIP: frontend tasks)
+- [ ] T041 [US1b] Mở rộng `UserListPage.jsx` — tích hợp search bar, sorting UI trong `frontend/src/components/pages/UserListPage.jsx` (SKIP: frontend tasks)
 
 **Checkpoint**: User Story 1b hoàn thành — Admin có thể search và sort danh sách users.
 

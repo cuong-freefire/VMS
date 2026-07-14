@@ -25,7 +25,7 @@
 
 **Purpose**: Mở rộng infrastructure đã có từ UC26-UC28 cho UC29
 
-- [ ] T001 Thêm `updateUserSchema` (Zod) trong `backend/src/validators/user.validator.js` — fields optional: full_name, phone, avatar_url, role_id, is_active. `.refine()` kiểm tra body không rỗng.
+- [x] T001 Thêm `updateUserSchema` (Zod) trong `backend/src/middlewares/validators/user.validator.js` — fields optional: full_name, phone, avatar_url, role_id, is_active. `.refine()` kiểm tra body không rỗng.
 
 ---
 
@@ -45,16 +45,16 @@
 
 ### Implementation cho User Story 1
 
-- [ ] T007 [US1] Implement `updateUser` trong `backend/src/repositories/user.repository.js` — dùng Prisma `update` với `select` (exclude password)
-- [ ] T008 [US1] Cập nhật `findUserById` trong repository — thêm `role_id` vào select để phục vụ self-role check
-- [ ] T009 [US1] Implement `updateUserService` trong `backend/src/services/user.service.js` — validation → check user exists → check self-role → check role tồn tại → update → transform
-- [ ] T010 [US1] Implement `updateUserHandler` trong `backend/src/controllers/user.controller.js` — gọi service + trả về 200
-- [ ] T011 [US1] Thêm route `PATCH /:id` trong `backend/src/routes/user.routes.js` — middleware chain: authMiddleware → authorize('ADMIN') → updateUserHandler
-- [ ] T012 [US1] Thêm Swagger JSDoc cho endpoint `PATCH /api/v1/users/:id` trong `backend/src/routes/user.routes.js`
-- [ ] T013 [US1] Implement frontend API client — thêm `updateUser(id, data)` trong `frontend/src/api/userApi.js`
-- [ ] T014 [US1] Implement React hook `useUpdateUser` trong `frontend/src/hooks/useUpdateUser.js` — quản lý state: loading, error, success
-- [ ] T015 [US1] Implement `EditUserPage.jsx` trong `frontend/src/components/pages/EditUserPage.jsx` — fetch user → pre-fill form → edit → PATCH submit
-- [ ] T016 [US1] Thêm route `/users/:id/edit` trong `frontend/src/App.js` — dẫn đến EditUserPage
+- [x] T007 [US1] Implement `updateUser` trong `backend/src/repositories/user.repository.js` — dùng Prisma `update` với `select` (exclude password)
+- [x] T008 [US1] Cập nhật `findById` trong repository — thêm `roleId` vào select để phục vụ self-role check
+- [x] T009 [US1] Implement `updateUserService` trong `backend/src/services/user.service.js` — validation → check user exists → check self-role → check role tồn tại → update → transform
+- [x] T010 [US1] Implement `updateUserHandler` trong `backend/src/controllers/user.controller.js` — gọi service + trả về 200
+- [x] T011 [US1] Thêm route `PATCH /:id` trong `backend/src/routes/user.routes.js` — middleware chain: authMiddleware → authorize('ADMIN') → validateUserId → validate(updateUserSchema) → updateUserHandler
+- [x] T012 [US1] Thêm Swagger JSDoc cho endpoint `PATCH /api/v1/users/:id` trong `backend/src/routes/user.routes.js`
+- [ ] T013 [US1] Implement frontend API client (SKIP: frontend tasks)
+- [ ] T014 [US1] Implement React hook (SKIP: frontend tasks)
+- [ ] T015 [US1] Implement EditUserPage (SKIP: frontend tasks)
+- [ ] T016 [US1] Thêm route frontend (SKIP: frontend tasks)
 
 **Checkpoint**: User Story 1 hoàn thành — Admin có thể chỉnh sửa user thành công.
 
@@ -73,7 +73,7 @@
 
 ### Implementation cho User Story 2
 
-- [ ] T019 [US2] Self-role-downgrade check đã implement ở T009 — so sánh `currentUser.user_id === userId` và `new_role_id < current_role_id`
+- [x] T019 [US2] Self-role-downgrade check đã implement ở T009 — so sánh `currentUser.user_id === userId` và `new_role_id < current_role_id`
 
 **Checkpoint**: User Story 2 hoàn thành — Admin không thể tự hạ role.
 
@@ -94,8 +94,8 @@
 
 ### Implementation cho User Story 3
 
-- [ ] T024 [US3] Zod schema `updateUserSchema` đã implement ở T001 với `.refine()` kiểm tra body không rỗng
-- [ ] T025 [US3] Role existence check đã implement ở T009
+- [x] T024 [US3] Zod schema `updateUserSchema` đã implement ở T001 với `.refine()` kiểm tra body không rỗng
+- [x] T025 [US3] Role existence check đã implement ở T009
 
 **Checkpoint**: User Story 3 hoàn thành — Validation hoạt động.
 
@@ -117,7 +117,7 @@
 
 ### Implementation cho User Story 4
 
-- [ ] T031 [US4] Middleware chain đã implement ở T011 — `authorize('ADMIN')` xử lý 403, `authMiddleware` xử lý 401. **(Không cần code mới)**
+- [x] T031 [US4] Middleware chain đã implement ở T011 — `authorize('ADMIN')` xử lý 403, `authMiddleware` xử lý 401. **(Verify: authorize middleware từ UC26 đã đủ)**
 
 **Checkpoint**: User Story 4 hoàn thành — endpoint được bảo vệ đúng phân quyền.
 

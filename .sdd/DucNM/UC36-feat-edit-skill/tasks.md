@@ -26,7 +26,7 @@
 
 **Purpose**: Mở rộng infrastructure đã có từ UC34/UC35 cho UC36
 
-- [ ] T001 Thêm `updateSkillSchema` (Zod) trong `backend/src/validators/skill.validator.js` — fields optional: name, description, is_active. `.refine()` kiểm tra body không rỗng.
+- [x] T001 Thêm `updateSkillSchema` (Zod) trong `backend/src/validators/skill.validator.js` — fields optional: name, description, is_active. `.refine()` kiểm tra body không rỗng.
 
 ---
 
@@ -46,13 +46,13 @@
 
 ### Implementation cho User Story 1
 
-- [ ] T007 [US1] Implement `findSkillById` trong `backend/src/repositories/skill.repository.js` — dùng Prisma `findUnique`
-- [ ] T008 [US1] Implement `findSkillByNameExcluding` trong `backend/src/repositories/skill.repository.js` — dùng Prisma `findFirst` với `NOT`
-- [ ] T009 [US1] Implement `updateSkill` trong `backend/src/repositories/skill.repository.js` — dùng Prisma `update`
-- [ ] T010 [US1] Implement `updateSkillService` trong `backend/src/services/skill.service.js` — validation → check exists → check unique name → update → return
-- [ ] T011 [US1] Implement `updateSkillHandler` trong `backend/src/controllers/skill.controller.js` — gọi service + trả về 200
-- [ ] T012 [US1] Thêm route `PATCH /:id` trong `backend/src/routes/skill.routes.js` — middleware chain: authMiddleware → authorize('MANAGER', 'ADMIN') → updateSkillHandler
-- [ ] T013 [US1] Thêm Swagger JSDoc cho endpoint `PATCH /api/v1/skills/:id` trong `backend/src/routes/skill.routes.js`
+- [x] T007 [US1] Implement `findById` trong `backend/src/repositories/skill.repository.js` — dùng Prisma `findUnique`
+- [x] T008 [US1] Implement `findByNameExcluding` trong `backend/src/repositories/skill.repository.js` — dùng Prisma `findFirst` với `NOT`
+- [x] T009 [US1] Implement `updateSkill` trong `backend/src/repositories/skill.repository.js` — dùng Prisma `update`
+- [x] T010 [US1] Implement `updateSkillService` trong `backend/src/services/skill.service.js` — check exists → check unique name → update → return
+- [x] T011 [US1] Implement `updateSkillHandler` trong `backend/src/controllers/skill.controller.js` — gọi service + trả về 200
+- [x] T012 [US1] Thêm route `PATCH /:id` trong `backend/src/routes/skill.routes.js` — middleware chain: authMiddleware → authorize('MANAGER', 'ADMIN') → validate(updateSkillSchema) → updateSkillHandler
+- [x] T013 [US1] Thêm Swagger JSDoc cho endpoint `PATCH /api/v1/skills/:id` trong `backend/src/routes/skill.routes.js`
 
 **Checkpoint**: User Story 1 hoàn thành — Manager/Admin chỉnh sửa skill thành công.
 
@@ -72,8 +72,8 @@
 
 ### Implementation cho User Story 2
 
-- [ ] T017 [US2] Zod schema `updateSkillSchema` đã implement ở T001 với `.refine()` kiểm tra body không rỗng
-- [ ] T018 [US2] Unique name check đã implement ở T010 — kiểm tra `name !== existing.name` và `findByNameExcluding` với excludeId
+- [x] T017 [US2] Zod schema `updateSkillSchema` đã implement ở T001 với `.refine()` kiểm tra body không rỗng
+- [x] T018 [US2] Unique name check đã implement ở T010 — kiểm tra `name !== existing.name` và `findByNameExcluding` với excludeId
 
 **Checkpoint**: User Story 2 hoàn thành — Validation hoạt động.
 
@@ -94,7 +94,7 @@
 
 ### Implementation cho User Story 3
 
-- [ ] T023 [US3] Middleware chain đã implement ở T012 — `authorize('MANAGER', 'ADMIN')` xử lý 403, `authMiddleware` xử lý 401. **(Không cần code mới)**
+- [x] T023 [US3] Middleware chain đã implement ở T012 — `authorize('MANAGER', 'ADMIN')` xử lý 403, `authMiddleware` xử lý 401. **(Verify: authorize middleware từ UC26 đã đủ)**
 
 **Checkpoint**: User Story 3 hoàn thành — endpoint được bảo vệ đúng phân quyền.
 
