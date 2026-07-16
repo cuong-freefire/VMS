@@ -9,7 +9,7 @@
  * Module: Profile Management
  */
 
-import { getUserProfile, updateProfile } from "../services/profile.service.js";
+import { getUserProfile, updateProfile, getVolunteerHistory } from "../services/profile.service.js";
 import { errorResponse, successResponse } from "../utils/response.util.js";
 
 /**
@@ -27,6 +27,36 @@ export async function getMyProfile(req, res) {
     return res
       .status(200)
       .json(successResponse(profile, "Lấy thông tin hồ sơ thành công"));
+  } catch (error) {
+    return res
+      .status(error.status || 500)
+      .json(
+        errorResponse(
+          error.message,
+          error.code || "INTERNAL_SERVER_ERROR",
+          error.details
+        )
+      );
+  }
+}
+
+/**
+ * UC021 — GET /api/v1/user/me/history
+ *
+ * Lấy lịch sử tham gia tình nguyện của tình nguyện viên hiện tại.
+ * Query params: status, year, page, limit (đã validated bởi validateVolunteerHistoryQuery).
+ */
+export async function getMyHistory(req, res) {
+  try {
+    const { user_id } = req.user;
+    // Use validatedQuery (set by validateQuery middleware) — Express 5 getter prevents req.query reassignment
+    const filters = req.validatedQuery || req.query;
+
+    const data = await getVolunteerHistory(user_id, filters);
+
+    return res
+      .status(200)
+      .json(successResponse(data, "Lấy lịch sử tình nguyện thành công"));
   } catch (error) {
     return res
       .status(error.status || 500)
