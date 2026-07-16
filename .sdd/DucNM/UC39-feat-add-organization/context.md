@@ -11,17 +11,17 @@ Khi có một tổ chức mới muốn tham gia hợp tác với VMS để tổ 
 - **Organization creation:** Tổ chức mới được tạo với trạng thái `is_active: true` mặc định.
 - **Tên tổ chức phải duy nhất:** Không được tồn tại hai tổ chức có cùng tên trong hệ thống để tránh nhầm lẫn.
 - **Logo upload:** Tổ chức có thể có hoặc không có logo. Nếu có, logo được upload và lưu trên Cloudinary.
-- **Admin-only:** Chỉ Admin mới có quyền thêm tổ chức. Manager, Staff, Volunteer không được phép.
+- **Manager/Admin:** Manager và Admin có quyền thêm tổ chức. Staff, Volunteer không được phép.
 - **Audit log:** Mọi thao tác thêm tổ chức phải được ghi lại để truy vết.
 
 ## 3. STAKEHOLDERS
 
-- **Admin:** Người duy nhất có quyền thêm tổ chức mới vào hệ thống.
+- **Manager/Admin:** Người có quyền thêm tổ chức mới vào hệ thống.
 - **Staff (gián tiếp):** Sau khi Admin thêm tổ chức, Staff mới có thể gán tổ chức đó cho sự kiện mới.
 
 ## 4. CONSTRAINTS (Ràng buộc cứng)
 
-- **Admin-only:** Chỉ Admin. Mọi role khác bị từ chối HTTP 403.
+- **Manager/Admin:** Chỉ Manager và Admin. Mọi role khác bị từ chối HTTP 403.
 - **Tên duy nhất:** Trùng tên → HTTP 409 Conflict.
 - **Logo:** Nếu có upload logo, file tối đa 2MB, chỉ chấp nhận định dạng `.jpg`, `.png`, `.webp`.
 - **Validation:** Bắt buộc validate đầu vào (tên không rỗng, email đúng format nếu có) trước khi ghi database.

@@ -16,6 +16,8 @@
 import express from 'express';
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
+import categoryRoutes from './routes/category.routes.js';
+import skillRoutes from './routes/skill.routes.js';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 
@@ -80,8 +82,14 @@ app.use(httpLogger);
  */
 // 6.1 Auth routes
 app.use('/api/v1/auth', authRoutes);
-// 6.2 User routes
+// 6.2 User routes (Profile: UC18-UC21)
 app.use('/api/v1/user', userRoutes);
+// 6.3 Admin User Management routes
+app.use('/api/v1/users', userRoutes);
+// 6.4 Category Management routes
+app.use('/api/v1/categories', categoryRoutes);
+// 6.5 Skill Management routes
+app.use('/api/v1/skills', skillRoutes);
 
 app.get('/', (req, res) => {
   res.cookie('testCookie', 'testValue', {

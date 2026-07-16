@@ -27,18 +27,18 @@ Admin muốn xem dashboard với 5 KPI cards và 3 biểu đồ để nắm bắ
 
 ---
 
-### User Story 2 - Manager xem dashboard trong phạm vi quản lý (Priority: P2)
+### User Story 2 - Manager xem dashboard tổng quan toàn hệ thống (Priority: P2)
 
-Manager muốn xem dashboard chỉ hiển thị dữ liệu thuộc tổ chức của mình, không thấy dữ liệu của tổ chức khác.
+Manager muốn xem dashboard tổng quan toàn hệ thống để quản lý vận hành. Manager là role hệ thống, không gắn với tổ chức cụ thể — dashboard hiển thị giống Admin.
 
-**Why this priority**: Manager cần giới hạn phạm vi dữ liệu để tập trung vào tổ chức mình quản lý.
+**Why this priority**: Manager cần cái nhìn tổng quan toàn hệ thống để quản lý vận hành.
 
-**Independent Test**: Gọi `GET /api/v1/dashboard/summary` với token Manager, kiểm tra dữ liệu chỉ thuộc organization của Manager.
+**Independent Test**: Gọi `GET /api/v1/dashboard/summary` với token Manager, kiểm tra dữ liệu toàn hệ thống (giống Admin).
 
 **Acceptance Scenarios**:
 
-1. **Given** Manager thuộc tổ chức A, **When** Manager truy cập Dashboard, **Then** chỉ hiển thị dữ liệu của tổ chức A (sự kiện, user, quyên góp, điểm danh của tổ chức A).
-2. **Given** Manager không có dữ liệu, **When** Manager truy cập, **Then** hiển thị 0 và biểu đồ trống (không báo lỗi).
+1. **Given** Manager đã đăng nhập, **When** Manager truy cập Dashboard, **Then** hiển thị dữ liệu toàn hệ thống (giống Admin) — tổng sự kiện, user, quyên góp, điểm danh.
+2. **Given** hệ thống chưa có dữ liệu, **When** Manager truy cập, **Then** hiển thị 0 và biểu đồ trống (không báo lỗi).
 3. **Given** Staff hoặc Volunteer cố gắng truy cập Dashboard, **When** họ gửi request, **Then** hệ thống trả về HTTP 403.
 
 ---
@@ -58,7 +58,7 @@ Manager muốn xem dashboard chỉ hiển thị dữ liệu thuộc tổ chức 
 - **FR-003**: System MUST trả về chart data: events_by_month (12 tháng), new_users_by_month (12 tháng), application_distribution (pie data).
 - **FR-004**: System MUST cache response với TTL 5 phút.
 - **FR-005**: WHERE query param `force=true`, System MUST bỏ qua cache và query từ database.
-- **FR-006**: WHERE user là Manager, System MUST chỉ trả về dữ liệu trong organization của Manager.
+- **FR-006**: WHERE user là Manager, System MUST trả về dữ liệu toàn hệ thống (giống Admin).
 - **FR-007**: System MUST từ chối Staff (403) và Guest (401).
 
 ### Key Entities *(Business Level Only)*
@@ -73,7 +73,7 @@ Manager muốn xem dashboard chỉ hiển thị dữ liệu thuộc tổ chức 
 - **SC-001**: Dashboard tải với cache hit trong vòng 2 giây, cache miss trong vòng 5 giây.
 - **SC-002**: Cache hit rate ≥ 80% (cache TTL 5 phút).
 - **SC-003**: 100% request không phải Admin/Manager bị từ chối.
-- **SC-004**: Manager không bao giờ thấy dữ liệu ngoài phạm vi tổ chức.
+- **SC-004**: Manager thấy dữ liệu toàn hệ thống (giống Admin).
 
 ## Assumptions
 
