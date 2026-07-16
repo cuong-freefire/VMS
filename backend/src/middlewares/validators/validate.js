@@ -37,3 +37,28 @@ export const validate = (schema) => (req, res, next) => {
   req.body = result.data;
   next();
 };
+
+/**
+ * @param {z.ZodSchema} schema - Zod schema để validate req.query
+ * @returns {Function} Express middleware
+ */
+export const validateQuery = (schema) => (req, res, next) => {
+  const result = schema.safeParse(req.query);
+
+  if (!result.success) {
+    const messages = result.error.issues
+      .map((e) => `${e.path.join(".")}: ${e.message}`)
+      .join("; ");
+
+    return res.status(400).json({
+      success: false,
+      message: messages,
+      code: "VALIDATION_ERROR",
+    });
+  }
+
+  // Express 5.x does not allow reassigning req.query (getter-only).
+  // Store validated + coerced query params on req.validatedQuery instead.
+  req.validatedQuery = result.data;
+  next();
+};

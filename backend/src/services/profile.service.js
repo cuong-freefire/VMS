@@ -1,7 +1,7 @@
-﻿/**
+/**
  * Profile Service
  *
- * Business logic cho Profile Management (UC18 - View Profile, UC19 - Edit Profile).
+ * Business logic cho Profile Management (UC18 - View Profile, UC19 - Edit Profile, UC021 - Volunteer History).
  *
  * Owner: Member 1 - CuongLH
  * Module: Profile Management
@@ -42,7 +42,65 @@ export const getUserProfile = async (userId) => {
     return formatProfile(profile);
   } catch (error) {
     if (error instanceof ServiceError) throw error;
-    logger.error({ userId, error }, "Unexpected error in getUserProfile");
+    logger.error({ userId, err: error }, "Unexpected error in getUserProfile");
+    throw new ServiceError("Có lỗi xảy ra trong quá trình xử lý", 500, "INTERNAL_SERVER_ERROR");
+  }
+};
+
+/**
+ * UC021 — Lấy lịch sử tham gia tình nguyện của Volunteer
+ *
+ * Schema V3.0: volunteer_application → event (bỏ join attendance/certificate vì schema mới chưa có bảng đó)
+ *
+ * @param {number} userId
+ * @param {Object} filters — { status?, year?, page?, limit? } từ query params đã validated
+ * @returns {Promise<{ history, pagination, summary }>}
+ */
+export const getVolunteerHistory = async (userId, filters) => {
+  try {
+    const user = await profileRepository.findUserWithSkills(userId);
+    if (!user) throw new ServiceError("Tài khoản không tồn tại", 404, "USER_NOT_FOUND");
+    if (!user.isActive) throw new ServiceError("Tài khoản đã bị vô hiệu hóa", 403, "ACCOUNT_DISABLED");
+
+    const page = filters.page || 1;
+    const limit = filters.limit || 10;
+    const skip = (page - 1) * limit;
+
+    const repoFilters = {
+      status: filters.status,
+      search: filters.search,
+      year: filters.year ? parseInt(filters.year, 10) : undefined,
+      skip,
+      take: limit,
+    };
+
+    const [applications, total, summaryTotal] = await Promise.all([
+      profileRepository.findVolunteerHistory(userId, repoFilters),
+      profileRepository.countHistoryApplications(userId, { status: filters.status, year: filters.year ? parseInt(filters.year, 10) : undefined }),
+      profileRepository.countHistoryApplications(userId, {}),
+    ]);
+
+    // Map application → history item (Schema V3.0 — chỉ join Event)
+    const history = applications.map((app) => ({
+      id: app.id,
+      status: app.status,
+      applied_at: app.createdAt.toISOString(),
+      event: app.event ? {
+        id: app.event.id,
+        title: app.event.title,
+        start_date: app.event.startDate.toISOString(),
+        location: app.event.location,
+      } : null,
+    }));
+
+    return {
+      history,
+      pagination: { page, limit, total, total_pages: Math.ceil(total / limit) },
+      summary: { total: summaryTotal },
+    };
+  } catch (error) {
+    if (error instanceof ServiceError) throw error;
+    logger.error({ userId, err: error }, "Unexpected error in getVolunteerHistory");
     throw new ServiceError("Có lỗi xảy ra trong quá trình xử lý", 500, "INTERNAL_SERVER_ERROR");
   }
 };
@@ -87,7 +145,7 @@ export const updateProfile = async (userId, data, file) => {
 
     let updatedUser;
     try {
-      updatedUser = await profileRepository.updateUser(userId, finalUpdateData);
+      updatedUser = await profileRepository.updateUserProfile(userId, finalUpdateData);
     } catch (dbError) {
       if (file && finalUpdateData.avatarUrl) {
         try {

@@ -14,4 +14,7 @@ export const userService = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+  async getVolunteerHistory(params = {}) {
+    return axiosApi.get('/api/v1/user/me/history', { params });
+  },
 };
