@@ -4,8 +4,9 @@
  * Validation cho các query params của User Management API.
  * Bao gồm: phân trang, tìm kiếm, lọc theo role, sắp xếp.
  * Mở rộng cho UC27: userId schema cho route param.
+ * Mở rộng cho UC30 Filter User: is_active, from_date, to_date params + date range validation.
  *
- * Owner: Member 4 - DucNM (UC26, UC27)
+ * Owner: Member 4 - DucNM (UC26, UC27, UC30)
  */
 
 import { z } from 'zod';
@@ -21,6 +22,25 @@ export const userIdSchema = z.object({
         .int()
         .positive("User ID phải là số nguyên dương")
 });
+
+/**
+ * Checks whether a date string is in the YYYY-MM-DD format
+ * and represents a valid calendar date.
+ */
+const isValidDate = (value) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        return false;
+    }
+
+    const [year, month, day] = value.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+
+    return (
+        date.getFullYear() === year &&
+        date.getMonth() === month - 1 &&
+        date.getDate() === day
+    );
+};
 
 /**
  * Schema validation cho POST /api/v1/users request body.
@@ -52,6 +72,8 @@ export const updateUserSchema = z.object({
 
 /**
  * Schema validation cho GET /api/v1/users query params.
+ * UC26: View User List — page, limit, search, role, sort.
+ * UC30: Filter User — thêm is_active, from_date, to_date + date range validation.
  */
 export const getUsersSchema = z.object({
     page: z
@@ -111,5 +133,39 @@ export const getUsersSchema = z.object({
                 return allowedFields.includes(match[1]);
             },
             { message: 'Tham số sort không đúng định dạng (field:direction)' }
+        ),
+    // UC30 Filter User: lọc theo trạng thái active/inactive
+    is_active: z
+        .string()
+        .optional()
+        .refine(
+            (val) => {
+                if (!val) return true;
+                return ['true', 'false'].includes(val.toLowerCase());
+            },
+            { message: 'is_active phải là true hoặc false' }
+        ),
+    // UC30 Filter User: lọc theo ngày tạo (from_date)
+    from_date: z
+        .string()
+        .optional()
+        .refine(
+            (val) => !val || isValidDate(val),
+            { message: 'from_date phải là ngày hợp lệ theo định dạng YYYY-MM-DD' }
+        ),
+    // UC30 Filter User: lọc theo ngày tạo (to_date)
+    to_date: z
+        .string()
+        .optional()
+        .refine(
+            (val) => !val || isValidDate(val),
+            { message: 'to_date phải là ngày hợp lệ theo định dạng YYYY-MM-DD' }
         )
-});
+}).refine(
+    (data) => {
+        // Chỉ validate date range nếu cả from_date và to_date đều có giá trị
+        if (!data.from_date || !data.to_date) {return true;}
+        return new Date(data.from_date) <= new Date(data.to_date);
+    },
+    { message: 'from_date phải trước hoặc bằng to_date', path: ['from_date'] }
+);

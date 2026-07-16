@@ -50,6 +50,7 @@ const validateUserId = (req, res, next) => {
  * GET /api/v1/users
  * Lấy danh sách người dùng (Admin only)
  * UC26: View User List
+ * UC30: Filter User — thêm is_active, from_date, to_date params
  */
 /**
  * @swagger
@@ -58,6 +59,7 @@ const validateUserId = (req, res, next) => {
  *     summary: Lấy danh sách người dùng (Admin only)
  *     description: |
  *       Trả về danh sách người dùng với phân trang, tìm kiếm, lọc theo role.
+ *       Hỗ trợ lọc theo trạng thái active/inactive (is_active) và khoảng thời gian tạo (from_date, to_date).
  *       Chỉ Admin mới có quyền truy cập. Staff/Manager/Volunteer nhận 403.
  *       Guest chưa đăng nhập nhận 401.
  *     tags: [User Management]
@@ -93,6 +95,23 @@ const validateUserId = (req, res, next) => {
  *           type: string
  *           default: created_at:desc
  *         description: Sắp xếp (field:direction)
+ *       - in: query
+ *         name: is_active
+ *         schema:
+ *           type: boolean
+ *         description: Lọc theo trạng thái active (true) / inactive (false)
+ *       - in: query
+ *         name: from_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Ngày tạo từ (format: YYYY-MM-DD, inclusive)
+ *       - in: query
+ *         name: to_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Ngày tạo đến (format: YYYY-MM-DD, inclusive)
  *     responses:
  *       200:
  *         description: Thành công, trả về danh sách người dùng
@@ -115,7 +134,7 @@ const validateUserId = (req, res, next) => {
  *                   total: 50
  *                   totalPages: 3
  *       400:
- *         description: Lỗi validation (page, limit, role, sort)
+ *         description: Lỗi validation (page, limit, role, sort, is_active, from_date, to_date)
  *       401:
  *         description: Chưa xác thực
  *       403:

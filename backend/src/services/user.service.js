@@ -1,10 +1,11 @@
 /**
  * User Service - Business logic for User Management module
- * Owner: Member 4 - DucNM (UC26)
+ * Owner: Member 4 - DucNM (UC26, UC27, UC30)
  *
  * Responsibilities:
  * - Get paginated list of users with search, filter, sort
  * - Build Prisma where/orderBy clauses from query params
+ * - UC30 Filter User: thêm is_active, from_date, to_date filters
  *
  * Rules:
  * - Business logic MUST be in Service layer, NOT Controller
@@ -27,6 +28,9 @@ import userRepository from '../repositories/user.repository.js';
  * @param {string} [query.search] - Tìm kiếm theo tên hoặc email
  * @param {string} [query.role] - Lọc theo role (volunteer, staff, manager, admin)
  * @param {string} [query.sort] - Sắp xếp (field:direction)
+ * @param {string} [query.is_active] - Lọc active/inactive (UC30)
+ * @param {string} [query.from_date] - Ngày tạo từ (UC30)
+ * @param {string} [query.to_date] - Ngày tạo đến (UC30)
  * @returns {Promise<Object>} { users, pagination }
  * @throws {ServiceError} 400 nếu params không hợp lệ
  */
@@ -42,7 +46,7 @@ async function getUsers(query) {
     // 1. Parse pagination
     const { skip, take, page, limit } = parsePagination(query);
 
-    // 2. Build where clause
+    // 2. Build where clause (bao gồm cả UC30 filters)
     const where = buildWhereClause(query);
 
     // 3. Build orderBy clause
@@ -65,6 +69,7 @@ async function getUsers(query) {
 
 /**
  * Build Prisma where clause từ query params.
+ * UC30: thêm is_active, from_date, to_date filters.
  *
  * @param {Object} query - Query params
  * @returns {Object} Prisma where clause
@@ -91,6 +96,26 @@ function buildWhereClause(query) {
                 name: roleName
             }
         });
+    }
+
+    // UC30: is_active filter — lọc theo trạng thái active/inactive
+    if (query.is_active !== undefined && query.is_active !== '') {
+        const isActive = query.is_active.toLowerCase() === 'true';
+        conditions.push({ isActive });
+    }
+
+    // UC30: from_date filter — lọc từ ngày (inclusive đầu ngày)
+    if (query.from_date) {
+        const fromDate = new Date(query.from_date);
+        fromDate.setHours(0, 0, 0, 0);
+        conditions.push({ createdAt: { gte: fromDate } });
+    }
+
+    // UC30: to_date filter — lọc đến ngày (inclusive cuối ngày)
+    if (query.to_date) {
+        const toDate = new Date(query.to_date);
+        toDate.setHours(23, 59, 59, 999);
+        conditions.push({ createdAt: { lte: toDate } });
     }
 
     return conditions.length > 0 ? { AND: conditions } : {};
