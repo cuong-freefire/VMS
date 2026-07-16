@@ -1,4 +1,4 @@
-# Data Model: Cập nhật hồ sơ cơ bản (UC19)
+﻿# Data Model: Cập nhật hồ sơ cơ bản (UC19)
 
 ## Database Schema: `users`
 
@@ -23,7 +23,7 @@ API này chỉ thao tác trên bảng `users`.
 4. Validate các field text (full_name, phone_number) bằng Zod.
 5. Nếu có file upload:
    - Truy xuất `avatar_url` cũ từ DB.
-   - Upload file mới lên Cloudinary.
    - Xóa file cũ trên Cloudinary (nếu có) thông qua public_id.
+   - Upload file mới lên Cloudinary.
 6. Update DB: `prisma.user.update()` với các field thay đổi (PATCH behavior).
 7. Trả về thông tin profile đã cập nhật.
