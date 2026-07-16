@@ -1,4 +1,4 @@
-# Feature Specification: View Volunteer History (UC21)
+﻿# Feature Specification: View Volunteer History (UC21)
 
 **Feature Branch**: `004-view-volunteer-history`
 
@@ -16,13 +16,13 @@ Là một tình nguyện viên, tôi muốn xem danh sách các hoạt động m
 
 **Why this priority**: Đây là chức năng cốt lõi của UC21, cung cấp khả năng hiển thị lịch sử tham gia - giá trị cơ bản nhất mà tính năng này phải mang lại. Không có story này thì toàn bộ feature không có ý nghĩa.
 
-**Independent Test**: Có thể test độc lập bằng cách đăng nhập với tài khoản tình nguyện viên có ít nhất 3-5 hoạt động đã đăng ký với các trạng thái khác nhau (Approved, Attended, Rejected, Cancelled), sau đó truy cập trang lịch sử và xác nhận danh sách hiển thị đầy đủ các bản ghi với thông tin chính xác (tên hoạt động, ngày tham gia, trạng thái).
+**Independent Test**: Có thể test độc lập bằng cách đăng nhập với tài khoản tình nguyện viên có ít nhất 3-5 hoạt động đã đăng ký với các trạng thái khác nhau (PENDING, APPROVED, REJECTED, CANCELLED), sau đó truy cập trang lịch sử và xác nhận danh sách hiển thị đầy đủ các bản ghi với thông tin chính xác (tên hoạt động, ngày tham gia, trạng thái).
 
 **Acceptance Scenarios**:
 
-1. **Given** tôi là tình nguyện viên đã đăng nhập và có ít nhất 5 hoạt động đã đăng ký, **When** tôi truy cập trang "Lịch sử tình nguyện", **Then** hệ thống hiển thị danh sách tất cả các hoạt động mà tôi đã đăng ký, sắp xếp theo thời gian mới nhất trước (newest first).
+1. **Given** tôi là tình nguyện viên đã đăng nhập và có ít nhất 5 hoạt động đã đăng ký, **When** tôi truy cập trang "Lịch sử tình nguyện", **Then** hệ thống hiển thị danh sách tất cả các hoạt động mà tôi đã đăng ký, sắp xếp theo `createdAt` giảm dần (đơn mới nhất trước).
 
-2. **Given** tôi đang xem danh sách lịch sử, **When** tôi quan sát từng bản ghi, **Then** mỗi bản ghi hiển thị: tên hoạt động, tổ chức chủ trì, ngày bắt đầu hoạt động, trạng thái xử lý đơn (Approved/Attended/Rejected/Cancelled), và số giờ đóng góp (nếu đã hoàn thành).
+2. **Given** tôi đang xem danh sách lịch sử, **When** tôi quan sát từng bản ghi, **Then** mỗi bản ghi hiển thị: tên sự kiện, địa điểm, ngày bắt đầu sự kiện, thời điểm đăng ký, và trạng thái xử lý đơn (PENDING/APPROVED/REJECTED/CANCELLED).
 
 3. **Given** tôi chưa đăng ký hoạt động nào, **When** tôi truy cập trang lịch sử, **Then** hệ thống hiển thị thông báo "Bạn chưa tham gia sự kiện nào" với gợi ý link đến trang danh sách sự kiện để khuyến khích tham gia.
 
@@ -30,19 +30,19 @@ Là một tình nguyện viên, tôi muốn xem danh sách các hoạt động m
 
 ### User Story 2 - Xem Tổng Hợp Số Liệu (Priority: P1)
 
-Là một tình nguyện viên, tôi muốn thấy các số liệu tổng hợp (tổng số giờ tích lũy, tổng số hoạt động đã tham gia, tổng số hoạt động hoàn thành thành công) ngay đầu trang lịch sử để có cái nhìn tổng quan về thành tích cá nhân và động lực tiếp tục đóng góp.
+Là một tình nguyện viên, tôi muốn thấy tổng số đơn đăng ký ở đầu trang lịch sử để có cái nhìn tổng quan về số lượng hoạt động đã đăng ký.
 
-**Why this priority**: Đây là yêu cầu bắt buộc từ CONTEXT.md mục 2 "Cumulative Metrics" và mục 7 câu trả lời số 2. Số liệu tổng hợp giúp tạo động lực mạnh mẽ cho người dùng và là phần không tách rời của trải nghiệm xem lịch sử.
+**Why this priority**: Số liệu tổng hợp giúp tạo động lực cho người dùng. Ở Schema V3.0, summary chỉ hiển thị tổng số đơn (`total`).
 
-**Independent Test**: Có thể test độc lập bằng cách đăng nhập với tài khoản tình nguyện viên đã hoàn thành ít nhất 3 hoạt động với tổng số giờ rõ ràng (ví dụ: 5h + 8h + 3h = 16h), sau đó xác nhận Summary Card hiển thị chính xác: Tổng giờ = 16h, Tổng số hoạt động = 3, Số hoạt động hoàn thành = 3.
+**Independent Test**: Đăng nhập tài khoản có 5 đơn đăng ký. Xác nhận Summary Card hiển thị "Tổng số đơn: 5".
 
 **Acceptance Scenarios**:
 
-1. **Given** tôi đã hoàn thành 3 hoạt động với tổng số giờ là 16 giờ, **When** tôi truy cập trang lịch sử, **Then** hệ thống hiển thị Summary Card ở đầu trang với: "Tổng giờ tích lũy: 16 giờ", "Tổng số hoạt động đã tham gia: 3", "Tổng số hoạt động hoàn thành: 3".
+1. **Given** tôi có 5 đơn đăng ký, **When** tôi truy cập trang lịch sử, **Then** Summary Card hiển thị "Tổng số đơn: 5".
 
-2. **Given** tôi có 5 hoạt động đã đăng ký nhưng chỉ 2 hoạt động đã hoàn thành (Attended), **When** tôi xem Summary Card, **Then** hệ thống chỉ tính số giờ từ 2 hoạt động đã hoàn thành, và "Tổng số hoạt động hoàn thành" hiển thị là 2 (không tính các hoạt động Approved/Pending/Rejected/Cancelled).
+2. **Given** tôi chưa đăng ký hoạt động nào, **When** tôi xem Summary Card, **Then** hiển thị "Tổng số đơn: 0".
 
-3. **Given** tôi có 1 hoạt động Approved (chờ tham gia) và 1 hoạt động Rejected, **When** tôi xem Summary Card, **Then** "Tổng giờ tích lũy" = 0 giờ (vì chưa có hoạt động nào hoàn thành), "Tổng số hoạt động đã tham gia" = 2, "Tổng số hoạt động hoàn thành" = 0.
+
 
 ---
 
@@ -64,35 +64,37 @@ Là một tình nguyện viên lâu năm với hơn 50 hoạt động đã tham 
 
 ---
 
-### User Story 4 - Lọc Lịch Sử Theo Trạng Thái và Năm (Priority: P3)
+### User Story 4 - Lọc Lịch Sử Theo Trạng Thái, Năm và Tìm Kiếm (Priority: P3)
 
-Là một tình nguyện viên đã tham gia nhiều hoạt động qua nhiều năm, tôi muốn lọc danh sách lịch sử theo trạng thái (Approved/Attended/Rejected/Cancelled) và theo năm tham gia để dễ dàng tìm kiếm thông tin cụ thể.
+Là một tình nguyện viên đã tham gia nhiều hoạt động qua nhiều năm, tôi muốn lọc danh sách lịch sử theo trạng thái (PENDING/APPROVED/REJECTED/CANCELLED), theo năm tham gia, và tìm kiếm theo tên sự kiện/địa điểm để dễ dàng tìm kiếm thông tin cụ thể.
 
 **Why this priority**: Đây là yêu cầu từ CONTEXT.md mục 7 câu trả lời số 5, giúp cải thiện trải nghiệm người dùng khi dữ liệu lớn. Tuy nhiên, đây là tính năng nâng cao (nice-to-have), không phải yêu cầu bắt buộc cho MVP, do đó được xếp priority P3.
 
-**Independent Test**: Có thể test độc lập bằng cách tạo tài khoản test với hoạt động năm 2024 (2 hoạt động) và năm 2025 (3 hoạt động), sau đó: (1) Chọn bộ lọc "Năm: 2025" → chỉ hiển thị 3 hoạt động năm 2025; (2) Chọn bộ lọc "Trạng thái: Attended" → chỉ hiển thị các hoạt động đã hoàn thành.
+**Independent Test**: Tạo tài khoản test với events năm 2024 (2 events), 2025 (3 events). (1) Chọn bộ lọc "Trạng thái: APPROVED" → chỉ hiển thị events APPROVED. (2) Chọn bộ lọc "Năm: 2025" → chỉ hiển thị events năm 2025. (3) Nhập search → chỉ hiển thị events khớp từ khóa. (4) Xóa bộ lọc → hiển thị lại toàn bộ.
 
 **Acceptance Scenarios**:
 
 1. **Given** tôi có hoạt động từ năm 2024, 2025, 2026, **When** tôi chọn bộ lọc "Năm: 2025", **Then** hệ thống chỉ hiển thị các hoạt động diễn ra trong năm 2025.
 
-2. **Given** tôi có 10 hoạt động với các trạng thái khác nhau, **When** tôi chọn bộ lọc "Trạng thái: Attended", **Then** hệ thống chỉ hiển thị các hoạt động đã hoàn thành (có kết quả ghi nhận).
+2. **Given** tôi có 10 hoạt động với các trạng thái khác nhau, **When** tôi chọn bộ lọc "Trạng thái: APPROVED", **Then** hệ thống chỉ hiển thị các hoạt động có trạng thái APPROVED.
 
 3. **Given** tôi đã áp dụng bộ lọc, **When** tôi yêu cầu xóa bộ lọc, **Then** hệ thống hiển thị lại toàn bộ danh sách lịch sử không bị lọc.
+
+4. **Given** tôi có hoạt động với tên cụ thể, **When** tôi nhập từ khóa vào ô tìm kiếm, **Then** hệ thống lọc theo tên sự kiện và địa điểm khớp với từ khóa.
 
 ---
 
 ### Edge Cases
 
-- **Không có kết quả ghi nhận**: Nếu sự kiện đã hoàn thành nhưng chưa có kết quả ghi nhận tham gia cho tình nguyện viên, hệ thống hiển thị "Chưa có kết quả ghi nhận" thay vì số giờ.
+- **Không có dữ liệu attendance**: Schema V3.0 chưa có bảng `attendances`. Mỗi bản ghi chỉ hiển thị từ `applications` và `events`.
 
-- **Sự kiện bị gỡ bỏ**: Hệ thống KHÔNG hiển thị các sự kiện đã bị gỡ bỏ khỏi hệ thống trong danh sách lịch sử.
+- **Sự kiện không khả dụng**: Nếu event bị null, frontend hiển thị "N/A" cho tên sự kiện và địa điểm.
 
 - **Phân trang với dữ liệu thay đổi**: Nếu có hoạt động mới được thêm vào trong khi người dùng đang duyệt danh sách, hệ thống KHÔNG tự động cập nhật danh sách hiện tại (người dùng phải làm mới trang để thấy dữ liệu mới nhất).
 
 - **Người dùng không có quyền truy cập**: Nếu thông tin xác thực không hợp lệ hoặc đã hết hạn, hệ thống từ chối truy cập và chuyển hướng về trang đăng nhập.
 
-- **Chứng nhận chưa được cấp**: Nếu sự kiện đã hoàn thành nhưng chứng nhận chưa được tạo bởi Module 2 (UC51/52), hệ thống hiển thị "Chứng nhận đang được xử lý" với trạng thái pending.
+- **Tìm kiếm không có kết quả**: Khi người dùng nhập từ khóa tìm kiếm không khớp với bất kỳ sự kiện hoặc địa điểm nào, danh sách hiển thị rỗng.
 
 ## Requirements *(mandatory)*
 
@@ -124,15 +126,9 @@ Là một tình nguyện viên đã tham gia nhiều hoạt động qua nhiều 
 
 #### FR-003: Hiển Thị Bảng Tóm Tắt (Summary Card)
 
-**WHEN** trang lịch sử được tải, **THE system SHALL** tính toán và hiển thị bảng tóm tắt ở đầu trang với 3 số liệu:
+**WHEN** trang lịch sử được tải, **THE system SHALL** hiển thị bảng tóm tắt ở đầu trang: **Tổng số đơn đăng ký** (tất cả trạng thái)..
 
-1. **Tổng giờ tích lũy**: Tổng số giờ tình nguyện từ TẤT CẢ các hoạt động đã hoàn thành (có kết quả ghi nhận tham gia hợp lệ).
-2. **Tổng số hoạt động đã tham gia**: Tổng số lượng đơn đăng ký (bao gồm tất cả trạng thái: Đã duyệt, Đã hoàn thành, Bị từ chối, Đã hủy).
-3. **Tổng số hoạt động hoàn thành**: Số lượng hoạt động mà người dùng đã tham gia và được ghi nhận kết quả.
-
-**WHEN** người dùng chưa hoàn thành hoạt động nào, **THE system SHALL** hiển thị "Tổng giờ tích lũy: 0 giờ" và "Tổng số hoạt động hoàn thành: 0".
-
-**Rationale**: Đáp ứng yêu cầu Cumulative Metrics tại CONTEXT.md mục 2 và quyết định tại mục 7 câu trả lời số 2.
+**Rationale**: Schema V3.0 chỉ join application → event. Summary nâng cao (tổng giờ, số hoàn thành) sẽ bổ sung khi có attendances.
 
 ---
 
@@ -231,13 +227,13 @@ Là một tình nguyện viên đã tham gia nhiều hoạt động qua nhiều 
 
 ### Key Entities *(Business Level Only)*
 
-- **Volunteer History Record**: Đại diện cho một bản ghi lịch sử tham gia sự kiện của tình nguyện viên. Bao gồm thông tin: định danh đơn đăng ký, thông tin sự kiện liên quan, trạng thái xử lý đơn, thời gian đăng ký, kết quả tham gia (số giờ đóng góp), và trạng thái chứng nhận.
+- **Volunteer History Record**: Đại diện cho một bản ghi lịch sử đăng ký sự kiện của tình nguyện viên. Bao gồm: định danh đơn đăng ký, thông tin sự kiện (tên, địa điểm, ngày bắt đầu), trạng thái xử lý đơn, thời gian đăng ký.
 
-- **Summary Metrics**: Tập hợp các số liệu tổng hợp về hoạt động tình nguyện của người dùng, bao gồm: tổng số giờ tích lũy, tổng số hoạt động đã đăng ký, và tổng số hoạt động hoàn thành thành công.
+- **Summary**: Số liệu tổng hợp đơn giản: tổng số đơn đăng ký.
 
 - **Pagination Context**: Thông tin phân trang bao gồm: vị trí hiện tại, tổng số phần, tổng số bản ghi, và số lượng bản ghi mỗi phần.
 
-- **Filter Criteria**: Các tiêu chí lọc do người dùng chọn, bao gồm: trạng thái xử lý đơn đăng ký và khoảng thời gian tham gia.
+- **Filter Criteria**: Các tiêu chí lọc do người dùng chọn, bao gồm: trạng thái đơn, năm tham gia, từ khóa tìm kiếm (tên sự kiện/địa điểm).
 
 ## Success Criteria *(mandatory)*
 
@@ -245,7 +241,7 @@ Là một tình nguyện viên đã tham gia nhiều hoạt động qua nhiều 
 
 - **SC-001**: Tình nguyện viên có thể xem đầy đủ lịch sử tham gia của mình (bao gồm tất cả trạng thái) trong vòng 2 giây kể từ khi truy cập trang.
 
-- **SC-002**: Hệ thống hiển thị chính xác 100% số liệu tổng hợp (tổng giờ, tổng số hoạt động, số hoạt động hoàn thành) so với dữ liệu thực tế trong hệ thống.
+- **SC-002**: Hệ thống hiển thị chính xác 100% số liệu tổng hợp (tổng số đơn) so với dữ liệu thực tế trong hệ thống.
 
 - **SC-003**: Với tình nguyện viên có hơn 100 hoạt động, hệ thống vẫn phản hồi trong vòng 3 giây nhờ cơ chế phân trang.
 
@@ -273,13 +269,13 @@ Là một tình nguyện viên đã tham gia nhiều hoạt động qua nhiều 
 
 Các tính năng sau KHÔNG nằm trong phạm vi của UC21 và KHÔNG được implement:
 
-- **Tìm kiếm theo tên sự kiện**: Chức năng tìm kiếm văn bản theo tên sự kiện hoặc tổ chức KHÔNG được triển khai trong v1 (theo quyết định tại CONTEXT.md mục 7 câu trả lời số 6). Tính năng này có thể được xem xét trong các phiên bản sau nếu có phản hồi từ người dùng yêu cầu.
+- **Thông tin Tổ chức (Organization)**: Schema V3.0 không join bảng `organizations`. Tên tổ chức sẽ được bổ sung khi schema mở rộng.
 
 - **Xuất báo cáo**: Chức năng xuất lịch sử tham gia dưới dạng file định dạng văn bản hoặc bảng tính KHÔNG được triển khai trong v1 (theo giả định tại CONTEXT.md mục 5). Đây là tính năng nâng cao có thể được bổ sung trong v2 nếu có nhu cầu.
 
 - **Chỉnh sửa hoặc xóa lịch sử**: Tình nguyện viên KHÔNG thể chỉnh sửa, xóa, hoặc ẩn các bản ghi lịch sử. Dữ liệu lịch sử là chỉ đọc và phản ánh chính xác trạng thái trong hệ thống.
 
-- **Tạo hoặc tải xuống chứng nhận**: Logic tạo, quản lý, và tải xuống chứng nhận thuộc về Member 2 (UC51/UC52). UC21 TUYỆT ĐỐI KHÔNG được tự ý viết logic xử lý chứng nhận (theo ràng buộc RAG/BOUNDARY tại yêu cầu của user).
+- **Số giờ đóng góp (Volunteer Hours)**: Schema V3.0 chưa có bảng `attendances`. Số giờ sẽ được bổ sung khi có attendance data. **Trạng thái ATTENDED (derived)**: Chưa có attendance data nên chưa ánh xạ được APPROVED + PRESENT → ATTENDED. **Chứng nhận (Certificate)**: Schema V3.0 chưa có bảng `certificates`. Logic thuộc Member 2 (UC51/UC52).
 
 - **Thông báo cập nhật tự động**: Hệ thống KHÔNG tự động cập nhật danh sách lịch sử khi có hoạt động mới hoặc trạng thái thay đổi. Người dùng phải làm mới trang để xem dữ liệu cập nhật (theo edge case đã định nghĩa).
 
