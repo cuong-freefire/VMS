@@ -25,7 +25,7 @@
 
 **Purpose**: Mở rộng infrastructure đã có từ UC26/UC27 cho UC28
 
-- [ ] T001 Thêm `createUserSchema` (Zod) trong `backend/src/validators/user.validator.js` — fields: full_name, email, phone (optional), password (min 8), role_id
+- [x] T001 Thêm `createUserSchema` (Zod) trong `backend/src/middlewares/validators/user.validator.js` — fields: full_name, email, phone (optional), password (min 8), role_id
 
 ---
 
@@ -45,17 +45,17 @@
 
 ### Implementation cho User Story 1
 
-- [ ] T007 [US1] Implement `findUserByEmail` trong `backend/src/repositories/user.repository.js` — dùng Prisma `findUnique` theo email
-- [ ] T008 [US1] Implement `findRoleById` trong `backend/src/repositories/user.repository.js` — dùng Prisma `findUnique` theo role_id
-- [ ] T009 [US1] Implement `createUser` trong `backend/src/repositories/user.repository.js` — dùng Prisma `create` với `select` (exclude password)
-- [ ] T010 [US1] Implement `createUserService` trong `backend/src/services/user.service.js` — validation → email uniqueness → role check → bcrypt hash → create → transform role name
-- [ ] T011 [US1] Implement `createUserHandler` trong `backend/src/controllers/user.controller.js` — gọi service + trả về 201
-- [ ] T012 [US1] Thêm route `POST /` trong `backend/src/routes/user.routes.js` — middleware chain: authMiddleware → authorize('ADMIN') → createUserHandler. **Đặt TRƯỚC route GET `/:id` để tránh conflict**.
-- [ ] T013 [US1] Thêm Swagger JSDoc cho endpoint `POST /api/v1/users` trong `backend/src/routes/user.routes.js`
-- [ ] T014 [US1] Implement frontend API client — thêm `createUser(data)` trong `frontend/src/api/userApi.js`
-- [ ] T015 [US1] Implement React hook `useCreateUser` trong `frontend/src/hooks/useCreateUser.js` — quản lý state: loading, error, success
-- [ ] T016 [US1] Implement `AddUserPage.jsx` với React Hook Form + Zod resolver trong `frontend/src/components/pages/AddUserPage.jsx`
-- [ ] T017 [US1] Thêm route `/users/add` trong `frontend/src/App.js` — dẫn đến AddUserPage
+- [x] T007 [US1] Implement `findByEmail` trong `backend/src/repositories/user.repository.js` — dùng Prisma `findUnique` theo email
+- [x] T008 [US1] Implement `findRoleById` trong `backend/src/repositories/user.repository.js` — dùng Prisma `findUnique` theo role_id
+- [x] T009 [US1] Implement `createUser` trong `backend/src/repositories/user.repository.js` — dùng Prisma `create` với `select` (exclude password)
+- [x] T010 [US1] Implement `createUserService` trong `backend/src/services/user.service.js` — validation → email uniqueness → role check → bcrypt hash → create → transform role name
+- [x] T011 [US1] Implement `createUserHandler` trong `backend/src/controllers/user.controller.js` — gọi service + trả về 201
+- [x] T012 [US1] Thêm route `POST /` trong `backend/src/routes/user.routes.js` — middleware chain: authMiddleware → authorize('ADMIN') → validate(createUserSchema) → createUserHandler. **Đặt TRƯỚC route GET `/:id` để tránh conflict**.
+- [x] T013 [US1] Thêm Swagger JSDoc cho endpoint `POST /api/v1/users` trong `backend/src/routes/user.routes.js`
+- [ ] T014 [US1] Implement frontend API client — thêm `createUser(data)` trong `frontend/src/api/userApi.js` (SKIP: frontend tasks)
+- [ ] T015 [US1] Implement React hook `useCreateUser` (SKIP: frontend tasks)
+- [ ] T016 [US1] Implement `AddUserPage.jsx` (SKIP: frontend tasks)
+- [ ] T017 [US1] Thêm route trong `frontend/src/App.js` (SKIP: frontend tasks)
 
 **Checkpoint**: User Story 1 hoàn thành — Admin có thể tạo user mới thành công.
 
@@ -78,9 +78,9 @@
 
 ### Implementation cho User Story 2
 
-- [ ] T024 [US2] Zod schema `createUserSchema` đã implement ở T001 — validation tự động từ Zod safeParse
-- [ ] T025 [US2] Frontend: Validation đồng bộ với React Hook Form + Zod resolver trong `AddUserPage.jsx` — hiển thị error message dưới từng field
-- [ ] T026 [US2] Frontend: Hiển thị validation error details từ backend response (khi có lỗi server-side)
+- [x] T024 [US2] Zod schema `createUserSchema` đã implement ở T001 — validation tự động từ Zod safeParse
+- [ ] T025 [US2] Frontend: Validation đồng bộ (SKIP: frontend tasks)
+- [ ] T026 [US2] Frontend: Hiển thị validation error (SKIP: frontend tasks)
 
 **Checkpoint**: User Story 2 hoàn thành — Validation hoạt động cả FE và BE.
 
@@ -102,7 +102,7 @@
 
 ### Implementation cho User Story 3
 
-- [ ] T032 [US3] Middleware chain đã implement ở T012 — `authorize('ADMIN')` xử lý 403, `authMiddleware` xử lý 401. **(Không cần code mới — verify authorize middleware từ UC26 đã đủ)**
+- [x] T032 [US3] Middleware chain đã implement ở T012 — `authorize('ADMIN')` xử lý 403, `authMiddleware` xử lý 401. **(Verify: authorize middleware từ UC26 đã đủ)**
 
 **Checkpoint**: User Story 3 hoàn thành — endpoint được bảo vệ đúng phân quyền.
 

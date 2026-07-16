@@ -25,7 +25,7 @@
 
 **Purpose**: Mở rộng infrastructure đã có từ UC31/UC32 cho UC33
 
-- [ ] T001 Thêm `updateCategorySchema` (Zod) trong `backend/src/validators/category.validator.js` — fields optional: name, description, is_active. `.refine()` kiểm tra body không rỗng. Type KHÔNG được phép trong schema.
+- [x] T001 Thêm `updateCategorySchema` (Zod) trong `backend/src/validators/category.validator.js` — fields optional: name, description, is_active. `.refine()` kiểm tra body không rỗng. Type KHÔNG được phép trong schema.
 
 ---
 
@@ -46,13 +46,13 @@
 
 ### Implementation cho User Story 1
 
-- [ ] T008 [US1] Implement `findCategoryById` trong `backend/src/repositories/category.repository.js` — dùng Prisma `findUnique`
-- [ ] T009 [US1] Implement `findCategoryByNameAndType` với excludeId param trong `backend/src/repositories/category.repository.js` — dùng Prisma `findFirst` với `NOT`
-- [ ] T010 [US1] Implement `updateCategory` trong `backend/src/repositories/category.repository.js` — dùng Prisma `update`
-- [ ] T011 [US1] Implement `updateCategoryService` trong `backend/src/services/category.service.js` — validation → check exists → check unique name → update → return
-- [ ] T012 [US1] Implement `updateCategoryHandler` trong `backend/src/controllers/category.controller.js` — gọi service + trả về 200
-- [ ] T013 [US1] Thêm route `PATCH /:id` trong `backend/src/routes/category.routes.js` — middleware chain: authMiddleware → authorize('MANAGER', 'ADMIN') → updateCategoryHandler
-- [ ] T014 [US1] Thêm Swagger JSDoc cho endpoint `PATCH /api/v1/categories/:id` trong `backend/src/routes/category.routes.js`
+- [x] T008 [US1] Implement `findById` trong `backend/src/repositories/category.repository.js` — dùng Prisma `findUnique`
+- [x] T009 [US1] Mở rộng `findByNameAndType` với excludeId param trong `backend/src/repositories/category.repository.js` — dùng Prisma `findFirst` với `NOT`
+- [x] T010 [US1] Implement `updateCategory` trong `backend/src/repositories/category.repository.js` — dùng Prisma `update`
+- [x] T011 [US1] Implement `updateCategoryService` trong `backend/src/services/category.service.js` — check exists → check unique name → update → return
+- [x] T012 [US1] Implement `updateCategoryHandler` trong `backend/src/controllers/category.controller.js` — gọi service + trả về 200
+- [x] T013 [US1] Thêm route `PATCH /:id` trong `backend/src/routes/category.routes.js` — middleware chain: authMiddleware → authorize('MANAGER', 'ADMIN') → validate(updateCategorySchema) → updateCategoryHandler
+- [x] T014 [US1] Thêm Swagger JSDoc cho endpoint `PATCH /api/v1/categories/:id` trong `backend/src/routes/category.routes.js`
 
 **Checkpoint**: User Story 1 hoàn thành — Manager/Admin chỉnh sửa category thành công.
 
@@ -72,8 +72,8 @@
 
 ### Implementation cho User Story 2
 
-- [ ] T018 [US2] Zod schema `updateCategorySchema` đã implement ở T001 với `.refine()` kiểm tra body không rỗng
-- [ ] T019 [US2] Unique name check đã implement ở T011 — kiểm tra `name !== existing.name` và `findByNameAndType` với `excludeId`
+- [x] T018 [US2] Zod schema `updateCategorySchema` đã implement ở T001 với `.refine()` kiểm tra body không rỗng
+- [x] T019 [US2] Unique name check đã implement ở T011 — kiểm tra `name !== existing.name` và `findByNameAndType` với `excludeId`
 
 **Checkpoint**: User Story 2 hoàn thành — Validation hoạt động.
 
@@ -94,7 +94,7 @@
 
 ### Implementation cho User Story 3
 
-- [ ] T024 [US3] Middleware chain đã implement ở T013 — `authorize('MANAGER', 'ADMIN')` xử lý 403, `authMiddleware` xử lý 401. **(Không cần code mới)**
+- [x] T024 [US3] Middleware chain đã implement ở T013 — `authorize('MANAGER', 'ADMIN')` xử lý 403, `authMiddleware` xử lý 401. **(Verify: authorize middleware từ UC26 đã đủ)**
 
 **Checkpoint**: User Story 3 hoàn thành — endpoint được bảo vệ đúng phân quyền.
 

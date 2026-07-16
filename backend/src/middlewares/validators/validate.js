@@ -39,6 +39,9 @@ export const validate = (schema) => (req, res, next) => {
 };
 
 /**
+ * Middleware validate req.query bằng Zod schema.
+ * Dùng cho các endpoint có query params cần validate (phân trang, lọc, tìm kiếm).
+ *
  * @param {z.ZodSchema} schema - Zod schema để validate req.query
  * @returns {Function} Express middleware
  */

@@ -26,10 +26,10 @@
 
 **Purpose**: Thiết lập database model và infrastructure dùng chung
 
-- [ ] T001 Thêm Skill model vào Prisma schema trong `backend/prisma/schema.prisma` — fields: skill_id, name (unique), description (optional), is_active (default true), created_at, updated_at
-- [ ] T002 Chạy Prisma migration: `npx prisma migrate dev --name add_skill_model`
-- [ ] T003 [P] Tạo skill repository trong `backend/src/repositories/skill.repository.js` — hàm `findAllSkills(where)`
-- [ ] T004 Tạo skill validator trong `backend/src/validators/skill.validator.js` — (optional, GET không cần params)
+- [x] T001 Skill model đã có sẵn trong `backend/prisma/schema.prisma`
+- [x] T002 Không cần chạy migration — model đã tồn tại
+- [x] T003 [P] Tạo skill repository trong `backend/src/repositories/skill.repository.js`
+- [x] T004 Tạo skill validator trong `backend/src/validators/skill.validator.js`
 
 ---
 
@@ -48,11 +48,11 @@
 
 ### Implementation cho User Story 1
 
-- [ ] T009 [US1] Implement `skill.service.js` — hàm `getSkills(currentUser)` với role-based visibility trong `backend/src/services/skill.service.js`
-- [ ] T010 [US1] Implement `skill.controller.js` — handler `getSkillsHandler` trong `backend/src/controllers/skill.controller.js`
-- [ ] T011 [US1] Tạo `skill.routes.js` — route `GET /` với optionalAuth middleware trong `backend/src/routes/skill.routes.js`
-- [ ] T012 [US1] Cập nhật `backend/src/app.js` — mount `skillRoutes` tại prefix `/api/v1/skills`
-- [ ] T013 [US1] Thêm Swagger JSDoc cho endpoint `GET /api/v1/skills` trong `backend/src/routes/skill.routes.js`
+- [x] T009 [US1] Implement `skill.service.js` — hàm `getSkills(currentUser)` với role-based visibility trong `backend/src/services/skill.service.js`
+- [x] T010 [US1] Implement `skill.controller.js` — handler `getSkillsHandler` trong `backend/src/controllers/skill.controller.js`
+- [x] T011 [US1] Tạo `skill.routes.js` — route `GET /` với optionalAuth middleware trong `backend/src/routes/skill.routes.js`
+- [x] T012 [US1] Cập nhật `backend/src/app.js` — mount `skillRoutes` tại prefix `/api/v1/skills`
+- [x] T013 [US1] Thêm Swagger JSDoc cho endpoint `GET /api/v1/skills` trong `backend/src/routes/skill.routes.js`
 
 **Checkpoint**: User Story 1 hoàn thành — Manager/Admin xem được tất cả skills.
 
@@ -73,7 +73,7 @@
 
 ### Implementation cho User Story 2
 
-- [ ] T018 [US2] Role-based visibility logic đã implement ở T009 — Volunteer/Staff tự động chỉ thấy active
+- [x] T018 [US2] Role-based visibility logic đã implement ở T009 — Volunteer/Staff tự động chỉ thấy active
 
 **Checkpoint**: User Story 2 hoàn thành — Volunteer/Staff xem được skills active (phục vụ UC11 + UC20).
 
@@ -92,8 +92,8 @@
 
 ### Implementation cho User Story 3
 
-- [ ] T021 [US3] Optional auth middleware (tái sử dụng từ UC31) — Guest không token vẫn vào được controller. Đã dùng ở T011.
-- [ ] T022 [US3] Role-based visibility logic đã implement ở T009 — Guest (req.user = null) tự động chỉ thấy active
+- [x] T021 [US3] Optional auth middleware (tái sử dụng từ UC31) — Guest không token vẫn vào được controller. Đã dùng ở T011.
+- [x] T022 [US3] Role-based visibility logic đã implement ở T009 — Guest (req.user = null) tự động chỉ thấy active
 
 **Checkpoint**: User Story 3 hoàn thành — Guest xem được skills active (phục vụ UC11).
 

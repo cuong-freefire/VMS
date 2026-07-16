@@ -26,7 +26,7 @@
 
 **Purpose**: Tạo Zod validation schema cho create skill
 
-- [ ] T001 Tạo `createSkillSchema` (Zod) trong `backend/src/validators/skill.validator.js` — name (min 1), description (optional)
+- [x] T001 Tạo `createSkillSchema` (Zod) trong `backend/src/validators/skill.validator.js` — name (min 1), description (optional)
 
 ---
 
@@ -45,12 +45,12 @@
 
 ### Implementation cho User Story 1
 
-- [ ] T006 [US1] Implement `findSkillByName` trong `backend/src/repositories/skill.repository.js` — dùng Prisma `findUnique` theo name
-- [ ] T007 [US1] Implement `createSkill` trong `backend/src/repositories/skill.repository.js` — dùng Prisma `create`
-- [ ] T008 [US1] Implement `createSkillService` trong `backend/src/services/skill.service.js` — validation → unique check → create → return
-- [ ] T009 [US1] Implement `createSkillHandler` trong `backend/src/controllers/skill.controller.js` — gọi service + trả về 201
-- [ ] T010 [US1] Thêm route `POST /` trong `backend/src/routes/skill.routes.js` — middleware chain: authMiddleware → authorize('MANAGER', 'ADMIN') → createSkillHandler
-- [ ] T011 [US1] Thêm Swagger JSDoc cho endpoint `POST /api/v1/skills` trong `backend/src/routes/skill.routes.js`
+- [x] T006 [US1] Implement `findByName` trong `backend/src/repositories/skill.repository.js` — dùng Prisma `findUnique` theo name
+- [x] T007 [US1] Implement `createSkill` trong `backend/src/repositories/skill.repository.js` — dùng Prisma `create`
+- [x] T008 [US1] Implement `createSkillService` trong `backend/src/services/skill.service.js` — unique check → create → format
+- [x] T009 [US1] Implement `createSkillHandler` trong `backend/src/controllers/skill.controller.js` — gọi service + trả về 201
+- [x] T010 [US1] Thêm route `POST /` trong `backend/src/routes/skill.routes.js` — middleware chain: authMiddleware → authorize('MANAGER', 'ADMIN') → validate(createSkillSchema) → createSkillHandler
+- [x] T011 [US1] Thêm Swagger JSDoc cho endpoint `POST /api/v1/skills` trong `backend/src/routes/skill.routes.js`
 
 **Checkpoint**: User Story 1 hoàn thành — Manager/Admin tạo được skill mới.
 
@@ -69,8 +69,8 @@
 
 ### Implementation cho User Story 2
 
-- [ ] T014 [US2] Zod schema `createSkillSchema` đã implement ở T001 — validation tự động từ Zod safeParse
-- [ ] T015 [US2] Frontend: Validation đồng bộ với React Hook Form + Zod resolver trong `AddSkillPage.jsx`
+- [x] T014 [US2] Zod schema `createSkillSchema` đã implement ở T001 — validation tự động từ Zod safeParse
+- [ ] T015 [US2] Frontend: Validation đồng bộ (SKIP: frontend tasks)
 
 **Checkpoint**: User Story 2 hoàn thành — Validation hoạt động.
 
@@ -91,7 +91,7 @@
 
 ### Implementation cho User Story 3
 
-- [ ] T020 [US3] Middleware chain đã implement ở T010 — `authorize('MANAGER', 'ADMIN')` xử lý 403, `authMiddleware` xử lý 401. **(Không cần code mới)**
+- [x] T020 [US3] Middleware chain đã implement ở T010 — `authorize('MANAGER', 'ADMIN')` xử lý 403, `authMiddleware` xử lý 401. **(Verify: authorize middleware từ UC26 đã đủ)**
 
 **Checkpoint**: User Story 3 hoàn thành — endpoint được bảo vệ đúng phân quyền.
 
