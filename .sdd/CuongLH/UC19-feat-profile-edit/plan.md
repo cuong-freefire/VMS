@@ -1,4 +1,4 @@
-# Implementation Plan: Cập nhật hồ sơ cơ bản (UC19 - Edit Profile)
+﻿# Implementation Plan: Cập nhật hồ sơ cơ bản (UC19 - Edit Profile)
 
 **Branch**: `002-profile-edit` | **Date**: 2026-06-30 | **Spec**: [spec.md](./spec.md)
 
@@ -110,7 +110,7 @@ backend/
    - Supported MIME types validation (jpg, jpeg, png)
 
 2. **Verify Cloudinary Integration** - Tìm hiểu Cloudinary SDK:
-   - API credentials setup (CLOUDINARY_URL từ .env)
+   - API credentials setup (CLOUDINARY_NAME, CLOUDINARY_KEY, CLOUDINARY_SECRET từ .env)
    - Upload method: `cloudinary.uploader.upload()`
    - Delete method: `cloudinary.api.delete_resources()`
    - Error handling cho upload failure
@@ -187,7 +187,7 @@ backend/
 **Content**:
 
 - Prerequisites: Cloudinary account setup, .env configuration
-- Cloudinary credentials setup (CLOUDINARY_URL, API key)
+- Cloudinary credentials setup (CLOUDINARY_NAME, CLOUDINARY_KEY, CLOUDINARY_SECRET)
 - Testing workflow với curl/Postman:
   - PATCH /api/v1/user/me với multipart file
   - Verify avatar updated on Cloudinary
@@ -312,6 +312,6 @@ Trước khi merge vào main branch:
 
 ---
 
-**Plan Status**: READY FOR REVIEW
+**Plan Status**: ACCEPTED
 **Estimated Effort**: 20-28 hours (1 developer, including Cloudinary integration + transaction handling + tests)
 **Priority**: P1 (Core feature - avatar upload critical for user experience)

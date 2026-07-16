@@ -1,11 +1,11 @@
-# Quick Start: Cập nhật hồ sơ (UC19)
+﻿# Quick Start: Cập nhật hồ sơ (UC19)
 
 ## Môi trường yêu cầu
 
 - Cấu hình biến môi trường Cloudinary trong `.env`:
-  - `CLOUDINARY_CLOUD_NAME`
-  - `CLOUDINARY_API_KEY`
-  - `CLOUDINARY_API_SECRET`
+  - `CLOUDINARY_NAME`
+  - `CLOUDINARY_KEY`
+  - `CLOUDINARY_SECRET`
 
 ## API Endpoint
 

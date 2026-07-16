@@ -17,6 +17,8 @@ import uploadMiddleware from "../middlewares/upload.middleware.js";
 import { updateProfileSchema } from "../middlewares/validators/profile.validator.js";
 import { getMyProfile, updateMyProfile } from "../controllers/profile.controller.js";
 import { getUsersHandler, getUserByIdHandler, createUserHandler, updateUserHandler } from "../controllers/user.controller.js";
+import { updateProfileSchema, validateVolunteerHistoryQuery } from "../middlewares/validators/profile.validator.js";
+import { getMyProfile, updateMyProfile, getMyHistory } from "../controllers/profile.controller.js";
 import { errorResponse } from "../utils/response.util.js";
 import { validate, validateQuery } from "../middlewares/validators/validate.js";
 import { getUsersSchema, userIdSchema, createUserSchema, updateUserSchema } from "../middlewares/validators/user.validator.js";
@@ -520,6 +522,126 @@ router.patch(
  *                   nullable: true
  */
 router.get("/me", authMiddleware, getMyProfile);
+
+/**
+ * @swagger
+ * /api/v1/user/me/history:
+ *   get:
+ *     summary: Xem lịch sử tham gia tình nguyện (UC021 - Volunteer History)
+ *     description: |
+ *       Trả về danh sách application, tổng quan, pagination của tình nguyện viên hiện tại.
+ *       Hỗ trợ filter theo status (PENDING, APPROVED, REJECTED) và year (YYYY).
+ *       Schema V3.0: chỉ join volunteer_application → event, chưa có attendance/certificate.
+ *     tags:
+ *       - Profile
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [PENDING, APPROVED, REJECTED]
+ *         description: Lọc theo trạng thái đơn
+ *       - in: query
+ *         name: year
+ *         schema:
+ *           type: string
+ *           pattern: '^\d{4}$'
+ *         description: Lọc theo năm tổ chức sự kiện (YYYY)
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Số trang (bắt đầu từ 1)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 50
+ *           default: 10
+ *         description: Số bản ghi mỗi trang
+ *     responses:
+ *       200:
+ *         description: Thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Lấy lịch sử tình nguyện thành công"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     history:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: integer
+ *                           status:
+ *                             type: string
+ *                           applied_at:
+ *                             type: string
+ *                           event:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: integer
+ *                               title:
+ *                                 type: string
+ *                               start_date:
+ *                                 type: string
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         page:
+ *                           type: integer
+ *                         limit:
+ *                           type: integer
+ *                         total:
+ *                           type: integer
+ *                         total_pages:
+ *                           type: integer
+ *                     summary:
+ *                       type: object
+ *                       properties:
+ *                         total:
+ *                           type: integer
+ *       400:
+ *         description: Query params không hợp lệ
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       401:
+ *         description: Chưa xác thực hoặc token không hợp lệ
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: Tài khoản không tồn tại
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Lỗi máy chủ nội bộ
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+router.get("/me/history", authMiddleware, validateVolunteerHistoryQuery, getMyHistory);
 
 /**
  * Multer error handler wrapper.
