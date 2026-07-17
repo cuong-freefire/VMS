@@ -1,4 +1,4 @@
-# Feature Specification: Cập nhật hồ sơ cơ bản (UC19 - Edit Profile)
+﻿# Feature Specification: Cập nhật hồ sơ cơ bản (UC19 - Edit Profile)
 
 **Feature Branch**: `002-profile-edit`
 
@@ -79,8 +79,8 @@ Với vai trò là một Tình nguyện viên, tôi muốn cập nhật đồng 
 - **FR-007**: WHERE yêu cầu cập nhật có chứa file ảnh đại diện, THE system SHALL kiểm tra dung lượng file (tối đa 5MB) trước khi xử lý
 - **FR-008**: WHEN file ảnh đại diện hợp lệ được tải lên dịch vụ lưu trữ đám mây thành công, THE system SHALL lưu URL của ảnh mới vào cơ sở dữ liệu
 - **FR-009**: WHERE người dùng đã có ảnh đại diện cũ trong cơ sở dữ liệu, WHEN file ảnh mới được tải lên thành công, THE system SHALL trích xuất định danh của ảnh cũ từ URL và gọi dịch vụ lưu trữ để xóa vĩnh viễn ảnh cũ TRƯỚC KHI cập nhật URL ảnh mới
-- **FR-010**: WHERE file ảnh có định dạng không được hỗ trợ, THE system SHALL từ chối yêu cầu và trả về thông báo lỗi với HTTP status code 400 (Bad Request)
-- **FR-011**: WHERE file ảnh vượt quá dung lượng cho phép, THE system SHALL từ chối yêu cầu và trả về thông báo lỗi với HTTP status code 400 (Bad Request)
+- **FR-010**: WHERE file ảnh có định dạng không được hỗ trợ, THE system SHALL từ chối yêu cầu và trả về thông báo lỗi với HTTP status code 413 (Payload Too Large)
+- **FR-011**: WHERE file ảnh vượt quá dung lượng cho phép, THE system SHALL từ chối yêu cầu và trả về thông báo lỗi với HTTP status code 413 (Payload Too Large)
 - **FR-012**: WHERE JWT token không hợp lệ hoặc đã hết hạn, THE system SHALL trả về lỗi authentication với HTTP status code 401 (Unauthorized)
 - **FR-013**: WHERE quá trình tải ảnh lên dịch vụ lưu trữ đám mây thất bại, THE system SHALL xử lý lỗi một cách graceful, rollback toàn bộ transaction, và trả về thông báo lỗi với HTTP status code 500 (Internal Server Error)
 - **FR-014**: WHEN cập nhật hồ sơ thành công, THE system SHALL trả về thông tin hồ sơ đã được cập nhật cho client, KHÔNG bao gồm các thông tin nhạy cảm như password hash, JWT token, hoặc thông tin xác thực nội bộ

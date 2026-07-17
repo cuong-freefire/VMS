@@ -1,4 +1,4 @@
-﻿# Technical Research: UC18 - View Profile
+# Technical Research: UC18 - View Profile
 
 **Date**: 2026-06-30
 **Researcher**: CuongLH
@@ -305,11 +305,9 @@ const rawUser = {
 
 - id (internal)
 - password_hash
-- role_id
-- is_active
+- role_id (internal FK — `role_name` derived from Prisma relation is safe to expose)`n- is_active
 - email_verified
-- created_at, updated_at
-- JWT iat, exp
+- updated_at`n- JWT iat, exp
 
 ## 7. Risks & Blockers
 

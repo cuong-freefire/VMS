@@ -1,4 +1,4 @@
-﻿# PLAN.md — Triển Khai: Quên Mật Khẩu (Forgot Password)
+# PLAN.md — Triển Khai: Quên Mật Khẩu (Forgot Password)
 
 **Branch**: `CuongLH` | **Ngày**: 2026-07-07 | **Spec**: [spec.md](./spec.md)
 **Trạng thái**: ACCEPTED
@@ -22,18 +22,18 @@ Triển khai luồng khôi phục mật khẩu 3 bước cho VMS:
 | US1 | Khôi phục mật khẩu thành công (luồng chính) | P1 |
 | US2 | Xử lý nhập sai OTP, lockout sau 5 lần | P2 |
 | US3 | Gửi lại OTP mới, cooldown 60s, OTP hết hạn 10 phút | P2 |
-| US4 | Chống dò quét tài khoản (zero user enumeration) | P1 |
+| US4 | Chống dò quét tài khoản | P1 |
 
 **Hướng tiếp cận kỹ thuật (từ research.md)**:
 
 | Quyết định | Lựa chọn | Lý do |
 |------------|----------|------|
-| Sinh OTP | `crypto.randomInt(100000, 999999)` | An toàn, không bias |
+| Sinh OTP | `crypto.randomInt(0, 1000000).toString().padStart(6, '0')` | An toàn, full 1M range, không bias |
 | Lưu OTP | Bảng `email_verifications` dùng chung, phân biệt bằng cột `type` | Tránh trùng lặp code với UC04 |
-| Hash OTP | bcrypt (cùng salt rounds với password) | Bảo mật, đồng nhất |
-| Chống enumeration | Luôn trả về success + fake OTP cho email không tồn tại | Ngăn timing attack |
-| Gửi email | Async fire-and-forget, lỗi im lặng | Không block API, không lộ thông tin |
-| Frontend state | React Context + sessionStorage | Chia sẻ state giữa 3 trang, sống qua refresh |
+| Hash OTP | bcrypt (10 rounds) | Bảo mật, nhanh hơn password hash |
+| Chống tấn công dò tìm thông tin (Enumeration) | Luôn trả về success + fake OTP cho email không tồn tại | Ngăn timing attack |
+| Gửi email | Gửi email Async qua `email.service.js` + `emailTemplates.utility.js`, lỗi im lặng | Không block API, không lộ thông tin |
+| Frontend state | **`useState` local trong parent component** (single-page stepper) | Đơn giản, KHÔNG persist state qua refresh (theo EC5 spec) |
 
 ---
 
@@ -63,20 +63,20 @@ Triển khai luồng khôi phục mật khẩu 3 bước cho VMS:
 
 | Endpoint | Target |
 |----------|--------|
-| POST /forgot-password/request | < 2s (gồm thời gian gửi email async) |
+| POST /forgot-password/request | < 3s (gồm thời gian gửi email async) |
 | POST /forgot-password/verify-otp | < 500ms |
 | POST /forgot-password/reset | < 1s |
 | Concurrent requests | 100 requests không lỗi/timeout |
 
 **Ràng buộc**:
 
-- Zero user enumeration: response message + timing giống nhau cho email tồn tại/không tồn tại (variance < 100ms)
-- Cooldown gửi OTP: 60 giây (tính từ `last_sent_at`)
-- Lockout: 5 lần sai → khóa 15 phút (`is_locked` + `locked_until`)
-- OTP TTL: 10 phút (tính từ `created_at`)
-- OTP phải hash bcrypt trước khi lưu DB
-- Mật khẩu mới hash bcrypt 12 rounds
-- Kiểm tra `locked_until` TRƯỚC khi kiểm tra cooldown (ngăn bypass khóa)
+- **Không cho phép dò tìm tài khoản (Zero User Enumeration)**: Thông báo phản hồi và thời gian phản hồi phải gần như giống nhau đối với cả email tồn tại và không tồn tại (chênh lệch dưới 100 ms), tránh để kẻ tấn công suy đoán tài khoản hợp lệ.
+- **Giới hạn thời gian gửi lại OTP (Cooldown)**: Chỉ cho phép gửi lại mã OTP sau **60 giây**, tính từ thời điểm gửi OTP gần nhất (`last_sent_at`).
+- **Khóa tạm thời khi nhập sai nhiều lần (Lockout)**: Nếu nhập sai OTP **5 lần liên tiếp**, tài khoản sẽ bị khóa trong **15 phút**, sử dụng các trường `is_locked` và `locked_until` để quản lý.
+- **Thời hạn hiệu lực của OTP (OTP TTL)**: Mã OTP chỉ có hiệu lực trong **10 phút**, tính từ thời điểm được tạo (`last_send_at`) <= last_send_at luôn cập nhật theo lần otp tạo mới nhất.
+- **Lưu OTP an toàn**: Mã OTP phải được **băm (hash) bằng bcrypt** trước khi lưu vào cơ sở dữ liệu, không lưu OTP dạng văn bản thuần (plaintext).
+- **Lưu mật khẩu mới an toàn**: Mật khẩu mới phải được **băm bằng bcrypt với 12 salt rounds** trước khi lưu vào cơ sở dữ liệu.
+- **Ưu tiên kiểm tra trạng thái khóa tài khoản**: Phải kiểm tra `locked_until` **trước** khi kiểm tra thời gian chờ gửi lại OTP (cooldown) để tránh người dùng hoặc kẻ tấn công lợi dụng việc gửi OTP nhằm bỏ qua cơ chế khóa tài khoản.
 
 **Quy mô / Phạm vi**:
 
@@ -151,10 +151,10 @@ backend/
 │   │   └── auth.controller.js          # [SỬA] Thêm 3 hàm controller
 │   ├── services/
 │   │   ├── auth.service.js             # [SỬA] Thêm 3 hàm business logic
-│   │   └── email.service.js            # [SỬA] Thêm sendResetPasswordOTP()
+│   │   ├── email.service.js            # [ĐÃ SỬA] Gọi sendResetPasswordEmail()
+│   │   └── emailTemplates.utility.js   # [ĐÃ SỬA] Template buildResetPasswordOtpTemplate()
 │   ├── repositories/
-│   │   ├── user.repository.js          # [DÙNG LẠI] findByEmail, updatePassword
-│   │   └── otp.repository.js           # [DÙNG LẠI] CRUD email_verifications
+│   │   └── auth.repository.js          # [ĐÃ SỬA] Tập trung tất cả auth operations
 │   ├── middlewares/
 │   │   └── validators/
 │   │       └── auth.validator.js       # [SỬA] Thêm 3 Zod schemas
@@ -169,25 +169,19 @@ backend/
 
 frontend/
 ├── src/
-│   ├── pages/
-│   │   └── auth/
-│   │       ├── ForgotPasswordStep1.jsx   # [TẠO MỚI] Nhập email
-│   │       ├── ForgotPasswordStep2.jsx   # [TẠO MỚI] Nhập OTP
-│   │       └── ForgotPasswordStep3.jsx   # [TẠO MỚI] Nhập mật khẩu mới
 │   ├── components/
-│   │   └── auth/
-│   │       └── OTPInput.jsx              # [DÙNG LẠI] Component nhập OTP 6 số
-│   ├── contexts/
-│   │   └── ForgotPasswordContext.jsx     # [TẠO MỚI] State management
+│   │   ├── pages/
+│   │   │   └── auth/
+│   │   │       └── ForgotPasswordPage.jsx   # [TẠO MỚI] Single-page 3-step với useState quản lý step
+│   │   └── ui/
+│   │       └── OTPInput.jsx                 # [DÙNG LẠI] Component nhập OTP 6 số
 │   ├── services/
-│   │   └── authApi.js                    # [SỬA] Thêm 3 API calls
+│   │   └── auth.service.js                  # [DÙNG LẠI] Thêm 3 phương thức API calls
 │   └── hooks/
-│       └── useMultiStepForm.js           # [DÙNG LẠI] Hook multi-step
+│       └── useCountdown.js                  # [DÙNG LẠI] Hook đếm ngược cooldown gửi lại OTP
 └── tests/
     └── auth/
-        ├── ForgotPasswordStep1.test.jsx  # [TẠO MỚI]
-        ├── ForgotPasswordStep2.test.jsx  # [TẠO MỚI]
-        └── ForgotPasswordStep3.test.jsx  # [TẠO MỚI]
+        └── ForgotPasswordPage.test.jsx      # [TẠO MỚI] Unit test cho cả 3 step
 ```
 
 ---
@@ -210,13 +204,13 @@ Không có vi phạm constitution nào. Bảng này để trống.
 
 **Output**: `research.md` (đã có)
 
-- R1: Dùng `crypto.randomInt()` để sinh OTP
-- R2: Bảng `email_verifications` dùng chung với UC04 (type discriminator)
-- R3: Zero user enumeration: fake OTP + response giống nhau
-- R4: Lockout lưu trong cùng record OTP
-- R5: Hard DELETE OTP sau reset thành công, upsert khi tạo OTP mới
-- R6: Gửi email async, lỗi im lặng
-- R7: Frontend state: React Context + sessionStorage
+- R1: Sử dụng `crypto.randomInt()` để tạo mã OTP ngẫu nhiên, đảm bảo an toàn về mặt bảo mật.
+- R2: Sử dụng chung bảng `email_verifications` với UC04 và phân biệt mục đích bằng trường `type` (Type Discriminator).
+- R3: Chống dò tìm tài khoản (Zero User Enumeration) bằng cách luôn tạo luồng xử lý giống nhau (fake OTP nếu cần) và trả về cùng một thông báo phản hồi, bất kể email có tồn tại hay không.
+- R4: Thông tin khóa tạm thời (Lockout) được lưu ngay trong bản ghi OTP, không tạo bảng riêng.
+- R5: Xóa hoàn toàn (Hard DELETE) bản ghi OTP sau khi đặt lại mật khẩu thành công; khi tạo OTP mới sẽ cập nhật hoặc tạo mới bản ghi (Upsert).
+- R6: Gửi email theo cơ chế bất đồng bộ (Asynchronous), nếu gửi thất bại thì ghi log và không trả lỗi cho người dùng.
+- R7: Frontend quản lý trạng thái bằng `useState` local trong parent component (single-page stepper), KHÔNG persist state qua refresh (theo EC5 của spec).
 
 **Kết quả**: Tất cả quyết định đã chốt, không còn câu hỏi mở.
 
@@ -249,18 +243,17 @@ Không có vi phạm constitution nào. Bảng này để trống.
 | Setup | Kiểm tra Prisma schema, SMTP config | 0.5h |
 | Backend Core | 3 service methods + email template | 1.5h |
 | Backend API | Validator + Controller + Routes | 0.5h |
-| Frontend Context | ForgotPasswordContext.jsx | 0.25h |
-| Frontend Pages | 3 Step components + OTPInput reuse | 2h |
-| API Integration | authApi.js + wire up | 0.5h |
+| Frontend Page | ForgotPasswordPage.jsx (stepper 3-step) + OTPInput reuse | 2h |
+| API Integration | auth.service.js + wire up | 0.5h |
 | Testing | Backend integration + Frontend unit tests | 1.5h |
-| Polish | Swagger docs, share_context.md update | 0.5h |
+| Polish | Swagger docs update | 0.5h |
 
 **Thứ tự thực hiện**:
 
 ```text
 Setup → Backend Core → Backend API ──┐
                                       ├──→ Testing → Polish
-         Frontend Context → Pages ────┘
+         Frontend Page ────┘
               (có thể chạy song song)
 ```
 
@@ -271,11 +264,11 @@ Setup → Backend Core → Backend API ──┐
 | Risk | Impact | Probability | Mitigation |
 |------|--------|-------------|------------|
 | SMTP service down | Cao — User không nhận được OTP | Trung bình | Lỗi im lặng + log, user thử lại sau cooldown |
-| Email vào spam | Cao — User không thấy OTP | Trung bình | Dùng SMTP uy tín (Gmail), subject rõ ràng |
+| Email vào spam | Cao — User không thấy OTP | Trung bình | Dùng SMTP uy tín (Gmail), chủ đề rõ ràng |
 | Timing attack lộ email | Cao — Lộ thông tin tài khoản | Thấp | Fake OTP + chuẩn hóa response time |
 | Brute-force OTP | Cao — Chiếm tài khoản | Thấp (đã giảm) | Lockout 5 lần/15 phút + OTP TTL 10 phút |
 | Race condition tạo OTP | Trung bình — Trùng lặp OTP | Thấp | UNIQUE(email, type) + upsert atomic |
-| Mất state frontend | Trung bình — User mất context | Trung bình | sessionStorage persistence |
+| Mất state frontend | Trung bình — User mất context | Trung bình | KHÔNG persist state, user thực hiện lại từ Step 1 (theo EC5 spec) |
 | Transaction fail | Trung bình — Password đổi nhưng OTP chưa xóa | Thấp | Prisma transaction atomic |
 | Bypass khóa | Cao — Reset lockout bằng request OTP mới | Trung bình | Check locked_until TRƯỚC cooldown |
 
@@ -283,16 +276,16 @@ Setup → Backend Core → Backend API ──┐
 
 ## 8. SUCCESS CRITERIA REVIEW
 
-Map từ spec.md §Success Criteria sang implementation deliverables:
+Map từ spec.md §Success Criteria sang implementation deliverables (Các hạng mục triển khai):
 
-| ID | Criteria | Cách kiểm tra |
-|----|----------|---------------|
-| SC-001 | Hoàn tất flow < 3 phút | Manual test end-to-end |
-| SC-002 | Xử lý 100 concurrent requests | Load test (k6 hoặc artillery) |
-| SC-003 | Gửi email OTP thành công > 99% | Monitor log SMTP errors |
-| SC-004 | Không phân biệt được email tồn tại/không | Integration test: so sánh response body + timing |
-| SC-005 | Không thể brute-force OTP trong 10 phút | Logic test: 5 lần sai = khóa 15 phút, chỉ 5 attempt/15 phút |
-| SC-006 | 95% user hoàn tất lần đầu | Analytics sau deploy (không test được trước) |
+| ID | Tiêu chí thành công | Cách kiểm tra |
+|----|---------------------|---------------|
+| SC-001 | Người dùng hoàn tất toàn bộ quy trình khôi phục mật khẩu trong dưới 3 phút | Kiểm thử thủ công toàn bộ quy trình (End-to-End) |
+| SC-002 | Hệ thống xử lý ổn định 100 yêu cầu đồng thời (Concurrent Requests) | Chưa triển khai trong giai đoạn này |
+| SC-003 | Tỷ lệ gửi email OTP thành công đạt trên 97% | Theo dõi log và thống kê lỗi từ SMTP |
+| SC-004 | Không thể xác định email có tồn tại hay không thông qua phản hồi của hệ thống | Kiểm thử tích hợp: So sánh nội dung và thời gian phản hồi giữa email tồn tại và không tồn tại |
+| SC-005 | Không thể brute-force mã OTP trong thời gian hiệu lực | Kiểm thử logic: Nhập sai 5 lần → khóa 15 phút, tối đa 5 lần thử trong mỗi 15 phút |
+| SC-006 | Ít nhất 95% người dùng hoàn tất quy trình khôi phục mật khẩu ngay từ lần đầu | Theo dõi số liệu thực tế sau khi triển khai (Analytics) |
 
 ---
 
@@ -304,7 +297,6 @@ Trước khi merge vào `main`:
 - [ ] Tất cả integration tests pass
 - [ ] ESLint 0 errors (`npm run lint`)
 - [ ] Swagger docs cập nhật (3 endpoint mới)
-- [ ] `share_context.md` cập nhật API contracts
 - [ ] Code review bởi ít nhất 1 thành viên khác
 - [ ] Constitution check re-verify (Layer 1/2/3 đều PASS)
 - [ ] SMTP credentials có trong `.env` production
@@ -331,7 +323,7 @@ Sau khi plan này được duyệt:
 
 | # | Câu hỏi | Lựa chọn | Khuyến nghị |
 |---|---------|----------|-------------|
-| Q1 | Email OTP nên dùng plaintext hay HTML template? | A: Plaintext / B: HTML đơn giản | **A** cho MVP |
+| Q1 | Email OTP nên dùng plaintext hay HTML template? | A: Plaintext / B: HTML đơn giản | **B** |
 | Q2 | Có cần validate mật khẩu mới khác mật khẩu cũ không? | A: Không (theo spec) / B: Có | **A** (spec đã nói Out of Scope) |
 | Q3 | Sau reset có tự động login không? | A: Không (theo spec) / B: Có | **A** (bảo mật: user xác nhận pass mới hoạt động) |
 | Q4 | Có cần IP-based rate limiting không? | A: Chỉ email-based / B: Thêm IP-based | **A** cho MVP |
@@ -343,16 +335,15 @@ Sau khi plan này được duyệt:
 
 **Tổng**: **~7 giờ**
 
-| Phần | Giờ | Ghi chú |
-|------|-----|---------|
-| Backend Core (auth.service.js + email.service.js + otp.repository.js) | 1.5h | 3 service methods + email template |
-| Backend API (validator + controller + routes) | 0.5h | Zod schemas + thin controllers |
-| Frontend Context (ForgotPasswordContext.jsx) | 0.25h | Context + sessionStorage |
-| Frontend Pages (3 Step components) | 2h | Form UI + validation + timer |
-| API Integration (authApi.js + wire up) | 0.5h | Axios calls + error handling |
-| Testing (backend integration + frontend unit) | 1.5h | Happy path + error cases + edge cases |
-| Documentation (Swagger + share_context) | 0.5h | JSDoc comments + API docs |
-| Buffer | 0.25h | Debug, unexpected issues |
+| Hạng mục | Thời gian ước tính | Ghi chú |
+|----------|--------------------|----------|
+| Backend Core (`auth.service.js` + `email.service.js` + `emailTemplates.utility.js` + `auth.repository.js`) | 1.5 giờ | Triển khai 3 phương thức nghiệp vụ (Service Methods), mẫu email (Email Template), và sequential updatePassword + deleteVerification |
+| Backend API (Validator + Controller + Routes) | 0.5 giờ | Xây dựng Zod Validation Schema và Controller theo mô hình Thin Controller |
+| Frontend Page (`ForgotPasswordPage.jsx`) | 2 giờ | Single-page 3-step với `useState` local, KI tra dữ liệu đầu vào, bộ đếm thời gian (Timer), OTPInput reuse |
+| API Integration (`auth.service.js` + wire up) | 0.5 giờ | Gọi API bằng Axios và xử lý các trường hợp lỗi |
+| Kiểm thử (Backend Integration + Frontend Unit) | 1.5 giờ | Kiểm thử trường hợp thành công, các trường hợp lỗi và các trường hợp đặc biệt (Edge Cases) |
+| Tài liệu (Swagger) | 0.5 giờ | Viết chú thích JSDoc và cập nhật tài liệu API |
+| Thời gian dự phòng (Buffer) | 0.25 giờ | Dành cho việc sửa lỗi và xử lý các vấn đề phát sinh ngoài dự kiến |
 
 ---
 
@@ -370,4 +361,4 @@ Phụ thuộc vào:
 
 ---
 
-**Người phê duyệt**: ________________  **Ngày**: ________________
+**Người phê duyệt**: CuongLH  **Ngày**: 08/07/2026

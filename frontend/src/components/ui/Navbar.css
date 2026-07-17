@@ -107,6 +107,15 @@
   color: var(--text-on-dark);
   font-size: var(--font-size-small);
   font-weight: var(--font-weight-semibold);
+  overflow: hidden;
+  position: relative;
+}
+
+.navbar-vms-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .navbar-vms-username {

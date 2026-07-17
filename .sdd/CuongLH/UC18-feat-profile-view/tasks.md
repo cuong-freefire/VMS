@@ -1,4 +1,4 @@
-﻿# Tác Vụ: Xem Hồ Sơ Cá Nhân (View Profile) — UC18
+# Tác Vụ: Xem Hồ Sơ Cá Nhân (View Profile) — UC18
 
 **Đầu Vào**: Tài liệu thiết kế từ `.sdd/CuongLH/UC18-feat-profile-view/`
 
@@ -66,7 +66,7 @@ Dự án này sử dụng cấu trúc **Web Application**:
 - [ ] T008 [US1] Triển khai ProfileService: phương thức `getUserProfile(userId)` với data sanitization trong `backend/src/services/profile.service.js` (phụ thuộc T005)
 - [ ] T009 [US1] Triển khai ProfileController: xử lý `GET /api/v1/user/me`, lấy `userId` từ `req.user` (JWT đã xác thực), gọi ProfileService trong `backend/src/controllers/profile.controller.js` (phụ thuộc T008)
 - [ ] T010 [US1] Cập nhật `backend/src/routes/user.routes.js`: thêm route `GET /me` với auth middleware `authenticate` trỏ đến ProfileController (phụ thuộc T009)
-- [ ] T011 [US1] Triển khai trang ProfilePage và API client trong `frontend/src/components/pages/ProfilePage.jsx` và `frontend/src/api/profileApi.js` (phụ thuộc T010)
+- [ ] T011 [US1] Triển khai trang ProfileViewPage và API client trong `frontend/src/components/pages/profile/ProfileViewPage.jsx` và `frontend/src/services/user.service.js` (phụ thuộc T010)
 
 **Điểm Kiểm Tra (Checkpoint)**: User Story 1 hoàn chỉnh — API `GET /api/v1/user/me` hoạt động với happy path, trả về đúng dữ liệu đã sanitize. Frontend hiển thị được thông tin hồ sơ.
 

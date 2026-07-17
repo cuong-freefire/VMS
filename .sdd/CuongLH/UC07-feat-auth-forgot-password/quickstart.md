@@ -106,137 +106,109 @@ SHOW EVENTS WHERE Name = 'cleanup_expired_otp';
 ```
 backend/src/
 ├── controllers/
-│   └── auth.controller.js          # MODIFY: Add 3 new endpoints
+│   └── auth.controller.js          # requestResetPassword, verifyResetOTP, resetPassword
 ├── services/
-│   ├── auth.service.js              # MODIFY: Add forgot password logic
-│   └── email.service.js             # MODIFY: Add sendResetPasswordOTP() template
+│   ├── auth.service.js              # requestResetPassword, verifyResetOTP, resetPassword
+│   ├── email.service.js             # sendResetPasswordEmail()
+│   └── emailTemplates.utility.js    # buildResetPasswordOtpTemplate()
 ├── repositories/
-│   ├── user.repository.js           # EXISTING: Reuse findByEmail
-│   └── emailVerification.repository.js  # EXISTING (UC04): Reuse/extend upsert, findByEmailType, delete
+│   └── auth.repository.js           # findVerificationByEmailAndType, updatePassword, deleteVerification, ...
 ├── middlewares/
 │   └── validators/
-│       └── auth.validator.js        # MODIFY: Add forgot password Zod schemas
+│       └── auth.validator.js        # requestResetSchema, verifyResetOTPSchema, resetPasswordSchema
 ├── utils/
-│   └── otp.util.js                  # EXISTING (UC04): Reuse OTP generation helper
+│   └── otp.util.js                  # generateOTP(), hashOTP(), verifyOTP()
 └── routes/
-    └── auth.routes.js               # MODIFY: Add 3 new routes
+    └── auth.routes.js               # POST /api/v1/auth/forgot-password/request|verify-otp|reset
 
 frontend/src/
-├── pages/
-│   └── auth/
-│       ├── ForgotPasswordStep1.jsx     # CREATE: Step 1 - Email input
-│       ├── ForgotPasswordStep2.jsx     # CREATE: Step 2 - OTP verify
-│       └── ForgotPasswordStep3.jsx     # CREATE: Step 3 - New password
-├── contexts/
-│   └── ForgotPasswordContext.jsx       # CREATE: State management
+├── components/
+│   └── pages/
+│       └── auth/
+│           └── ForgotPasswordPage.jsx   # Single-page 3-step stepper (useState)
+├── components/
+│   └── ui/
+│       ├── OTPInput.jsx                 # Reuse: 6-digit OTP input component
+│       ├── PasswordInput.jsx            # Reuse: Password + strength indicator
+│       ├── FormInput.jsx                # Reuse: Form input component
+│       └── Button.jsx                   # Reuse: Button component
 ├── services/
-│   └── authApi.js                      # MODIFY: Add 3 API calls
-└── App.js                              # MODIFY: Add 3 routes
+│   └── auth.service.js                  # forgotPasswordRequest, forgotPasswordVerifyOtp, forgotPasswordReset
+├── hooks/
+│   └── useCountdown.js                  # Reuse: Countdown hook for OTP resend
+└── App.js                               # Route /forgot-password in AuthLayout + GuestRoute
 ```
+
+**Note**: All auth operations in `auth.repository.js` (no separate `user.repository.js` or `otp.repository.js`). Frontend uses 1 single component `ForgotPasswordPage.jsx` with `useState` stepper -- NO Context, sessionStorage, or 3 separate routes/pages. Refresh resets to Step 1.
 
 ---
 
 ## Implementation Steps
 
-### Step 1: Backend Core (1 hour)
+### Step 1: Backend Core
 
-```bash
-# 1. Create OTP utility
-touch backend/src/utils/otp.util.js
-
-# 2. Create OTP repository
-touch backend/src/repositories/otp.repository.js
-
-# 3. Create Email service
-touch backend/src/services/email.service.js
-
-# 4. Modify Auth service
-# Add 3 methods: requestResetPassword, verifyResetOTP, resetPassword
-```
-
-**Key Files to Implement**:
-- `otp.util.js`: `generateOTP()` using `crypto.randomInt(100000, 999999)`
-- `otp.repository.js`: `create()`, `findLatest()`, `invalidateOld()`, `incrementAttempts()`
-- `email.service.js`: `sendResetPasswordOTP(email, otp)` with try-catch
+**Key Files**:
+- `otp.util.js`: `generateOTP()` using `crypto.randomInt(0, 1000000).toString().padStart(6, '0')`
+- `auth.repository.js`: `updatePassword()`, `deleteVerification()`, `findVerificationByEmailAndType()`, `updateVerification()`, `createVerification()`
+- `email.service.js`: `sendResetPasswordEmail()` calls HTML template from `emailTemplates.utility.js`
 
 ---
 
-### Step 2: Backend API Routes (30 minutes)
-
-```bash
-# Modify auth.validator.js
-# Add 3 Zod schemas: requestResetSchema, verifyOTPSchema, resetPasswordSchema
-
-# Modify auth.controller.js
-# Add 3 controllers: requestResetPassword, verifyResetOTP, resetPassword
-
-# Modify auth.routes.js
-# Add 3 routes with validation middleware
-```
+### Step 2: Backend API Routes
 
 **Routes**:
 ```javascript
 router.post('/forgot-password/request', validate(requestResetSchema), requestResetPassword);
-router.post('/forgot-password/verify-otp', validate(verifyOTPSchema), verifyResetOTP);
+router.post('/forgot-password/verify-otp', validate(verifyResetOTPSchema), verifyResetOTP);
 router.post('/forgot-password/reset', validate(resetPasswordSchema), resetPassword);
 ```
 
 ---
 
-### Step 3: Frontend Context (15 minutes)
+### Step 3: Frontend Page (Single Component)
 
-```bash
-cd frontend
-mkdir -p src/contexts
-touch src/contexts/ResetPasswordContext.jsx
-```
+**ForgotPasswordPage.jsx** — created in `frontend/src/components/pages/auth/ForgotPasswordPage.jsx`
 
-**Context Features**:
-- Lưu email user đang reset
-- Lưu trạng thái OTP verified (true/false)
-- Persist vào sessionStorage (survive page refresh)
-- clearResetState() sau khi hoàn tất
+**Single-page Stepper Features**:
+- `useState` manages `step` (1/2/3) and `email`
+- `react-hook-form` (useForm, watch, setValue) manages form fields
+- `useCountdown` hook for OTP resend timer (60s)
+- `OTPInput.jsx` reused for step 2
+- `PasswordInput.jsx` + `PasswordRequirements` for step 3
+- Step 1: Email form → Call API `forgotPasswordRequest` → setEmail + advance to Step 2
+- Step 2: 6-digit OTPInput + resend countdown → Call API `forgotPasswordVerifyOtp` → advance to Step 3
+- Step 3: New password form + confirm → Call API `forgotPasswordReset` → toast success → navigate('/login', { state: { passwordReset: true } })
+- Refresh page resets to Step 1 (natural due to useState)
+- Error `COOLDOWN_ACTIVE` starts countdown with `remaining_seconds` from API response
 
----
-
-### Step 4: Frontend Pages (2 hours)
-
-```bash
-mkdir -p frontend/src/pages
-touch frontend/src/pages/ForgotPasswordEmailPage.jsx
-touch frontend/src/pages/ForgotPasswordOTPPage.jsx
-touch frontend/src/pages/ForgotPasswordResetPage.jsx
-```
-
-**Page Flow**:
-1. **EmailPage**: Form nhập email → Call API 1 → Navigate to OTPPage
-2. **OTPPage**: Form nhập 6-digit OTP → Call API 2 → Navigate to ResetPage
-3. **ResetPage**: Form nhập new password → Call API 3 → Navigate to Login
+**DOES NOT use**: Context, sessionStorage, 3 separate routes/pages, prop drilling
 
 ---
 
-### Step 5: Frontend API Integration (30 minutes)
-
-```bash
-# Modify authApi.js
-# Add 3 async functions calling backend APIs
-```
+### Step 4: Frontend API Integration
 
 ```javascript
-export async function requestResetPassword(email) {
-  const response = await axios.post('/auth/forgot-password/request', { email });
-  return response.data;
-}
+// frontend/src/services/auth.service.js
+export const authService = {
+  async forgotPasswordRequest(email) {
+    return axiosApi.post('/api/v1/auth/forgot-password/request', { email });
+  },
+  async forgotPasswordVerifyOtp(data) {
+    return axiosApi.post('/api/v1/auth/forgot-password/verify-otp', data);
+  },
+  async forgotPasswordReset(data) {
+    return axiosApi.post('/api/v1/auth/forgot-password/reset', data);
+  },
+};
+```
 
-export async function verifyResetOTP(email, otp) {
-  const response = await axios.post('/auth/forgot-password/verify-otp', { email, otp });
-  return response.data;
-}
+**Response format** (ADR-006):
+```json
+// Success
+{ "success": true, "message": "...", "data": { ... } }
 
-export async function resetPassword(email, otp, newPassword) {
-  const response = await axios.post('/auth/forgot-password/reset', { email, otp, newPassword });
-  return response.data;
-}
+// Error
+{ "success": false, "message": "...", "code": "COOLDOWN_ACTIVE", "details": { "remaining_seconds": 45 } }
 ```
 
 ---

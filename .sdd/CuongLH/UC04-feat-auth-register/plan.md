@@ -6,13 +6,13 @@
 
 **Note**: This plan is created by the `/speckit-plan` workflow following `.specify/templates/plan-template.md`.
 
-## Summary
+## Summary (Tóm tắt)
 
-UC04 implements a secure two-step registration flow for VMS with email verification via OTP. Guest users provide basic information (Full Name, Email, Phone, Password) in Step 1, receive a 6-digit OTP via email, then verify the OTP in Step 2 to complete registration. The system enforces strict security measures: 60-second cooldown between OTP requests, 5-attempt lockout with 15-minute freeze, and 10-minute OTP expiration. All passwords are bcrypt-hashed, OTPs are hashed before storage, and new accounts are automatically assigned the Volunteer role.
+UC04 triển khai luồng đăng ký hai bước an toàn cho VMS với xác minh email qua OTP. Tại Bước 1, người dùng khách chỉ cung cấp Email để nhận mã OTP 6 chữ số qua email. Tại Bước 2, người dùng nhập OTP cùng toàn bộ thông tin cá nhân (Họ tên, Số điện thoại, Mật khẩu) để hoàn tất đăng ký. Hệ thống thực thi các biện pháp bảo mật nghiêm ngặt: thời gian chờ 60 giây giữa các lần yêu cầu OTP, khóa tài khoản sau 5 lần thử sai với thời gian đóng băng 15 phút, và OTP hết hạn sau 10 phút. Tất cả mật khẩu được băm bằng bcrypt (12 rounds), OTP được băm bằng bcrypt (10 rounds) trước khi lưu trữ, và tài khoản mới được tự động gán vai trò Volunteer.
 
-Technical approach: Backend uses Express + Prisma + MySQL with Zod validation and NodeMailer for email delivery. Frontend uses React multi-step form with client-side state management. OTP state is stored in the `email_verifications` database table (not Redis), and user accounts are only created after successful OTP verification to maintain database integrity.
+Cách tiếp cận kỹ thuật: Backend sử dụng Express + Prisma + MySQL với Zod validation và NodeMailer để gửi email. Frontend sử dụng React với single-page RegisterPage.jsx (quản lý step bằng useState) và React Hook Form để quản lý form. Trạng thái OTP được lưu trong bảng cơ sở dữ liệu `email_verifications` (không dùng Redis), và tài khoản người dùng chỉ được tạo sau khi xác minh OTP thành công để đảm bảo tính toàn vẹn dữ liệu.
 
-## Technical Context
+## Technical Context (Bối cảnh kỹ thuật)
 
 **Language/Version**: NodeJS + JavaScript ESM
 
@@ -44,19 +44,19 @@ Technical approach: Backend uses Express + Prisma + MySQL with Zod validation an
 
 - Expected registration volume: ~100 users/day during MVP
 - Database: `email_verifications` table stores temporary OTP state
-- Frontend: 2-page multi-step form with client-side validation
+- Frontend: Single-page multi-step form (RegisterPage.jsx) with client-side validation
 
-## Constitution Check
+## Constitution Check (Kiểm tra ràng buộc)
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
 ### Layer 1 (Hard Rules) — Status: ✅ PASS
 
 - ✅ **Password Storage**: Passwords SHALL be hashed using bcryptjs with BCRYPT_SALT_ROUNDS from .env (default: 12 rounds) before storage. No plaintext passwords.
-- ✅ **OTP Storage**: OTP SHALL be hashed before storage in `email_verifications.otp_hash`. Plaintext OTP only exists in outgoing email.
+- ✅ **OTP Storage**: OTP SHALL be hashed before storage in `email_verifications.otpHash`. Plaintext OTP only exists in outgoing email.
 - ✅ **SQL Injection Prevention**: Using Prisma ORM with parameterized queries throughout.
 - ✅ **Soft Delete**: N/A for this feature. `email_verifications` is a temporary table that gets hard-deleted after successful verification.
-- ✅ **No Credential Leakage**: API responses SHALL NOT contain password_hash, otp_hash, plaintext OTP, or stack traces. Error messages are user-friendly without exposing internals.
+- ✅ **No Credential Leakage**: API responses SHALL NOT contain passwordHash, otpHash, plaintext OTP, or stack traces. Error messages are user-friendly without exposing internals.
 - ✅ **UserId from JWT**: N/A for registration flow. No authenticated users involved.
 - ✅ **No Secrets in Git**: All SMTP credentials in `.env`, which is gitignored.
 - ✅ **Input Validation**: All request payloads validated using Zod schemas before processing.
@@ -81,7 +81,7 @@ Technical approach: Backend uses Express + Prisma + MySQL with Zod validation an
 
 - ✅ **Audit Log**: Registration events SHALL be logged:
   - Event: `REGISTER_OTP_SENT` (who: email, when: timestamp, what: send_otp)
-  - Event: `REGISTER_SUCCESS` (who: user_id, when: timestamp, what: verify_otp)
+  - Event: `REGISTER_SUCCESS` (who: userId, when: timestamp, what: verify_otp)
   - Event: `REGISTER_LOCKOUT` (who: email, when: timestamp, what: lockout_triggered)
   - SHALL NOT log: plaintext OTP, plaintext password, password_hash, email content
 
@@ -97,13 +97,13 @@ Technical approach: Backend uses Express + Prisma + MySQL with Zod validation an
   { success: boolean, data?: any, error?: string }
   ```
 
-### Complexity Justification
+### Complexity Justification (Giải trình độ phức tạp)
 
 No violations detected. All constraints satisfied.
 
-## Project Structure
+## Project Structure (Cấu trúc dự án)
 
-### Documentation (this feature)
+### Documentation (Tài liệu — feature này)
 
 ```text
 .sdd/CuongLH/UC04-feat-auth-register/
@@ -119,13 +119,13 @@ No violations detected. All constraints satisfied.
 └── tasks.md             # Phase 2: Atomic implementation tasks (created by /speckit-tasks)
 ```
 
-### Source Code (repository root)
+### Source Code (Mã nguồn — thư mục gốc)
 
 ```text
 backend/
 ├── src/
 │   ├── controllers/
-│   │   └── auth.controller.js          # [MODIFY] Add sendOTP(), verifyOTP()
+│   │   └── auth.controller.js          # [MODIFY] Add sendOTPController(), verifyOTPController()
 │   ├── services/
 │   │   └── auth.service.js             # [MODIFY] Add OTP generation, validation, cooldown, lockout logic
 │   ├── repositories/
@@ -137,9 +137,9 @@ backend/
 │   │   └── auth.routes.js              # [MODIFY] Add POST /register/send-otp, POST /register/verify-otp
 │   ├── utils/
 │   │   ├── otp.util.js                 # [CREATE] OTP generation and hashing utilities
-│   │   └── email.util.js               # [MODIFY] Add sendOTPEmail() template
+│   │   │   └── email.util.js               # [CREATE] OTP email content generation (generateOTPEmailContent)
 │   └── config/
-│       └── email.config.js             # [EXISTS] NodeMailer SMTP configuration
+│       └── transporter.config.js           # [EXISTS] NodeMailer SMTP configuration
 ├── prisma/
 │   ├── schema.prisma                   # [MODIFY] Add email_verifications model
 │   └── migrations/                     # [CREATE] New migration for email_verifications table
@@ -149,38 +149,33 @@ backend/
 
 frontend/
 ├── src/
-│   ├── pages/
-│   │   └── auth/
-│   │       ├── RegisterStep1.jsx       # [CREATE] Step 1: Personal info + send OTP
-│   │       └── RegisterStep2.jsx       # [CREATE] Step 2: Verify OTP
 │   ├── components/
-│   │   └── auth/
-│   │       ├── RegisterForm.jsx        # [CREATE] Multi-step form container
-│   │       └── OTPInput.jsx            # [CREATE] OTP input component with timer
+│   │   └── pages/
+│   │       └── auth/
+│   │           └── RegisterPage.jsx   # [CREATE] Single-page multi-step form
+│   │   └── ui/\n│       └── OTPInput.jsx               # [EXISTS] OTP input component
 │   ├── services/
-│   │   └── authApi.js                  # [MODIFY] Add sendOTP(), verifyOTP() API calls
+│   │   └── auth.service.js                # [MODIFY] Add registerSendOtp(), registerVerifyOtp()
 │   ├── hooks/
-│   │   └── useMultiStepForm.js         # [CREATE] Multi-step form state management
-│   └── utils/
-│       └── validation.js               # [MODIFY] Add client-side validation rules
+│   │   └── useCountdown.js                # [CREATE] Countdown timer for OTP cooldown
 └── tests/
     └── auth/
         └── Register.test.jsx           # [CREATE] Component tests for registration flow
 ```
 
-**Structure Decision**:
+**Structure Decision (Quyết định cấu trúc):**
 
 This is a web application following the standard VMS project structure with separate backend (Express API) and frontend (React SPA) directories. The registration feature touches both sides:
 
 - **Backend**: Extends existing Auth module with 2 new endpoints, OTP utilities, and email templates
-- **Frontend**: Creates new registration UI components in a multi-step form pattern
+- **Frontend**: Creates new registration UI components in a single-page component with conditional rendering
 - **Database**: Adds new `email_verifications` table via Prisma migration
 
 File modifications follow the layered architecture pattern: Routes → Middleware (validation) → Controller → Service (business logic) → Repository (database access).
 
-## Phase 0: Research & Technical Decisions
+## Phase 0: Research & Technical Decisions (Nghiên cứu & Quyết định kỹ thuật)
 
-### Research Tasks
+### Research Tasks (Nhiệm vụ nghiên cứu)
 
 The following technical decisions need research and documentation in `research.md`:
 
@@ -201,12 +196,12 @@ The following technical decisions need research and documentation in `research.m
 
 4. **Cooldown Implementation**
    - Research: Database-based cooldown vs in-memory cache
-   - Decision needed: Store `last_sent_at` in database vs Redis TTL
+   - Decision needed: Store `lastSentAt` in database vs Redis TTL
    - Context: Spec already mandates database storage, but validate performance implications
    - Rationale: Database ensures cooldown survives server restarts but adds query overhead
 
 5. **Frontend State Management**
-   - Research: React Context vs useState for multi-step form state
+   - Research: React useState for step management in single-page component
    - Decision needed: Client-side state persistence strategy (sessionStorage vs memory-only)
    - Rationale: Must preserve form data if user navigates between steps but clear on page reload for security
 
@@ -215,7 +210,7 @@ The following technical decisions need research and documentation in `research.m
    - Decision needed: Generic vs specific error messages (e.g., "Email already exists" reveals account existence)
    - Rationale: Must balance security with usability
 
-### Research Deliverable
+### Research Deliverable (Sản phẩm nghiên cứu)
 
 Create `research.md` with the following structure:
 
@@ -246,7 +241,7 @@ Create `research.md` with the following structure:
 
 All NEEDS CLARIFICATION items from Technical Context section must be resolved in research phase.
 
-## Phase 1: Design & Contracts
+## Phase 1: Design & Contracts (Thiết kế & Hợp đồng API)
 
 ### 1.1 Data Model (`data-model.md`)
 
@@ -255,14 +250,14 @@ Design the database schema and entity relationships for `email_verifications` ta
 **Entities to Document**:
 
 1. **EmailVerification** (new table)
-   - Fields: id (PK), email, type, otp_hash, created_at, last_sent_at, attempts, is_locked, locked_until
+   - Fields: id (PK), email, type, otpHash, createdAt, lastSentAt, attempts, isLocked, lockedUntil
    - Relationships: None (temporary table, deleted after verification)
    - State Transitions: created → verified (deleted) | locked → unlocked (time-based)
    - Validation Rules: email format, OTP 6 digits, TTL 10 minutes
-   - Indexes: id (primary), (email, type) (unique), locked_until (for cleanup queries)
+   - Indexes: id (primary), (email, type) (unique), lockedUntil (for cleanup queries)
 
 2. **User** (existing table, modified)
-   - New accounts created with: full_name, email, phone, password_hash, role_id (Volunteer), is_active (true), email_verified (true)
+   - New accounts created with: fullName, email, phone, passwordHash, roleId (Volunteer), isActive (true), emailVerified (true)
    - Constraints: email unique, role_id references roles table
 
 3. **Role** (existing table, read-only)
@@ -273,20 +268,20 @@ Design the database schema and entity relationships for `email_verifications` ta
 ```text
 Step 1: Send OTP
 Guest → Backend API → Validate email uniqueness → Generate OTP → Hash OTP → 
-Store in email_verifications (email, type='REGISTER', otp_hash, created_at, last_sent_at, attempts=0) → 
-Send email via NodeMailer → Return success
+Store in email_verifications (email, type='REGISTER', otpHash, lastSentAt, attempts=0) → 
+Send email via email.service.js (sendVerificationEmail, fire-and-forget) → Return success
 
 Step 2: Verify OTP
 Guest → Backend API → Lookup email_verifications by email and type='REGISTER' → 
-Validate: not locked, not expired, OTP matches hash → 
-Begin Transaction → Create user in users table → Delete email_verifications record → 
-Commit Transaction → Return success
+Validate: not locked, not expired (lastSentAt), OTP matches hash → 
+Hash password (bcrypt 12 rounds) → Create user in users table (fullName, email, phone, passwordHash, roleId=Volunteer, isActive=true, emailVerified=true) → 
+Delete email_verifications record → Return success with userId
 ```
 
 **Cleanup Strategy**:
 
-- Expired records (created_at > 10 minutes ago): Cleanup via cron job or lazy deletion on next request
-- Locked records (locked_until expired): Reset lock on next verification attempt
+- Expired records (lastSentAt > 10 minutes ago): Cleanup via cron job or lazy deletion on next request
+- Locked records (lockedUntil expired): Reset lock on next verification attempt
 
 ### 1.2 API Contracts (`contracts/`)
 
@@ -342,7 +337,7 @@ Create detailed API documentation for 2 endpoints:
   {
     "email": "string (required)",
     "otp": "string (required, 6 digits)",
-    "full_name": "string (required, max 255 chars)",
+    "fullName": "string (required, max 255 chars)",
     "phone": "string (required, 10-11 digits, starts with 0)",
     "password": "string (required, min 8 chars, uppercase, lowercase, number)"
   }
@@ -352,7 +347,7 @@ Create detailed API documentation for 2 endpoints:
   "success": true,
   "data": {
     "message": "Đăng ký thành công. Bạn có thể đăng nhập ngay bây giờ.",
-    "user_id": 123
+    "userId": 123
   }
 }
 
@@ -388,13 +383,13 @@ Create developer guide for running and testing registration feature locally.
 6. Testing Registration Flow (step-by-step with curl/Postman examples)
 7. Common Issues and Troubleshooting
 
-## Phase 2: Implementation Plan
+## Phase 2: Implementation Plan (Kế hoạch triển khai)
 
-### Overview
+### Overview (Tổng quan)
 
 The implementation is divided into Backend and Frontend tracks that can be developed in parallel after Phase 1 design is complete.
 
-### 2.1 Backend Implementation
+### 2.1 Backend Implementation (Triển khai Backend)
 
 **Architecture Pattern**: Layered (Route → Middleware → Controller → Service → Repository)
 
@@ -415,46 +410,46 @@ The implementation is divided into Backend and Frontend tracks that can be devel
 1. **sendOTP()**:
    - Validate email not in users table (409 if exists)
    - Check email_verifications for existing record
-   - If exists: check is_locked and locked_until (429 if locked)
-   - If exists: check cooldown (last_sent_at + 60s > now) (429 if too soon)
+   - If exists: Check isLocked and lockedUntil (429 if locked)
+   - If exists: check cooldown (lastSentAt + 60s > now) (429 if too soon)
    - Generate 6-digit OTP with crypto.randomInt(100000, 999999)
    - Hash OTP with bcrypt
-   - Upsert email_verifications record (email, type='REGISTER', otp_hash, created_at, last_sent_at, attempts=0, is_locked=false)
-   - Send email with OTP via NodeMailer
+   - Upsert email_verifications record (email, type='REGISTER', otpHash, lastSentAt, attempts=0, isLocked=false)
+   - Send email via email.service.js (sendVerificationEmail, fire-and-forget)
    - Return success
 
 2. **verifyOTP()**:
    - Validate all fields with Zod
    - Lookup email_verifications by email and type='REGISTER' (400 if not found)
-   - Check is_locked and locked_until (429 if locked and not expired)
-   - Check created_at (400 if > 10 minutes old)
-   - Compare OTP with bcrypt.compare(otp, otp_hash)
-   - If wrong: increment attempts, if attempts >= 5 then set is_locked=true and locked_until=now+15min (429)
-   - If correct: Begin transaction
+   - Check isLocked and lockedUntil (429 if locked and not expired)
+   - Check lastSentAt (400 if > 10 minutes old)
+   - Compare OTP with bcrypt.compare(otp, otpHash)
+   - If wrong: increment attempts, if attempts >= 5 then set isLocked=true and lockedUntil=now+15min (429)
+   - If correct:
      - Get Volunteer role_id from roles table
-     - Create user in users table (full_name, email, phone, password_hash=bcrypt.hash, role_id, is_active=true, email_verified=true)
-     - Delete email_verifications record
-   - Commit transaction
-   - Return success with user_id
+     - Hash password with bcrypt (12 rounds)
+     - Create user in users table (fullName, email, phone, passwordHash, roleId, isActive=true, emailVerified=true)
+     - Delete email_verifications record (sequential, after user creation)
+   - Return success with userId
 
 **Database Schema** (Prisma migration):
 
 ```prisma
-enum OtpType {
+enum EmailVerificationType {
   REGISTER
   RESET_PASSWORD
 }
 
 model EmailVerification {
-  id           Int      @id @default(autoincrement())
-  email        String
-  type         OtpType  @default(REGISTER)
-  otp_hash     String
-  created_at   DateTime @default(now())
-  last_sent_at DateTime?
-  attempts     Int      @default(0)
-  is_locked    Boolean  @default(false)
-  locked_until DateTime?
+  id           Int                      @id @default(autoincrement())
+  email        String                   @db.VarChar(255)
+  type         EmailVerificationType    @default(REGISTER)
+  otpHash      String                   @db.VarChar(255) @map("otp_hash")
+  createdAt    DateTime                 @default(now()) @map("created_at")
+  lastSentAt   DateTime?                @map("last_sent_at")
+  attempts     Int                      @default(0)
+  isLocked     Boolean                  @default(false) @map("is_locked")
+  lockedUntil  DateTime?                @map("locked_until")
   
   @@unique([email, type])
   @@map("email_verifications")
@@ -468,7 +463,7 @@ model EmailVerification {
 - Catch all other errors → log and return 500 with generic message
 - Never expose stack traces or internal details
 
-### 2.2 Frontend Implementation
+### 2.2 Frontend Implementation (Triển khai Frontend)
 
 **Architecture Pattern**: Component-based React with hooks
 
@@ -476,12 +471,12 @@ model EmailVerification {
 
 | Component | File | Responsibility |
 |-----------|------|----------------|
-| **Container** | `RegisterForm.jsx` | Multi-step form container, manages step state (1 or 2) |
-| **Step 1** | `RegisterStep1.jsx` | Form: Email, Full Name, Phone, Password, Confirm Password → Submit → Call sendOTP API |
-| **Step 2** | `RegisterStep2.jsx` | Form: OTP input (6 digits), countdown timer (10 min), Resend OTP button (60s cooldown) → Submit → Call verifyOTP API |
+| **Page** | `RegisterPage.jsx` (in components/pages/auth/) | Single-page multi-step form (useState step = 1 or 2) |
+| **Step 1** | (inline in RegisterPage.jsx) | Form: Email → Submit → Call registerSendOtp API |
+| **Step 2** | (inline in RegisterPage.jsx) | Form: OTP (6 digits), Full Name, Phone, Password, Confirm Password → Submit → Call registerVerifyOtp API |
 | **OTP Input** | `OTPInput.jsx` | Specialized 6-digit input with auto-focus and paste support |
 | **Hook** | `useMultiStepForm.js` | Manages form state: currentStep, formData, goToStep(), updateFormData() |
-| **API Client** | `authApi.js` | Axios calls: sendOTP(email), verifyOTP(payload) |
+| **API Client** | `auth.service.js` (frontend) | Axios calls: registerSendOtp(email), registerVerifyOtp(payload) |
 
 **State Management**:
 
@@ -523,7 +518,7 @@ model EmailVerification {
 - Disable form inputs during loading
 - Show toast notifications for success/error responses
 
-### 2.3 Testing Strategy
+### 2.3 Testing Strategy (Chiến lược kiểm thử)
 
 **Backend Tests** (`tests/integration/auth.register.test.js`):
 
@@ -548,7 +543,7 @@ Test cases mapping to spec acceptance criteria:
    - Wait 16 min → Verify → Lock cleared
 
 6. **OTP Expiration** (§ User Story 6)
-   - Mock created_at to 11 minutes ago → Verify → 400 expired
+   - Mock lastSentAt to 11 minutes ago → Verify → 400 expired
 
 7. **Password Validation** (§ User Story 7)
    - Verify with weak password → 400 validation error
@@ -569,7 +564,7 @@ Test cases mapping to spec acceptance criteria:
 
 **Coverage Target**: 80% for services, 60% for controllers
 
-### 2.4 Dependencies & Execution Order
+### 2.4 Dependencies & Execution Order (Phụ thuộc & Thứ tự thực thi)
 
 ```text
 Phase 0: Research (no dependencies)
@@ -600,69 +595,69 @@ Phase 1f: Code Review & QA
 - `users` table must exist with email unique constraint
 - Auth login feature (UC03) should be complete for post-registration login flow
 
-## Risks & Mitigations
+## Risks & Mitigations (Rủi ro & Biện pháp giảm thiểu)
 
 | Risk | Impact | Probability | Mitigation |
 |------|--------|-------------|------------|
-| **SMTP Service Downtime** | High - Users cannot receive OTP | Medium | Return 503 with clear message, log critical error, implement retry logic with exponential backoff |
-| **Email Deliverability** | High - OTP emails in spam folder | Medium | Use reputable SMTP service (e.g., SendGrid, AWS SES), add SPF/DKIM records, plain text email option |
-| **OTP Brute Force** | High - Account takeover | Low (mitigated) | 5-attempt lockout + 15-min freeze, OTP hashed, rate limiting enforced |
-| **Race Condition in Cooldown** | Medium - Duplicate OTP sends | Low | Database-level uniqueness on email, last_sent_at atomic update |
-| **Client State Loss** | Medium - User loses form data | Medium | Clear UX messaging that state is lost on page reload, consider sessionStorage for UX (Phase 2 enhancement) |
-| **Database Transaction Failure** | Medium - Orphaned email_verification | Low | Wrap user creation + deletion in Prisma transaction, log failures for manual cleanup |
-| **Email Enumeration** | Low - Attackers discover registered emails | Medium | Accept risk for better UX (specific error messages), or use generic "Email or password incorrect" pattern |
-| **OTP Interception** | High - Man-in-the-middle attack | Very Low | HTTPS enforced, OTP has 10-min TTL, one-time use only |
+| **SMTP Service Downtime** | High - Users cannot receive OTP | Medium | Trả về 503 với thông điệp rõ ràng, ghi log lỗi nghiêm trọng, triển khai logic thử lại với exponential backoff |
+| **Email Deliverability** | High - OTP emails in spam folder | Medium | Sử dụng dịch vụ SMTP uy tín (vd: SendGrid, AWS SES), thêm bản ghi SPF/DKIM, tùy chọn email dạng plain text |
+| **OTP Brute Force** | High - Account takeover | Low (mitigated) | Khóa sau 5 lần thử sai + đóng băng 15 phút, OTP được băm, thực thi giới hạn tốc độ |
+| **Race Condition in Cooldown** | Medium - Duplicate OTP sends | Low | Ràng buộc unique trên email ở cấp cơ sở dữ liệu, cập nhật lastSentAt nguyên tử |
+| **Client State Loss** | Medium - User loses form data | Medium | Thông báo UX rõ ràng rằng trạng thái bị mất khi tải lại trang, cân nhắc dùng sessionStorage để cải thiện UX (nâng cấp Giai đoạn 2) |
+| **Database Transaction Failure** | Medium - Orphaned email_verification | Low | Bọc thao tác tạo user + xóa bản ghi trong Prisma transaction, ghi log lỗi để dọn dẹp thủ công |
+| **Email Enumeration** | Low - Attackers discover registered emails | Medium | Chấp nhận rủi ro để có UX tốt hơn (thông báo lỗi cụ thể), hoặc sử dụng mẫu chung chung "Email hoặc mật khẩu không đúng" |
+| **OTP Interception** | High - Man-in-the-middle attack | Very Low | Bắt buộc HTTPS, OTP có TTL 10 phút, chỉ sử dụng một lần |
 
-## Questions for Human
+## Questions for Human (Câu hỏi cần trả lời)
 
 1. **Email Template Branding**: Should OTP email include VMS logo/branding, or is plain text sufficient for MVP?
-   - **Context**: HTML emails improve branding but increase complexity and spam risk
-   - **Options**: (A) Plain text only, (B) Simple HTML with logo, (C) Rich HTML template
-   - **Recommendation**: (A) for MVP, upgrade to (B) in Phase 2
+   - **Context**: Email HTML cải thiện thương hiệu nhưng tăng độ phức tạp và nguy cơ spam
+   - **Options**: (A) Chỉ plain text, (B) HTML đơn giản có logo, (C) Mẫu HTML phong phú
+   - **Recommendation**: (A) cho MVP, nâng cấp lên (B) trong Giai đoạn 2
 
 2. **Error Message Strategy**: Should we reveal "Email already registered" or use generic "Registration failed"?
-   - **Context**: Specific messages improve UX but enable email enumeration attacks
-   - **Options**: (A) Specific messages, (B) Generic messages, (C) Rate-limit check endpoint
-   - **Recommendation**: (A) - email enumeration is low-risk for VMS, UX benefit outweighs security concern
+   - **Context**: Thông báo cụ thể cải thiện UX nhưng cho phép tấn công liệt kê email
+   - **Options**: (A) Thông báo cụ thể, (B) Thông báo chung chung, (C) Giới hạn tốc độ endpoint kiểm tra
+   - **Recommendation**: (A) - liệt kê email có rủi ro thấp với VMS, lợi ích UX vượt trội hơn lo ngại bảo mật
 
 3. **Cooldown Timer Display**: Should frontend show exact countdown timer or just disable button?
-   - **Context**: Timer improves UX but requires syncing server time with client
-   - **Options**: (A) Show countdown, (B) Just disable button with generic message
-   - **Recommendation**: (A) - better UX, use client-side timer starting from API response time
+   - **Context**: Đồng hồ đếm ngược cải thiện UX nhưng yêu cầu đồng bộ thời gian server với client
+   - **Options**: (A) Hiển thị đồng hồ đếm ngược, (B) Chỉ vô hiệu hóa nút với thông báo chung
+   - **Recommendation**: (A) - UX tốt hơn, sử dụng đồng hồ phía client bắt đầu từ thời điểm nhận phản hồi API
 
 4. **OTP Length**: Confirm 6 digits is acceptable, or prefer 4 digits for easier mobile typing?
-   - **Context**: 6 digits = 1M combinations (harder to brute force), 4 digits = 10K combinations (easier UX)
-   - **Recommendation**: 6 digits per security best practices, compensate with good UX (OTP paste support)
+   - **Context**: 6 chữ số = 1 triệu tổ hợp (khó brute force hơn), 4 chữ số = 10 nghìn tổ hợp (UX dễ dàng hơn)
+   - **Recommendation**: 6 chữ số theo thông lệ bảo mật tốt nhất, bù đắp bằng UX tốt (hỗ trợ dán OTP)
 
 5. **Multi-Device Registration**: Should OTP work if user starts on mobile, receives email on desktop?
-   - **Context**: Currently no device fingerprinting, OTP works on any device with correct email/OTP
-   - **Options**: (A) Allow any device (current), (B) Add device fingerprinting
-   - **Recommendation**: (A) - simpler implementation, better cross-device UX
+   - **Context**: Hiện tại không có device fingerprinting, OTP hoạt động trên mọi thiết bị với email/OTP đúng
+   - **Options**: (A) Cho phép mọi thiết bị (hiện tại), (B) Thêm device fingerprinting
+   - **Recommendation**: (A) - triển khai đơn giản hơn, UX đa thiết bị tốt hơn
 
-## Success Metrics
+## Success Metrics (Chỉ số thành công)
 
 Post-implementation, we will measure:
 
-1. **Registration Completion Rate**: % of users who complete Step 2 after receiving OTP
+1. **Registration Completion Rate**: % người dùng hoàn thành Bước 2 sau khi nhận OTP
    - Target: >80% within 10 minutes of OTP send
 
-2. **Email Delivery Time**: p50 and p95 for OTP email delivery
+2. **Email Delivery Time**: p50 và p95 cho thời gian gửi email OTP
    - Target: p50 < 10s, p95 < 30s
 
-3. **Failed OTP Attempts**: % of verifications with >1 attempt before success
-   - Baseline: Expect <20% to need resend
+3. **Failed OTP Attempts**: % lượt xác minh cần >1 lần thử trước khi thành công
+   - Cơ sở: Kỳ vọng <20% cần gửi lại
 
-4. **Lockout Incidents**: # of emails locked per day
-   - Baseline: Monitor for abuse patterns
+4. **Lockout Incidents**: Số lượng email bị khóa mỗi ngày
+   - Cơ sở: Giám sát các mẫu lạm dụng
 
 5. **API Performance**:
    - Send OTP endpoint: p95 < 200ms (excluding email send time)
    - Verify OTP endpoint: p95 < 150ms
 
-6. **Error Rate**: % of 5xx errors across both endpoints
+6. **Error Rate**: % lỗi 5xx trên cả hai endpoint
    - Target: <0.1%
 
-## Next Steps
+## Next Steps (Bước tiếp theo)
 
 After plan approval:
 

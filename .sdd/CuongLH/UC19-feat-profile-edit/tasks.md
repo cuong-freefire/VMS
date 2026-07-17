@@ -24,7 +24,7 @@ Tất cả đường dẫn đều tính từ `backend/`.
 
 **Mục đích**: Khởi tạo project và cài đặt dependencies
 
-- [ ] T001 Kiểm tra biến môi trường `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` đã có trong `backend/.env` chưa. Nếu chưa, thêm vào `.env.example` để các thành viên khác biết cần cấu hình.
+- [ ] T001 Kiểm tra biến môi trường `CLOUDINARY_NAME`, `CLOUDINARY_KEY`, `CLOUDINARY_SECRET` đã có trong `backend/.env` chưa. Nếu chưa, thêm vào `.env.example` để các thành viên khác biết cần cấu hình.
 
 - [ ] T002 [P] Cài đặt dependencies mới: chạy `npm install multer cloudinary` trong thư mục `backend/`
 
@@ -36,10 +36,10 @@ Tất cả đường dẫn đều tính từ `backend/`.
 
 **⚠️ NGUY HIỂM**: Không user story nào được bắt đầu nếu phase này chưa xong
 
-- [ ] T003 [P] Tạo `backend/src/middlewares/upload.middleware.js` — Cấu hình Multer dùng `memoryStorage` (không ghi xuống ổ đĩa, giữ buffer trong RAM để đẩy thẳng lên Cloudinary). Thiết lập `fileFilter`: chỉ chấp nhận MIME type `image/jpeg`, `image/jpg`, `image/png`. Thiết lập `limits.fileSize = 5 * 1024 * 1024` (5MB). Export middleware dùng `.single('avatar')` (tên field trong form-data là `avatar`). Khi file không hợp lệ, throw `MulterError` với message tiếng Việt.
+- [ ] T003 [P] Tạo `backend/src/middlewares/upload.middleware.js` — Cấu hình Multer dùng `memoryStorage` (không ghi xuống ổ đĩa, giữ buffer trong RAM để đẩy thẳng lên Cloudinary). Thiết lập `fileFilter`: chỉ chấp nhận MIME type `image/jpeg`, `image/jpg`, `image/png`. Thiết lập `limits.fileSize = 5 * 1024 * 1024` (5MB). Export middleware dùng `export default upload.single("avatar")` (tên field trong form-data là `avatar`). Khi file không hợp lệ, throw `MulterError` với message tiếng Việt.
 
 - [ ] T004 [P] Tạo `backend/src/services/cloudinary.service.js` — Service wrapper cho Cloudinary SDK. Ba hàm chính:
-  - `uploadImage(fileBuffer)` — Nhận buffer từ Multer, gọi `cloudinary.uploader.upload_stream()`, trả về `{ public_id, secure_url }`. Bọc trong Promise.
+  - `uploadImage(fileBuffer, folderName)` — Nhận buffer từ Multer và tên folder, gọi `cloudinary.uploader.upload_stream({ folder: folderName, resource_type: "image" })`, trả về `{ public_id, secure_url }`. Bọc trong Promise.
   - `deleteImage(publicId)` — Gọi `cloudinary.uploader.destroy(publicId)`, trả về kết quả. Nếu thất bại, log warning bằng Pino (KHÔNG throw vì ảnh cũ không xóa được không ảnh hưởng nghiệp vụ chính).
   - `extractPublicId(avatarUrl)` — Helper parse `public_id` từ Cloudinary URL (pattern: `https://res.cloudinary.com/<cloud_name>/image/upload/v<version>/<public_id>.<format>`).
 
@@ -48,7 +48,7 @@ Tất cả đường dẫn đều tính từ `backend/`.
   - Export middleware `validateUpdateProfile` gọi `schema.parse(req.body)` và gán kết quả vào `req.validatedData`.
 
 - [ ] T006 Thêm hàm `updateUser(userId, updateData)` vào `backend/src/repositories/profile.repository.js`:
-  - Dùng `prisma.user.update({ where: { id: userId }, data: updateData, select: { id: true, fullName: true, email: true, phone: true, avatarUrl: true, isActive: true } })`.
+  - Dùng `prisma.user.update({ where: { id: userId }, data: updateData, select: { id: true, fullName: true, email: true, phone: true, avatarUrl: true, createdAt: true, role: true, isActive: true, userSkills: { where: { skill: { isActive: true } }, select: { skill: { select: { id: true, name: true } } } } } })`.
   - Chỉ select các field an toàn, TUYỆT ĐỐI KHÔNG select `passwordHash`, `roleId`.
   - Trả về user đã cập nhật hoặc throw Prisma error nếu không tìm thấy.
 
@@ -137,9 +137,9 @@ Tất cả đường dẫn đều tính từ `backend/`.
   - Xử lý lỗi file filter: nếu Multer reject do sai định dạng → 400 với message "Chỉ hỗ trợ định dạng jpg, jpeg, png".
 
 - [ ] T019 [US2] Cập nhật route `PATCH /me` trong `backend/src/routes/user.routes.js`:
-  - Chèn `uploadMiddleware` vào chain, **TRƯỚC** `authMiddleware`.
-  - Lý do: Multer cần parse `multipart/form-data` trước khi `authMiddleware` đọc cookies từ request.
-  - Chain: `router.patch('/me', uploadMiddleware, authMiddleware, updateMyProfile)`.
+  - Chèn `handleMulterUpload` wrapper vào chain, **SAU** `authMiddleware`, **TRƯỚC** `validate(updateProfileSchema)`.
+  - `handleMulterUpload` là wrapper bọc `uploadMiddleware` để bắt MulterError và trả về JSON chuẩn ADR-006.
+  - Chain: `router.patch('/me', authMiddleware, handleMulterUpload, validate(updateProfileSchema), updateMyProfile)`.
 
 **Checkpoint**: User Story 2 hoàn chỉnh — image upload hoạt động độc lập, tương thích với US1
 

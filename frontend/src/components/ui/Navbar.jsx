@@ -1,12 +1,13 @@
 import { Link, useNavigate } from "react-router-dom";
 import { HeartHandshake, Menu, X, User, ChevronDown, LogOut, History, Lock } from "lucide-react";
 import { useAuth } from "../../contexts/authContext.context";
+import { ROLES } from "../../constants/roles";
 import { useState, useRef, useEffect } from "react";
 import Button from "./Button";
 import './Navbar.css';
 
 export default function Navbar() {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, roleName } = useAuth();
   const navigate = useNavigate();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -62,17 +63,58 @@ export default function Navbar() {
     }
   };
 
-  const navLinks = isAuthenticated
-    ? [{ name: "Trang chủ", link: "/home" }, { name: "Sự kiện", link: "/events" }]
-    : [{ name: "Trang chủ", link: "/" }, { name: "Về chúng tôi", link: "/about" }];
+  const roleNavLinks = {
+    [ROLES.VOLUNTEER]: [
+      { name: "Trang chủ", link: "/home" },
+      { name: "Sự kiện", link: "/volunteer/events" },
+      { name: "Chứng nhận", link: "/volunteer/certificates" },
+    ],
+    [ROLES.STAFF]: [
+      { name: "Trang chủ", link: "/staff/events" },
+      { name: "Sự kiện", link: "/staff/events" },
+      { name: "Đơn đăng ký", link: "/staff/applications" },
+      { name: "Điểm danh", link: "/staff/attendance" },
+    ],
+    [ROLES.MANAGER]: [
+      { name: "Trang chủ", link: "/manager/dashboard" },
+    ],
+    [ROLES.ADMIN]: [
+      { name: "Trang chủ", link: "/admin/dashboard" },
+      { name: "Người dùng", link: "/admin/users" },
+      { name: "Danh mục", link: "/admin/categories" },
+      { name: "Kỹ năng", link: "/admin/skills" },
+    ],
+  };
 
-  const dropdownItems = [
+  const guestNavLinks = [
+    { name: "Trang chủ", link: "/" },
+    { name: "Về chúng tôi", link: "/about" },
+  ];
+
+  const navLinks = isAuthenticated
+    ? (roleNavLinks[roleName] || [{ name: "Trang chủ", link: "/home" }])
+    : guestNavLinks;
+
+  const baseDropdownItems = [
     { icon: User, label: "Hồ sơ cá nhân", action: () => { setDropdownOpen(false); navigate("/profile"); } },
+  ];
+
+  const volunteerDropdownItems = [
+    ...baseDropdownItems,
     { icon: History, label: "Lịch sử tình nguyện", action: () => { setDropdownOpen(false); navigate("/history"); } },
     { divider: true },
     { icon: Lock, label: "Đổi mật khẩu", action: () => { setDropdownOpen(false); navigate("/change-password"); } },
     { icon: LogOut, label: "Đăng xuất", action: handleLogout, color: "var(--color-error)", disabled: isLoggingOut },
   ];
+
+  const otherRoleDropdownItems = [
+    ...baseDropdownItems,
+    { divider: true },
+    { icon: Lock, label: "Đổi mật khẩu", action: () => { setDropdownOpen(false); navigate("/change-password"); } },
+    { icon: LogOut, label: "Đăng xuất", action: handleLogout, color: "var(--color-error)", disabled: isLoggingOut },
+  ];
+
+  const dropdownItems = roleName === ROLES.VOLUNTEER ? volunteerDropdownItems : otherRoleDropdownItems;
 
   const userInitial = user?.full_name?.[0]?.toUpperCase() || null;
 
@@ -107,7 +149,20 @@ export default function Navbar() {
                 className="navbar-vms-avatar-btn"
               >
                 <div className="navbar-vms-avatar-icon">
-                  {userInitial || <User size={16} />}
+                  {user?.avatar_url ? (
+                    <img
+                      src={user.avatar_url}
+                      alt={user.full_name || "Avatar"}
+                      className="navbar-vms-avatar-img"
+                      onError={(e) => {
+                        e.target.style.display = "none";
+                        e.target.nextSibling.style.display = "flex";
+                      }}
+                    />
+                  ) : null}
+                  <span style={{ display: user?.avatar_url ? "none" : "flex" }}>
+                    {userInitial || <User size={16} />}
+                  </span>
                 </div>
                 <span className="navbar-vms-username">
                   {user?.full_name || "Người dùng"}
@@ -184,7 +239,9 @@ export default function Navbar() {
           {isAuthenticated ? (
             <>
               <MobileMenuItem icon={User} label="Hồ sơ cá nhân" onClick={() => { navigate("/profile"); setMobileOpen(false); }} />
-              <MobileMenuItem icon={History} label="Lịch sử tình nguyện" onClick={() => { navigate("/history"); setMobileOpen(false); }} />
+              {roleName === ROLES.VOLUNTEER && (
+                <MobileMenuItem icon={History} label="Lịch sử tình nguyện" onClick={() => { navigate("/history"); setMobileOpen(false); }} />
+              )}
               <MobileMenuItem icon={Lock} label="Đổi mật khẩu" onClick={() => { navigate("/change-password"); setMobileOpen(false); }} />
               <MobileMenuItem icon={LogOut} label="Đăng xuất" color="var(--color-error)" onClick={() => { handleLogout(); setMobileOpen(false); }} />
             </>

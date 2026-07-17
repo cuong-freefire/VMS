@@ -1,4 +1,4 @@
-# Research: Authentication Register Technical Decisions
+﻿# Research: Authentication Register Technical Decisions
 
 **Feature**: UC04 - Authentication Register (OTP Email Verification)
 
@@ -8,35 +8,35 @@
 
 ---
 
-## R1: OTP Generation Strategy
+## R1: OTP Generation Strategy (Chiến lược sinh OTP)
 
-**Decision**: Use `crypto.randomInt(100000, 999999)` from Node.js crypto module
+**Decision (Quyết định):** Sử dụng `crypto.randomInt(100000, 999999)` từ module crypto của Node.js
 
-**Rationale**:
-- `crypto.randomInt()` is cryptographically secure (uses CSPRNG)
-- Directly generates integers in range [100000, 999999] for 6-digit OTP
-- No need for string manipulation or modulo operations that could introduce bias
-- Native to Node.js (no external dependencies)
-- Performance: ~0.01ms per generation (negligible overhead)
+**Rationale (Lý do):**
+- `crypto.randomInt()` an toàn về mặt mật mã (sử dụng CSPRNG)
+- Tạo trực tiếp số nguyên trong khoảng [100000, 999999] cho OTP 6 chữ số
+- Không cần thao tác chuỗi hoặc phép chia lấy dư có thể gây sai lệch
+- Có sẵn trong Node.js (không cần thư viện bên ngoài)
+- Hiệu năng: ~0.01ms mỗi lần tạo (chi phí không đáng kể)
 
-**Alternatives Considered**:
+**Alternatives Considered (Phương án thay thế):**
 
 1. **crypto.randomBytes() + toString()**
-   - More complex: requires buffer → hex → integer conversion
-   - Can introduce bias if not carefully implemented
-   - Rejected: Unnecessary complexity
+   - Phức tạp hơn: cần chuyển đổi buffer → hex → integer
+   - Có thể gây sai lệch nếu không triển khai cẩn thận
+   - Từ chối: Độ phức tạp không cần thiết
 
 2. **Math.random()**
-   - NOT cryptographically secure (uses PRNG, not CSPRNG)
-   - Predictable if attacker knows seed
-   - Rejected: Security vulnerability
+   - KHÔNG an toàn về mặt mật mã (sử dụng PRNG, không phải CSPRNG)
+   - Có thể đoán được nếu kẻ tấn công biết seed
+   - Từ chối: Lỗ hổng bảo mật
 
 3. **UUID/nanoid libraries**
-   - Overkill for 6-digit numeric OTP
-   - Additional dependency
-   - Rejected: Simpler built-in solution available
+   - Quá mức cần thiết cho OTP số 6 chữ số
+   - Thêm phụ thuộc
+   - Từ chối: Giải pháp có sẵn đơn giản hơn
 
-**Implementation**:
+**Implementation (Triển khai):**
 
 ```javascript
 // backend/src/utils/otp.util.js
@@ -48,37 +48,37 @@ export function generateOTP() {
 }
 ```
 
-**Security Note**: 6-digit OTP provides 1,000,000 possible combinations. Combined with 5-attempt lockout and 10-minute expiration, this provides adequate protection against brute-force attacks.
+**Security Note**: OTP 6 chữ số cung cấp 1,000,000 tổ hợp khả dĩ. Kết hợp với khóa sau 5 lần thử và hết hạn sau 10 phút, điều này cung cấp khả năng bảo vệ đầy đủ trước các cuộc tấn công brute-force.
 
 ---
 
-## R2: OTP Hashing Algorithm
+## R2: OTP Hashing Algorithm (Thuật toán băm OTP)
 
-**Decision**: Use bcrypt with 10 rounds (not 12) for OTP hashing
+**Decision (Quyết định):** Sử dụng bcrypt với 10 vòng (không phải 12) cho việc băm OTP
 
-**Rationale**:
-- bcrypt is industry-standard for password hashing, well-tested
-- 10 rounds provides good security for short-lived tokens (10-min TTL)
-- Lower rounds than passwords (12) because OTP verified once vs password verified repeatedly
-- Performance: ~100ms per hash/compare on typical hardware (acceptable for OTP flow)
-- Already a project dependency (used for passwords)
+**Rationale (Lý do):**
+- bcrypt là tiêu chuẩn ngành cho băm mật khẩu, đã được kiểm chứng kỹ lưỡng
+- 10 vòng cung cấp bảo mật tốt cho token ngắn hạn (TTL 10 phút)
+- Số vòng thấp hơn mật khẩu (12) vì OTP được xác minh một lần so với mật khẩu được xác minh nhiều lần
+- Hiệu năng: ~100ms mỗi lần băm/so sánh trên phần cứng thông thường (chấp nhận được cho luồng OTP)
+- Đã là phụ thuộc của dự án (dùng cho mật khẩu)
 
-**Alternatives Considered**:
+**Alternatives Considered (Phương án thay thế):**
 
 1. **argon2id**
-   - More modern, winner of Password Hashing Competition 2015
-   - Better resistance to GPU/ASIC attacks
-   - Rejected: Adds new dependency, overkill for short-lived OTP, bcrypt sufficient
+   - Hiện đại hơn, chiến thắng Password Hashing Competition 2015
+   - Kháng GPU/ASIC tốt hơn
+   - Từ chối: Thêm phụ thuộc mới, quá mức cho OTP ngắn hạn, bcrypt đã đủ
 
 2. **SHA-256 + salt**
-   - Faster than bcrypt (~1ms)
-   - Not adaptive: vulnerable to brute-force with specialized hardware
-   - Rejected: bcrypt adaptive work factor provides better security
+   - Nhanh hơn bcrypt (~1ms)
+   - Không thích ứng: dễ bị brute-force với phần cứng chuyên dụng
+   - Từ chối: Hệ số công việc thích ứng của bcrypt cung cấp bảo mật tốt hơn
 
 3. **Plain text storage**
-   - Rejected: Critical security violation (Layer 1 constraint)
+   - Từ chối: Vi phạm bảo mật nghiêm trọng (ràng buộc Tầng 1)
 
-**Implementation**:
+**Implementation (Triển khai):**
 
 ```javascript
 // backend/src/utils/otp.util.js
@@ -96,37 +96,37 @@ export async function verifyOTP(otp, hash) {
 ```
 
 **Performance Impact**: 
-- Hash time: ~80-100ms per OTP
-- Compare time: ~80-100ms per verification
-- Acceptable for registration flow (not in critical path)
+- Thời gian băm: ~80-100ms mỗi OTP
+- Thời gian so sánh: ~80-100ms mỗi lần xác minh
+- Chấp nhận được cho luồng đăng ký (không nằm trong đường dẫn quan trọng)
 
 ---
 
-## R3: Email Template Approach
+## R3: Email Template Approach (Phương án mẫu email)
 
-**Decision**: Plain text email with minimal formatting for MVP
+**Decision (Quyết định):** Email thuần văn bản với định dạng tối thiểu cho MVP
 
-**Rationale**:
-- Plain text has highest deliverability across email providers
-- No HTML rendering issues on different clients
-- Smaller email size (faster delivery)
-- Sufficient for OTP delivery use case
-- Can upgrade to HTML in Phase 2 without breaking changes
+**Rationale (Lý do):**
+- Email thuần văn bản có tỷ lệ gửi đến cao nhất trên các nhà cung cấp email
+- Không có vấn đề hiển thị HTML trên các trình khách khác nhau
+- Kích thước email nhỏ hơn (gửi nhanh hơn)
+- Đủ cho use case gửi OTP
+- Có thể nâng cấp lên HTML trong Giai đoạn 2 mà không gây thay đổi phá vỡ
 
-**Alternatives Considered**:
+**Alternatives Considered (Phương án thay thế):**
 
 1. **Rich HTML template with CSS**
-   - Better branding and visual appeal
-   - Higher risk of spam filtering
-   - Complexity in template maintenance
-   - Rejected for MVP: Deliverability > aesthetics
+   - Thương hiệu và hình ảnh đẹp hơn
+   - Nguy cơ bị lọc spam cao hơn
+   - Phức tạp trong bảo trì mẫu
+   - Từ chối cho MVP: Khả năng gửi đến > thẩm mỹ
 
 2. **HTML with inline CSS**
-   - Better deliverability than external CSS
-   - Still more complex than plain text
-   - Deferred to Phase 2: Good middle ground for future
+   - Khả năng gửi đến tốt hơn CSS ngoài
+   - Vẫn phức tạp hơn thuần văn bản
+   - Hoãn sang Giai đoạn 2: Lựa chọn trung gian tốt cho tương lai
 
-**Implementation**:
+**Implementation (Triển khai):**
 
 ```javascript
 // backend/src/utils/email.util.js
@@ -153,39 +153,39 @@ Email: support@vms.com
 }
 ```
 
-**Email Deliverability Checklist** (for production):
-- [ ] SPF record configured for sending domain
-- [ ] DKIM signature enabled
-- [ ] Use reputable SMTP service (SendGrid/AWS SES)
-- [ ] Monitor bounce/complaint rates
+**Email Deliverability Checklist** (cho production):
+- [ ] Bản ghi SPF được cấu hình cho tên miền gửi
+- [ ] Chữ ký DKIM được kích hoạt
+- [ ] Sử dụng dịch vụ SMTP uy tín (SendGrid/AWS SES)
+- [ ] Theo dõi tỷ lệ trả lại/khiếu nại
 
 ---
 
-## R4: Cooldown Implementation
+## R4: Cooldown Implementation (Triển khai Cooldown)
 
-**Decision**: Database-based cooldown using `last_sent_at` timestamp in `email_verifications` table
+**Decision (Quyết định):** Cooldown dựa trên cơ sở dữ liệu sử dụng timestamp `last_sent_at` trong bảng `email_verifications`
 
-**Rationale**:
-- Spec explicitly mandates database storage (not Redis)
-- Cooldown survives server restarts
-- Atomic updates prevent race conditions
-- Consistent with project architecture (no Redis in current stack)
-- Query overhead acceptable (<10ms) for registration flow frequency
+**Rationale (Lý do):**
+- Spec yêu cầu rõ ràng lưu trữ cơ sở dữ liệu (không phải Redis)
+- Cooldown tồn tại qua các lần khởi động lại server
+- Cập nhật nguyên tử ngăn chặn race condition
+- Nhất quán với kiến trúc dự án (không có Redis trong stack hiện tại)
+- Chi phí truy vấn chấp nhận được (<10ms) cho tần suất luồng đăng ký
 
-**Alternatives Considered**:
+**Alternatives Considered (Phương án thay thế):**
 
 1. **Redis with TTL**
-   - Faster (in-memory)
-   - Requires additional infrastructure
-   - Rejected: Spec mandates database, project doesn't use Redis
+   - Nhanh hơn (trong bộ nhớ)
+   - Yêu cầu hạ tầng bổ sung
+   - Từ chối: Spec yêu cầu cơ sở dữ liệu, dự án không dùng Redis
 
 2. **In-memory Map in Node.js**
-   - Fastest (no I/O)
-   - Lost on server restart
-   - No protection against multiple server instances
-   - Rejected: Not persistent, not scalable
+   - Nhanh nhất (không I/O)
+   - Mất khi khởi động lại server
+   - Không bảo vệ được khi có nhiều instance server
+   - Từ chối: Không bền vững, không mở rộng được
 
-**Implementation**:
+**Implementation (Triển khai):**
 
 ```javascript
 // backend/src/services/auth.service.js
@@ -217,39 +217,39 @@ async function checkCooldown(email) {
 SELECT last_sent_at FROM email_verifications WHERE email = ?
 ```
 
-**Performance**: Single indexed query (~5-10ms), acceptable for cooldown check.
+**Performance**: Truy vấn có chỉ mục đơn (~5-10ms), chấp nhận được cho kiểm tra cooldown.
 
 ---
 
-## R5: Frontend State Management
+## R5: Frontend State Management (Quản lý trạng thái Frontend)
 
-**Decision**: React useState with parent component state (no persistence)
+**Decision (Quyết định):** React useState với state của component cha (không lưu trữ bền vững)
 
-**Rationale**:
-- Multi-step form state is temporary (session-scoped)
-- No need for global state (only 2 steps, single feature)
-- Security: State clears on page reload (prevents stale OTP in browser)
-- Simple implementation without external libraries
-- Consistent with VMS frontend architecture (minimal state management)
+**Rationale (Lý do):**
+- State của form nhiều bước là tạm thời (phạm vi phiên)
+- Không cần global state (chỉ 2 bước, một tính năng)
+- Bảo mật: State bị xóa khi tải lại trang (ngăn OTP cũ trong trình duyệt)
+- Triển khai đơn giản không cần thư viện ngoài
+- Nhất quán với kiến trúc frontend VMS (quản lý state tối thiểu)
 
-**Alternatives Considered**:
+**Alternatives Considered (Phương án thay thế):**
 
 1. **sessionStorage for persistence**
-   - Pros: Survives page reload within session
-   - Cons: Stores sensitive data (password) in browser, security risk
-   - Rejected: Security concern outweighs UX benefit
+   - Ưu: Tồn tại qua tải lại trang trong phiên
+   - Nhược: Lưu dữ liệu nhạy cảm (mật khẩu) trong trình duyệt, rủi ro bảo mật
+   - Từ chối: Lo ngại bảo mật lớn hơn lợi ích UX
 
 2. **React Context API**
-   - Pros: Centralized state for multiple components
-   - Cons: Overkill for 2-step linear flow
-   - Rejected: Unnecessary complexity
+   - Ưu: State tập trung cho nhiều component
+   - Nhược: Quá mức cho luồng tuyến tính 2 bước
+   - Từ chối: Độ phức tạp không cần thiết
 
 3. **Redux/Zustand**
-   - Pros: Powerful state management
-   - Cons: Heavy dependency for simple form
-   - Rejected: Not justified for feature scope
+   - Ưu: Quản lý state mạnh mẽ
+   - Nhược: Phụ thuộc nặng cho form đơn giản
+   - Từ chối: Không xứng đáng với phạm vi tính năng
 
-**Implementation**:
+**Implementation (Triển khai):**
 
 ```javascript
 // frontend/src/components/auth/RegisterForm.jsx
@@ -293,41 +293,41 @@ function RegisterForm() {
 ```
 
 **State Flow**:
-- Step 1: User fills form → State stored in parent component
-- Step 1 → Step 2: Pass formData as props
-- Step 2: User can go back, edit data, forward again (state preserved)
-- Page reload: State lost (intentional security measure)
+- Bước 1: Người dùng điền form → State được lưu trong component cha
+- Bước 1 → Bước 2: Truyền formData qua props
+- Bước 2: Người dùng có thể quay lại, chỉnh sửa dữ liệu, tiếp tục (state được bảo toàn)
+- Tải lại trang: State bị mất (biện pháp bảo mật có chủ đích)
 
 ---
 
-## R6: Error Message Strategy
+## R6: Error Message Strategy (Chiến lược thông báo lỗi)
 
-**Decision**: Specific error messages with account enumeration trade-off accepted
+**Decision (Quyết định):** Thông báo lỗi cụ thể với đánh đổi liệt kê tài khoản được chấp nhận
 
-**Rationale**:
-- **UX Priority**: Clear error messages help legitimate users ("Email already registered" → go to login)
-- **Security Trade-off**: Email enumeration is LOW RISK for VMS because:
-  - VMS is not a high-value target (no financial data)
-  - Volunteer accounts are semi-public by nature (profiles visible after events)
-  - Rate limiting on registration endpoints prevents automated enumeration
-  - Benefit to legitimate users outweighs enumeration risk
-- **Industry Practice**: Many mainstream apps (GitHub, LinkedIn) reveal account existence for better UX
+**Rationale (Lý do):**
+- **Ưu tiên UX**: Thông báo lỗi rõ ràng giúp người dùng hợp pháp ("Email đã đăng ký" → chuyển sang đăng nhập)
+- **Đánh đổi bảo mật**: Liệt kê email là RỦI RO THẤP cho VMS vì:
+  - VMS không phải mục tiêu giá trị cao (không có dữ liệu tài chính)
+  - Tài khoản tình nguyện viên bán công khai về bản chất (hồ sơ hiển thị sau sự kiện)
+  - Giới hạn tốc độ trên endpoint đăng ký ngăn chặn liệt kê tự động
+  - Lợi ích cho người dùng hợp pháp lớn hơn rủi ro liệt kê
+- **Thực tiễn ngành**: Nhiều ứng dụng phổ biến (GitHub, LinkedIn) tiết lộ sự tồn tại của tài khoản để UX tốt hơn
 
-**Alternatives Considered**:
+**Alternatives Considered (Phương án thay thế):**
 
 1. **Generic error messages**
-   - Example: "Registration failed. Please try again."
-   - Pros: Prevents email enumeration
-   - Cons: Confusing UX, users don't know why it failed
-   - Rejected: Poor UX for low-security-risk system
+   - Ví dụ: "Đăng ký thất bại. Vui lòng thử lại."
+   - Ưu: Ngăn chặn liệt kê email
+   - Nhược: UX khó hiểu, người dùng không biết tại sao thất bại
+   - Từ chối: UX kém cho hệ thống rủi ro bảo mật thấp
 
 2. **Rate-limited check endpoint**
-   - Separate GET /check-email endpoint with aggressive rate limiting
-   - Pros: Allows checking without revealing in error
-   - Cons: Adds complexity, still reveals via rate limit
-   - Rejected: Complexity not justified
+   - Endpoint GET /check-email riêng với giới hạn tốc độ nghiêm ngặt
+   - Ưu: Cho phép kiểm tra mà không tiết lộ trong lỗi
+   - Nhược: Thêm phức tạp, vẫn tiết lộ qua giới hạn tốc độ
+   - Từ chối: Độ phức tạp không xứng đáng
 
-**Implementation**:
+**Implementation (Triển khai):**
 
 ```javascript
 // Specific error messages
@@ -342,17 +342,17 @@ const ERROR_MESSAGES = {
 ```
 
 **Rate Limiting Protection**:
-- Max 10 registration attempts per IP per hour (implemented in Phase 2)
-- Max 5 OTP verification attempts per email (already in spec)
-- Prevents automated email enumeration attacks
+- Tối đa 10 lần thử đăng ký mỗi IP mỗi giờ (triển khai trong Giai đoạn 2)
+- Tối đa 5 lần thử xác minh OTP mỗi email (đã có trong spec)
+- Ngăn chặn tấn công liệt kê email tự động
 
 **Security Monitoring**:
-- Log excessive failed registration attempts from same IP
-- Alert on suspicious patterns (>100 emails checked in short time)
+- Ghi log các lần thử đăng ký thất bại quá mức từ cùng IP
+- Cảnh báo các mẫu đáng ngờ (>100 email được kiểm tra trong thời gian ngắn)
 
 ---
 
-## Summary of Decisions
+## Summary of Decisions (Tổng kết quyết định)
 
 | Decision Area | Choice | Key Rationale |
 |---------------|--------|---------------|
@@ -365,4 +365,4 @@ const ERROR_MESSAGES = {
 
 ---
 
-**Research Phase Complete**: All technical decisions documented and justified. Ready to proceed to Phase 1 (Design & Contracts).
+**Research Phase Complete**: Tất cả quyết định kỹ thuật đã được ghi nhận và giải thích. Sẵn sàng chuyển sang Giai đoạn 1 (Design & Contracts).

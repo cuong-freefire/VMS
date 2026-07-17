@@ -8,14 +8,8 @@
  * Module: Profile Management
  */
 
-import { v2 as cloudinary } from "cloudinary";
+import cloudinary from "../config/cloudinary.config.js";
 import logger from "../config/logger.config.js";
-
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_NAME,
-  api_key: process.env.CLOUDINARY_KEY,
-  api_secret: process.env.CLOUDINARY_SECRET,
-});
 
 /**
  * Upload ảnh từ buffer lên Cloudinary.
@@ -23,11 +17,11 @@ cloudinary.config({
  * @param {Buffer} fileBuffer - Buffer của file ảnh từ Multer memoryStorage
  * @returns {Promise<{public_id: string, secure_url: string}>}
  */
-export const uploadImage = (fileBuffer) => {
+export const uploadImage = (fileBuffer, folderName) => {
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
-        folder: "avatars",
+        folder: folderName,
         resource_type: "image",
       },
       (error, result) => {

@@ -237,10 +237,19 @@ frontend/
 **Decision**: Tất cả API response PHẢI dùng format:
 
 ```javascript
+// Success: successResponse(data, message)
 {
-  success: boolean,
-  data?: any,      // Present when success = true
-  error?: string   // Present when success = false
+  success: true,
+  message: string,  // Default: "Success"
+  data: any         // Response payload
+}
+
+// Error: errorResponse(message, code, details?)
+{
+  success: false,
+  message: string,    // Human-readable error
+  code: string,       // Machine-readable code (e.g. "UNAUTHORIZED")
+  details?: any       // Optional extra info (e.g. {locked_until})
 }
 ```
 
@@ -522,7 +531,7 @@ VMS project được indexed bởi GitNexus để hỗ trợ code intelligence, 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **VMS** (461 symbols, 590 relationships, 11 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **VMS** (983 symbols, 1528 relationships, 27 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > Index stale? Run `node .gitnexus/run.cjs analyze` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? `npx gitnexus analyze` (npm 11 crash → `npm i -g gitnexus`; #1939).
 

@@ -1,18 +1,18 @@
-# CONTEXT.md — Feature: Authentication Register (UC04)
+﻿# CONTEXT.md — Feature: Authentication Register (UC04)
 
 # Người viết: CuongLH | Ngày: 2026-06-25
 
-## 1. PROBLEM STATEMENT
+## 1. PROBLEM STATEMENT (Phát biểu bài toán)
 
 Hệ thống VMS cần một luồng đăng ký tài khoản mới an toàn và tinh gọn. Để chống spam tài khoản ảo và đảm bảo tính xác thực, hệ thống cần xác minh email của người dùng ngay lúc đăng ký thông qua mã OTP. Đồng thời, để tối ưu trải nghiệm (Lean Onboarding), hệ thống chỉ thu thập các thông tin cơ bản nhất lúc đăng ký; các thông tin chi tiết khác (kỹ năng, lịch sử...) sẽ được thu thập sau ở phần quản lý Profile (UC18, UC19).
 
-## 2. DOMAIN KNOWLEDGE
+## 2. DOMAIN KNOWLEDGE (Kiến thức nghiệp vụ)
 
 - **OTP (One Time Password):** Mã xác thực dùng một lần gửi qua email để xác minh quyền sở hữu email của người đăng ký.
 - **Lean Onboarding (Đăng ký tinh gọn):** Nguyên tắc chỉ yêu cầu các trường dữ liệu bắt buộc nhất để tạo tài khoản, giảm tỷ lệ bỏ cuộc của người dùng mới.
 - **Rate Limiting & Lockout:** Các cơ chế bảo vệ hệ thống khỏi việc bị lạm dụng API gửi email (spam mail) và tấn công dò mã OTP (brute-force).
 
-## 3. STAKEHOLDERS
+## 3. STAKEHOLDERS (Các bên liên quan)
 
 - **Guest:** Người dùng chưa có tài khoản, muốn đăng ký để tham gia các sự kiện tình nguyện.
 - **Volunteer:** Vai trò (Role) mặc định sẽ được gán cho Guest sau khi đăng ký và xác thực OTP thành công.

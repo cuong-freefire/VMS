@@ -43,7 +43,7 @@ UC07 tái sử dụng bảng `email_verifications` (shared với UC04 Register).
 **UC07 Business Rules**:
 
 1. Một email chỉ có tối đa 1 record active cho `type = 'RESET_PASSWORD'` (enforced by UNIQUE)
-2. TTL: `created_at + 10 minutes > NOW()`
+2. TTL: `last_sent_at + 10 minutes > NOW()` (takes từ thời điểm gửi OTP lần cuoi)
 3. Cooldown: `last_sent_at + 60 seconds > NOW()` → reject resend
 4. Lockout: sau 5 lần sai → `is_locked = true`, `locked_until = NOW() + 15 min`
 5. Kiểm tra `locked_until` **trước** cooldown (FR-007)
@@ -113,7 +113,7 @@ erDiagram
 ## Prisma Schema (Target)
 
 ```prisma
-enum OtpType {
+enum EmailVerificationType {
   REGISTER
   RESET_PASSWORD
 }
@@ -121,18 +121,18 @@ enum OtpType {
 model EmailVerification {
   id           Int              @id @default(autoincrement())
   email        String           @db.VarChar(255)
-  otp_hash     String           @db.VarChar(255)
-  type         OtpType @default(REGISTER)
-  created_at   DateTime         @default(now()) @db.Timestamp(0)
-  last_sent_at DateTime?        @db.Timestamp(0)
+  otpHash      String                 @map("otp_hash") @db.VarChar(255)
+  type         EmailVerificationType  @default(REGISTER)
+  createdAt    DateTime               @default(now()) @map("created_at")
+  lastSentAt   DateTime?              @map("last_sent_at")
   attempts     Int              @default(0)
-  is_locked    Boolean          @default(false)
-  locked_until DateTime?        @db.Timestamp(0)
+  isLocked     Boolean                @default(false) @map("is_locked")
+  lockedUntil  DateTime?              @map("locked_until")
 
   @@unique([email, type])
   @@index([email])
-  @@index([created_at])
-  @@index([locked_until])
+  @@index([createdAt])
+  @@index([lockedUntil])
   @@map("email_verifications")
 }
 ```
@@ -178,40 +178,14 @@ await prisma.emailVerification.findUnique({
 });
 ```
 
-### Delete after successful reset (transaction)
+### Delete after successful reset (sequential)
 
 ```javascript
-await prisma.$transaction([
-  prisma.user.update({
-    where: { email },
-    data: { password_hash: hashedPassword }
-  }),
-  prisma.emailVerification.delete({
-    where: { email_type: { email, type: 'RESET_PASSWORD' } }
-  })
-]);
+// Step 1: Update user password
+await authRepository.updatePassword(email, hashedPassword);
+
+// Step 2: Delete OTP record
+await authRepository.deleteVerification(email, 'RESET_PASSWORD');
 ```
 
----
-
-## Migration
-
-UC07 **không** tạo bảng mới. Phụ thuộc migration UC04 + migration thêm `type`:
-
-```bash
-# UC04 initial table, then:
-npx prisma migrate dev --name add_type_to_email_verifications
-```
-
-Chi tiết migration UC04: xem `.sdd/CuongLH/UC04-feat-auth-register/data-model.md`.
-
----
-
-## Cleanup Strategy
-
-- **Sau reset thành công**: hard DELETE (primary path)
-- **OTP hết hạn chưa dùng**: cron/lazy delete records WHERE `created_at < NOW() - 10 min` (optional, shared với UC04)
-
----
-
-**End of Data Model**
+**Note**: Two operations called sequentially. `updatePassword` in `auth.repository.js` calls `prisma.user.update()`, `deleteVerification` calls `prisma.emailVerification.delete()`. Error handling done at service layer.

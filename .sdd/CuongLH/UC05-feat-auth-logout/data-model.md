@@ -29,6 +29,7 @@ UC05 Logout **KHÔNG tạo entities mới**. Tính năng này chỉ interact v�
 | `is_active` | BOOLEAN | Check user active status |
 
 **Interactions**:
+
 - ✅ **READ ONLY**: Middleware `authenticate()` đọc `user.id` từ JWT
 - ❌ **NO WRITE**: Logout không modify user record
 
@@ -67,6 +68,7 @@ UC05 Logout **KHÔNG tạo entities mới**. Tính năng này chỉ interact v�
 | `path` | `/` | Available for all routes |
 
 **Lifecycle**:
+
 1. **Created**: On successful login (UC03)
 2. **Validated**: On every authenticated request (middleware)
 3. **Destroyed**: On logout (UC05) → Set `maxAge: 0`
@@ -92,12 +94,14 @@ CREATE TABLE user_sessions (
 **Usage trong UC05**: **KHÔNG SỬ DỤNG trong v1**
 
 **Rationale**:
+
 - Logout chỉ clear cookie phía client (Stateless JWT pattern)
 - `user_sessions` record KHÔNG bị delete khi logout
 - Record sẽ tự expire khi `expires_at < NOW()` (cleanup via cron job)
 - Out of Scope theo research.md findings
 
 **Future Enhancement (v2)**:
+
 - Có thể DELETE `user_sessions` record khi logout để invalidate ngay lập tức
 - Requires additional database operation → Tăng latency
 
@@ -237,7 +241,8 @@ CREATE TABLE user_sessions (
 └─────────────────┘
 ```
 
-**Note**: 
+**Note**:
+
 - State là **one-way** cho logout (không có rollback)
 - Logout là **idempotent**: Kết quả cuối cùng luôn là Unauthenticated
 
@@ -250,6 +255,7 @@ CREATE TABLE user_sessions (
 **None required** cho UC05 ✅
 
 **Rationale**:
+
 - Logout không nhận request body
 - Logout không cần validate params
 - Logout idempotent → Không cần check trạng thái hiện tại
@@ -269,6 +275,7 @@ CREATE TABLE user_sessions (
 **None required** ✅
 
 **Rationale**:
+
 - Logout button chỉ hiển thị khi `isAuthenticated = true`
 - Double-click prevention qua `isLoggingOut` state
 
@@ -279,15 +286,18 @@ CREATE TABLE user_sessions (
 ### Logout Operation: ZERO Database Queries ✅
 
 **Backend**:
+
 - ❌ NO SELECT queries
 - ❌ NO UPDATE queries
 - ❌ NO DELETE queries
 - ❌ NO INSERT queries
 
 **Frontend**:
+
 - ❌ NO database access (only API calls)
 
-**Performance Impact**: 
+**Performance Impact**:
+
 - Database load: ZERO
 - Response time: ~3ms (cookie operations only)
 - Scalability: EXCELLENT (stateless)
@@ -304,7 +314,8 @@ CREATE TABLE user_sessions (
 
 **Impact on Logout**: NONE
 
-**Rationale**: 
+**Rationale**:
+
 - Logout không delete `user_sessions` record
 - Record tự expire qua `expires_at` timestamp
 - Next login sẽ replace record (UPSERT)
@@ -313,7 +324,8 @@ CREATE TABLE user_sessions (
 
 **Constraint**: Cookie chỉ access được từ server, không từ JavaScript
 
-**Impact on Logout**: 
+**Impact on Logout**:
+
 - Frontend KHÔNG THỂ đọc/xóa cookie trực tiếp
 - PHẢI gọi backend API để clear cookie
 - Backend set `Max-Age=0` để browser tự xóa
@@ -323,6 +335,7 @@ CREATE TABLE user_sessions (
 **Constraint**: Access token hết hạn sau 15 phút
 
 **Impact on Logout**:
+
 - Token vẫn valid cho đến khi hết hạn (security risk)
 - Accepted risk cho v1 (research.md decision)
 - Future: Token blacklist trong v2
@@ -373,6 +386,7 @@ Status: 200 OK (Always)
 ### Data NOT Exposed
 
 ❌ KHÔNG expose trong response:
+
 - JWT token content
 - User ID
 - Session ID
@@ -382,6 +396,7 @@ Status: 200 OK (Always)
 ### Data Cleared
 
 ✅ Cleared on logout:
+
 - `access_token` cookie (browser)
 - `user` object (Frontend AuthContext)
 - `isAuthenticated` state (Frontend AuthContext)
@@ -389,6 +404,7 @@ Status: 200 OK (Always)
 ### Data Retained
 
 ✅ KHÔNG clear (out of scope):
+
 - `user_sessions` table record (expires naturally)
 - User profile data trong database
 - Login history/audit logs (nếu có)

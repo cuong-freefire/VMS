@@ -1,4 +1,4 @@
-# **LANGUAGE**: This specification must be written in Vietnamese with technical terms kept in English (e.g., upload, API, endpoint, authentication, OAuth, cache, session, commit, merge, rollback, validate, etc.)
+﻿# **LANGUAGE**: This specification must be written in Vietnamese with technical terms kept in English (e.g., upload, API, endpoint, authentication, OAuth, cache, session, commit, merge, rollback, validate, etc.)
 
 # Implementation Plan: Authentication Login (UC03)
 
@@ -14,12 +14,13 @@ Tính năng đăng nhập an toàn cho VMS, cho phép người dùng (Volunteer,
 
 **Technical approach**:
 
-- JWT lưu trong HttpOnly Cookie với TTL 7 ngày, payload `{user_id, email, role_id, jti}`
+- JWT lưu trong HttpOnly Cookie với TTL 7 ngày, payload `{user_id, email, role_id, role_name, jti}`
 - Single Active Session enforcement: bảng `user_sessions` với UNIQUE(user_id) lưu jti, ghi đè khi login mới
 - Account Lockout: bảng `login_attempts` track failed attempts, khóa 15 phút sau 5 lần sai
 - Bcrypt password verification (salt rounds = 12)
 - Zod validation cho email format và required fields
 - Soft delete check: chặn login nếu `users.is_active = false`
+- ServiceError class pattern: centralized error class với `{code, message, statusCode}` để chuẩn hóa error handling
 
 ## Technical Context
 
@@ -37,13 +38,13 @@ Tính năng đăng nhập an toàn cho VMS, cho phép người dùng (Volunteer,
 
 **Performance Goals**:
 
-- Login API response time < 200ms (p95) với 100 concurrent requests
+- Login API response time < 200ms với 100 concurrent requests
 - JWT generation + bcrypt verification < 300ms
 - Frontend page load (LoginPage) < 1 second
 
 **Constraints**:
 
-- MUST use HttpOnly Cookie for JWT (KHÔNG localStorage) per ADR-002
+- MUST use HttpOnly Cookie for JWT (KHÔNG localStorage) per ADR-002 (CLAUDE.md)
 - MUST enforce Single Active Session (1 user = 1 session) per SPEC US4
 - MUST soft delete users (is_active flag) per ADR-005
 - MUST use bcrypt salt rounds = 12 per DATABASE.md
@@ -53,7 +54,7 @@ Tính năng đăng nhập an toàn cho VMS, cho phép người dùng (Volunteer,
 
 - MVP target: 100-500 concurrent users
 - Expected active users: ~1,000 volunteers + 50 staff + 10 managers + 5 admins
-- Login frequency: ~2-5 logins/user/week
+- Tần xuất login: ~2-5 logins/user/week
 
 ## Constitution Check
 
@@ -71,7 +72,7 @@ Tính năng đăng nhập an toàn cho VMS, cho phép người dùng (Volunteer,
 
 ✅ **PASS**: userId lấy từ JWT → Middleware `authenticate` inject `req.user`, Service KHÔNG đọc từ req.body
 
-✅ **PASS**: Không commit secrets → AUTH_SECRET, JWT_SECRET trong .env, file .env trong .gitignore
+✅ **PASS**: Không commit secrets → SECRET_KEY, JWT_SECRET trong .env, file .env trong .gitignore
 
 ✅ **PASS**: Input validation → Zod validator middleware cho email format và required fields
 
@@ -134,21 +135,21 @@ Tính năng đăng nhập an toàn cho VMS, cho phép người dùng (Volunteer,
 backend/
 ├── src/
 │   ├── controllers/
-│   │   └── auth.controller.js          # [NEW] Login endpoint handler
+│   │   └── auth.controller.js          # [NEW] Login endpoint handler (dùng ServiceError + setTokenToCookie)
 │   ├── services/
-│   │   └── auth.service.js             # [NEW] Login business logic
+│   │   └── auth.service.js             # [NEW] Login business logic (default export)
 │   ├── repositories/
 │   │   └── auth.repository.js          # [NEW] Database queries (users, sessions, attempts)
 │   ├── routes/
 │   │   └── auth.routes.js              # [NEW] Route: POST /api/v1/auth/login
 │   ├── middlewares/
-│   │   ├── auth.middleware.js          # [FUTURE] authenticate() middleware (UC04 sẽ tạo)
-│   │   └── errorHandler.middleware.js  # [EXISTING] Centralized error handler
+│   │   ├── auth.middleware.js          # [NEW] authenticate() middleware: verify JWT → check jti → check expiresAt → clear cookie → inject req.user
 │   ├── validators/
-│   │   └── auth.validator.js           # [NEW] Zod schemas cho login input
+│   │   ├── auth.validator.js           # [NEW] Zod schemas cho login input (email.max(255), .toLowerCase(), .trim())
+│   │   └── validate.js                 # [NEW] Shared validation middleware factory (safeParse)
 │   ├── utils/
-│   │   ├── jwt.util.js                 # [NEW] JWT sign/verify helpers
-│   │   └── response.util.js            # [EXISTING] Response formatter (ADR-006)
+│   │   ├── jwt.util.js                 # [NEW] JWT sign/verify helpers + setTokenToCookie
+│   │   └── response.util.js            # [NEW] Response formatter: {success, message, data/code, details} + ServiceError
 │   └── config/
 │       └── env.config.js               # [EXISTING] Load .env variables
 ├── prisma/
@@ -164,28 +165,33 @@ backend/
 
 frontend/
 ├── src/
-│   ├── pages/
-│   │   └── LoginPage.jsx               # [NEW] Login form UI
 │   ├── components/
-│   │   └── layouts/
-│   │       └── Header.jsx              # [UPDATE] Add logout button (UC05)
+│   │   ├── pages/
+│   │   │   └── LoginPage.jsx           # [NEW] Login form UI với react-hook-form, toast warning/error
+│   │   ├── layouts/
+│   │   │   └── AuthLayout.jsx          # [NEW] Auth page wrapper: VMS branding + Outlet
+│   │   └── guards/
+│   │       ├── ProtectedRoute.jsx      # [NEW] Chuyển hướng người dùng chưa xác thực → /login
+│   │       ├── GuestRoute.jsx          # [NEW] Chuyển hướng sau khi xác thực → role home
+│   │       └── RoleRoute.jsx           # [NEW] Block users without required role
 │   ├── api/
-│   │   ├── axiosApi.js                 # [EXISTING] Axios client với credentials: include
-│   │   └── authApi.js                  # [NEW] login() API call
+│   │   └── axiosApi.js                 # [EXISTING] Axios client: withCredentials + response interceptor (401→redirect, 403→redirect, 500→log)
 │   ├── contexts/
-│   │   └── authContext.js              # [NEW] Auth state management
-│   ├── hooks/
-│   │   └── useAuth.js                  # [NEW] Custom hook consume authContext
-│   └── utils/
-│       └── roleRoutes.js               # [NEW] Map role_id to route paths
+│   │   └── authContext.context.js      # [NEW] Full AuthProvider: user, loading, login(), logout(), updateUser(), role helpers
+│   ├── services/
+│   │   ├── auth.service.js             # [NEW] login(), logout(), forgotPassword, changePassword API calls
+│   │   └── user.service.js             # [NEW] getMe() for auth state initialization
+│   └── constants/
+│       └── roles.js                    # [NEW] ROLES object + roleRouteMap
 └── tests/
-    └── pages/
-        └── LoginPage.test.jsx          # [NEW] LoginPage component tests
+    └── components/
+        └── pages/
+            └── LoginPage.jsx           # [NEW] LoginPage component
 ```
 
 **Structure Decision**:
 
-VMS là web application với separate backend và frontend. UC03 follow **Option 2** từ template.
+VMS là web application với separate backend và frontend..
 
 **Key directories**:
 
@@ -198,7 +204,7 @@ VMS là web application với separate backend và frontend. UC03 follow **Optio
 
 - Backend: `[resource].[layer].js` (e.g., `auth.controller.js`)
 - Frontend components: PascalCase `.jsx` (e.g., `LoginPage.jsx`)
-- API clients: camelCase `.js` (e.g., `authApi.js`)
+- API clients: camelCase `.js` (e.g., `axiosApi.js`)
 
 ## Complexity Tracking
 

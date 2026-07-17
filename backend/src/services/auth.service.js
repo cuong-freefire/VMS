@@ -1,31 +1,30 @@
-import { signAccessToken } from "../utils/jwt.util.js";
+﻿import { signAccessToken } from "../utils/jwt.util.js";
 import { ServiceError } from "../utils/response.util.js";
 import bcrypt from "bcryptjs";
 import { generateOTP, hashOTP, verifyOTP as verifyOTPHash } from "../utils/otp.util.js";
-import { generateOTPEmailContent } from "../utils/email.util.js";
 import authRepository from "../repositories/auth.repository.js";
 import logger from "../config/logger.config.js";
-import { transporter } from "../config/transporter.config.js";
+import emailService from "./email.service.js";
 
 /**
  * Login service - Authenticate user with email and password
  * Implements UC03: User Story 1 - Đăng nhập thành công với tài khoản hợp lệ
  * 
  * Business Logic Flow:
- * 1. Check account lockout (5 failed attempts in 15 minutes)
- * 2. Find user by email (case-insensitive)
- * 3. Verify password using bcrypt.compare()
- * 4. Check if account is active (soft delete)
- * 5. Check if email is verified
- * 6. Generate JWT with jti (Session ID)
- * 7. Upsert session to enforce Single Active Session
- * 8. Reset login attempts counter
- * 9. Return user data (without password_hash)
+ * 1. Kiểm tra tài khoản có đang bị khóa hay không (khóa sau 5 lần đăng nhập sai trong vòng 15 phút)
+ * 2. Tìm người dùng theo email (không phân biệt chữ hoa/chữ thường)
+ * 3. Xác thực mật khẩu bằng bcrypt.compare()
+ * 4. Kiểm tra tài khoản còn hoạt động hay không (không bị xóa mềm)
+ * 5. Kiểm tra email đã được xác minh hay chưa
+ * 6. Tạo JWT kèm jti (Session ID)
+ * 7. Tạo hoặc cập nhật phiên đăng nhập để đảm bảo chỉ có một phiên hoạt động (Single Active Session)
+ * 8. Đặt lại số lần đăng nhập thất bại
+ * 9. Trả về thông tin người dùng (không bao gồm password_hash)
  * 
- * @param {string} email - User email
- * @param {string} password - Plain text password
- * @returns {Promise<Object>} Object with token and user data
- * @throws {ServiceError} 401/403/429 errors
+ * @param {string} email - Email của người dùng
+ * @param {string} password - Mật khẩu dạng văn bản thuần (Plain Text)
+ * @returns {Promise<Object>} Đối tượng chứa JWT và thông tin người dùng
+ * @throws {ServiceError} Ném lỗi 401 (Unauthorized), 403 (Forbidden) hoặc 429 (Too Many Requests)
  */
 async function loginService(email, password) {
     // 1. Normalize email to lowercase
@@ -51,7 +50,7 @@ async function loginService(email, password) {
         // Increment attempts for non-existent email
         await authRepository.incrementLoginAttempts(normalizedEmail);
         throw new ServiceError(
-            "Email hoặc mật khẩu không đúng",
+            "Email hoặc mật khẩu chưa chính xác",
             401,
             "UNAUTHORIZED"
         );
@@ -64,7 +63,7 @@ async function loginService(email, password) {
         // Increment attempts for wrong password
         await authRepository.incrementLoginAttempts(normalizedEmail);
         throw new ServiceError(
-            "Email hoặc mật khẩu không đúng",
+            "Email hoặc mật khẩu chưa chính xác",
             401,
             "UNAUTHORIZED"
         );
@@ -94,6 +93,7 @@ async function loginService(email, password) {
         user_id: user.id,
         email: user.email,
         role_id: user.roleId,
+        role_name: user.role.name,
         jti
     });
 
@@ -111,7 +111,7 @@ async function loginService(email, password) {
             id: user.id,
             email: user.email,
             full_name: user.fullName,
-            role_id: user.roleId,
+            role_name: user.role.name,
             avatar_url: user.avatarUrl,
             phone: user.phone,
             created_at: user.createdAt ? user.createdAt.toISOString() : null,
@@ -120,20 +120,20 @@ async function loginService(email, password) {
 }
 
 /**
- * Send OTP to email for registration
- * Implements: User Story 1 - Gửi OTP để xác thực email
- * 
- * Business Logic:
- * - Check if email already exists in users table
- * - Check cooldown (60 seconds between resends)
- * - Check lockout (15 minutes after 5 failed attempts)
- * - Generate 6-digit OTP and hash it
- * - Store in email_verifications table
- * - Send email via NodeMailer
- * 
- * @param {string} email - User email (normalized)
- * @returns {Promise<Object>} Success response with cooldown info
- * @throws {ServiceError} 400/409/429/503 errors
+ * Gửi mã OTP đến email để xác thực đăng ký tài khoản
+ * Triển khai UC04: User Story 1 - Gửi OTP để xác thực email
+ *
+ * Luồng xử lý nghiệp vụ:
+ * - Kiểm tra email đã tồn tại trong bảng users hay chưa
+ * - Kiểm tra thời gian chờ giữa các lần gửi lại OTP (60 giây)
+ * - Kiểm tra trạng thái khóa sau 5 lần xác thực thất bại (15 phút)
+ * - Tạo mã OTP gồm 6 chữ số và mã hóa (hash) trước khi lưu
+ * - Lưu thông tin OTP vào bảng email_verifications
+ * - Gửi email chứa mã OTP thông qua NodeMailer
+ *
+ * @param {string} email - Email của người dùng (đã được chuẩn hóa)
+ * @returns {Promise<Object>} Đối tượng phản hồi thành công kèm thông tin thời gian chờ gửi lại OTP
+ * @throws {ServiceError} Ném lỗi 400 (Bad Request), 409 (Conflict), 429 (Too Many Requests) hoặc 503 (Service Unavailable)
  */
 const sendOTP = async (email) => {
     // 1. Validate email format (already done by Zod middleware)
@@ -201,23 +201,13 @@ const sendOTP = async (email) => {
         await authRepository.createVerification(normalizedEmail, otpHash, "REGISTER");
     }
 
-    // 10. Send email via NodeMailer (placeholder - requires email service integration)
-    // TODO: Integrate with NodeMailer email service to send OTP email
-    const { subject, plainText } = generateOTPEmailContent(otp, 10);
-    // console.log(`📧 Email to ${normalizedEmail}:\nSubject: ${subject}\n${plainText}`);
-    transporter.sendMail({
-        from: process.env.SMTP_USER,
-        to: normalizedEmail,
-        subject,
-        text: plainText,
-    }).catch((err) => {
-        console.error("Error sending OTP email:", err);
-        throw new ServiceError(
-            "Dịch vụ email không khả dụng. Vui lòng thử lại sau.",
-            503,
-            "EMAIL_SERVICE_UNAVAILABLE"
-        );
-    });
+    // 10. Send verification OTP email via EmailService (MD15)
+    emailService.sendVerificationEmail(normalizedEmail, normalizedEmail, otp, 10)
+        .then((result) => {
+            if (!result.success) {
+                logger.warn({ email: normalizedEmail, error: result.error }, "OTP email send failed");
+            }
+        });
 
     // 11. Return success response
     return {
@@ -228,27 +218,27 @@ const sendOTP = async (email) => {
 };
 
 /**
- * Verify OTP and create user account
- * Implements: User Story 2 - Xác thực OTP và tạo tài khoản thành công
- * 
- * Business Logic:
- * - Validate all input fields with Zod
- * - Find verification record
- * - Check lockout status
- * - Check OTP expiration (10 minutes)
- * - Verify OTP with bcrypt.compare
- * - Hash password with bcryptjs (12 rounds)
- * - Create user in transaction
- * - Delete verification record
- * 
- * @param {Object} payload - Verification payload
- * @param {string} payload.email - User email
- * @param {string} payload.otp - 6-digit OTP
- * @param {string} payload.fullName - Full name
- * @param {string} payload.phoneNumber - Phone number
- * @param {string} payload.password - Password
- * @returns {Promise<Object>} Success response with user_id
- * @throws {ServiceError} 400/429/500 errors
+ * Xác thực mã OTP và tạo tài khoản người dùng
+ * Triển khai UC04: User Story 2 - Xác thực OTP và tạo tài khoản thành công
+ *
+ * Luồng xử lý nghiệp vụ:
+ * - Kiểm tra tính hợp lệ của toàn bộ dữ liệu đầu vào bằng Zod
+ * - Tìm bản ghi xác thực OTP
+ * - Kiểm tra trạng thái khóa sau nhiều lần xác thực thất bại
+ * - Kiểm tra thời hạn của mã OTP (10 phút)
+ * - Xác thực mã OTP bằng bcrypt.compare()
+ * - Mã hóa mật khẩu bằng bcryptjs (12 rounds)
+ * - Tạo tài khoản người dùng trong một transaction
+ * - Xóa bản ghi xác thực OTP sau khi tạo tài khoản thành công
+ *
+ * @param {Object} payload - Dữ liệu xác thực
+ * @param {string} payload.email - Email của người dùng
+ * @param {string} payload.otp - Mã OTP gồm 6 chữ số
+ * @param {string} payload.fullName - Họ và tên
+ * @param {string} payload.phoneNumber - Số điện thoại
+ * @param {string} payload.password - Mật khẩu
+ * @returns {Promise<Object>} Đối tượng phản hồi thành công chứa user_id
+ * @throws {ServiceError} Ném lỗi 400 (Bad Request), 429 (Too Many Requests) hoặc 500 (Internal Server Error)
  */
 const verifyOTP = async (payload) => {
     const { email, otp, fullName, phoneNumber, password } = payload;
@@ -355,12 +345,21 @@ const verifyOTP = async (payload) => {
 
 
 /**
- * Request password reset OTP
- * Implements UC07: US1 (Forgot Password) + US4 (Zero User Enumeration)
+ * Gửi yêu cầu cấp mã OTP để đặt lại mật khẩu
+ * Triển khai UC07:
+ * - User Story 1: Quên mật khẩu
+ * - User Story 4: Ngăn chặn dò tìm tài khoản (Zero User Enumeration)
  *
- * @param {string} email
- * @returns {Promise<Object>}
- * @throws {ServiceError} 429
+ * Luồng xử lý nghiệp vụ:
+ * - Kiểm tra thời gian chờ giữa các lần gửi lại OTP
+ * - Nếu email tồn tại, tạo và lưu mã OTP đặt lại mật khẩu
+ * - Gửi email chứa mã OTP đến người dùng
+ * - Nếu email không tồn tại, vẫn trả về phản hồi thành công
+ *   để tránh tiết lộ sự tồn tại của tài khoản
+ *
+ * @param {string} email - Email của người dùng
+ * @returns {Promise<Object>} Đối tượng phản hồi thành công
+ * @throws {ServiceError} Ném lỗi 429 (Too Many Requests)
  */
 const requestResetPassword = async (email) => {
     const normalizedEmail = email.toLowerCase().trim();
@@ -419,18 +418,15 @@ const requestResetPassword = async (email) => {
         await authRepository.createVerification(normalizedEmail, otpHash, "RESET_PASSWORD");
     }
 
-    // Send email async — silent failure, no throw
-    transporter.sendMail({
-        from: process.env.SMTP_USER,
-        to: normalizedEmail,
-        subject: "Mã OTP đặt lại mật khẩu - VMS",
-        text: `Mã OTP đặt lại mật khẩu của bạn là: ${otp}
+    // Send reset password OTP email via EmailService (MD15)
+    emailService.sendResetPasswordEmail(normalizedEmail, normalizedEmail, otp, 10)
+        .then((result) => {
+            if (!result.success) {
+                logger.warn({ email: normalizedEmail, error: result.error }, "Reset password email send failed");
+            }
+        });
 
-Mã có hiệu lực trong 10 phút. Vui lòng không chia sẻ mã này với bất kỳ ai.
-
----
-Email tự động từ hệ thống VMS. Vui lòng không trả lời email này.`,
-    }).catch(() => { });
+    logger.info({ email: normalizedEmail }, "FORGOT_PASSWORD_OTP_SENT");
 
     return {
         success: true,
@@ -440,13 +436,23 @@ Email tự động từ hệ thống VMS. Vui lòng không trả lời email nà
 };
 
 /**
- * Verify OTP for password reset
- * Implements UC07: US1 + US2 (Lockout after 5 wrong attempts)
+ * Xác thực mã OTP để đặt lại mật khẩu
+ * Triển khai UC07:
+ * - User Story 1: Xác thực OTP để đặt lại mật khẩu
+ * - User Story 2: Khóa xác thực sau 5 lần nhập sai OTP
  *
- * @param {string} email
- * @param {string} otp
- * @returns {Promise<Object>} { verified: true }
- * @throws {ServiceError} 400/404/429
+ * Luồng xử lý nghiệp vụ:
+ * - Tìm bản ghi OTP theo email
+ * - Kiểm tra trạng thái khóa do nhập sai quá nhiều lần
+ * - Kiểm tra mã OTP còn hiệu lực hay đã hết hạn
+ * - Xác thực mã OTP bằng bcrypt.compare()
+ * - Tăng số lần nhập sai nếu OTP không chính xác
+ * - Đánh dấu OTP đã được xác thực thành công
+ *
+ * @param {string} email - Email của người dùng
+ * @param {string} otp - Mã OTP gồm 6 chữ số
+ * @returns {Promise<Object>} Đối tượng phản hồi với trạng thái xác thực thành công ({ verified: true })
+ * @throws {ServiceError} Ném lỗi 400 (Bad Request), 404 (Not Found) hoặc 429 (Too Many Requests)
  */
 const verifyResetOTP = async (email, otp) => {
     const normalizedEmail = email.toLowerCase().trim();
@@ -499,6 +505,7 @@ const verifyResetOTP = async (email, otp) => {
         await authRepository.updateVerification(normalizedEmail, updateData, "RESET_PASSWORD");
 
         if (newAttempts >= 5) {
+            logger.warn({ email: normalizedEmail, attempts: newAttempts }, "FORGOT_PASSWORD_LOCKOUT");
             throw new ServiceError(
                 "Bạn đã nhập sai quá 5 lần. Tài khoản bị khóa 15 phút.",
                 429, "EMAIL_LOCKED"
@@ -511,6 +518,8 @@ const verifyResetOTP = async (email, otp) => {
         );
     }
 
+    logger.info({ email: normalizedEmail }, "FORGOT_PASSWORD_OTP_VERIFIED");
+
     return {
         verified: true,
         message: "Mã OTP xác thực thành công.",
@@ -518,36 +527,27 @@ const verifyResetOTP = async (email, otp) => {
 };
 
 /**
- * Reset password with verified OTP
- * Implements UC07: US1 (Successful password reset)
+ * Thay đổi mật khẩu cho người dùng đã đăng nhập
+ * Triển khai UC06: User Story 1 - Thay đổi mật khẩu thành công
  *
- * @param {string} email
- * @param {string} otp
- * @param {string} newPassword
- * @returns {Promise<Object>}
- * @throws {ServiceError} 400/403/404/429/500
- */
-
-
-/**
- * Change password for authenticated user
- * Implements UC06: User Story 1 - Thay doi mat khau thanh cong
+ * Luồng xử lý nghiệp vụ:
+ * 1. Tìm người dùng theo userId lấy từ JWT
+ *    (KHÔNG lấy từ request body để ngăn chặn lỗ hổng IDOR)
+ * 2. Kiểm tra tài khoản còn hoạt động (is_active = TRUE)
+ * 3. Xác thực mật khẩu hiện tại bằng bcrypt.compare()
+ *    (so sánh theo thời gian hằng để tăng tính bảo mật)
+ * 4. Mã hóa mật khẩu mới bằng bcrypt (12 rounds)
+ * 5. Cập nhật password_hash trong cơ sở dữ liệu
+ * 6. Ghi nhật ký kiểm toán (Audit Log) với sự kiện CHANGE_PASSWORD_SUCCESS
+ * 7. Giữ nguyên phiên đăng nhập hiện tại
+ *    (KHÔNG tự động đăng xuất sau khi đổi mật khẩu)
  *
- * Business Logic Flow:
- * 1. Find user by userId from JWT (NOT from request body — anti-IDOR)
- * 2. Check account is active (is_active = TRUE)
- * 3. Verify oldPassword with bcrypt.compare() (constant-time)
- * 4. Hash newPassword with bcrypt (12 rounds)
- * 5. Update password_hash in database
- * 6. Audit log CHANGE_PASSWORD_SUCCESS
- * 7. Keep current session active (do NOT force logout)
- *
- * @param {number} userId - User ID from JWT token (req.user.user_id)
- * @param {string} oldPassword - Current password for verification
- * @param {string} newPassword - New password (already validated by Zod)
- * @returns {Promise<Object>} Success response
- * @throws {ServiceError} 400 - Old password incorrect
- * @throws {ServiceError} 403 - Account inactive
+ * @param {number} userId - ID người dùng lấy từ JWT (req.user.user_id)
+ * @param {string} oldPassword - Mật khẩu hiện tại để xác thực
+ * @param {string} newPassword - Mật khẩu mới (đã được Zod kiểm tra hợp lệ)
+ * @returns {Promise<Object>} Đối tượng phản hồi thành công
+ * @throws {ServiceError} Ném lỗi 400 (Bad Request) nếu mật khẩu hiện tại không chính xác
+ * @throws {ServiceError} Ném lỗi 403 (Forbidden) nếu tài khoản không còn hoạt động
  */
 const changePassword = async (userId, oldPassword, newPassword) => {
     // 1. Find user by userId (from JWT, NOT request body)
@@ -585,7 +585,7 @@ const changePassword = async (userId, oldPassword, newPassword) => {
     const newHash = await bcrypt.hash(newPassword, 12);
 
     // 5. Update password in database
-    await authRepository.updatePassword(user.email, newHash);
+    await authRepository.updatePasswordById(user.id, newHash);
 
     // 6. Audit log success (no passwords in log)
     logger.info({ userId }, "CHANGE_PASSWORD_SUCCESS");
@@ -622,6 +622,8 @@ const resetPassword = async (email, otp, newPassword) => {
 
     await authRepository.updatePassword(normalizedEmail, passwordHash);
     await authRepository.deleteVerification(normalizedEmail, "RESET_PASSWORD");
+
+    logger.info({ email: normalizedEmail }, "FORGOT_PASSWORD_SUCCESS");
 
     return {
         success: true,

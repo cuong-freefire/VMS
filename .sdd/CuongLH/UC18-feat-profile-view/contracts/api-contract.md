@@ -58,6 +58,8 @@ curl -X GET http://localhost:5000/api/v1/user/me \
     "email": "user@example.com",
     "phone_number": "0123456789",
     "avatar_url": "https://cloudinary.com/vms/avatars/user123.jpg",
+    "role_name": "VOLUNTEER",
+    "created_at": "2025-01-01T00:00:00.000Z",
     "skills": [
       {
         "skill_id": 1,
@@ -84,6 +86,8 @@ curl -X GET http://localhost:5000/api/v1/user/me \
 - data.email: string
 - data.phone_number: string | null
 - data.avatar_url: string | null
+- data.role_name: string (enum: "VOLUNTEER" | "STAFF" | "MANAGER" | "ADMIN")
+- data.created_at: string (ISO 8601)
 - data.skills: Array<{ skill_id: number, skill_name: string }>
 
 **Edge Cases**:

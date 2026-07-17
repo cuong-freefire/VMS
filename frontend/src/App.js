@@ -1,11 +1,13 @@
-﻿import { Route, Routes } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import { Bounce, ToastContainer } from 'react-toastify';
 
 import GuestRoute from "./components/guards/GuestRoute";
 import ProtectedRoute from "./components/guards/ProtectedRoute";
+import RoleRoute from "./components/guards/RoleRoute";
 import MainLayout from "./components/layouts/MainLayout";
 import AuthLayout from "./components/layouts/AuthLayout";
 import ErrorBoundary from "./components/ui/ErrorBoundary";
+import { ROLES } from "./constants/roles";
 
 import LandingPage from "./components/pages/LandingPage";
 import HomePage from "./components/pages/Homepage";
@@ -18,6 +20,7 @@ import ProfileEditPage from "./components/pages/profile/ProfileEditPage";
 import VolunteerHistoryPage from "./components/pages/profile/VolunteerHistoryPage";
 import NotFoundPage from "./components/pages/NotFoundPage";
 import AboutPage from "./components/pages/AboutPage";
+import PlaceholderPage from "./components/pages/PlaceholderPage";
 
 function App() {
   return (
@@ -32,25 +35,67 @@ function App() {
           </Route>
         </Route>
 
-        {/* Public landing with full layout */}
+        {/* Public: Landing page with full layout */}
         <Route element={<MainLayout />}>
           <Route index element={<LandingPage />} />
-        </Route>
-
-        {/* Protected pages with full layout */}
-        <Route element={<ProtectedRoute />}>
-          <Route element={<MainLayout />}>
-            <Route path="/home" element={<HomePage />} />
-            <Route path="/profile" element={<ProfileViewPage />} />
-            <Route path="/profile/edit" element={<ProfileEditPage />} />
-            <Route path="/change-password" element={<ChangePasswordPage />} />
-            <Route path="/history" element={<VolunteerHistoryPage />} />
-          </Route>
         </Route>
 
         {/* Public: About page */}
         <Route element={<MainLayout />}>
           <Route path="/about" element={<AboutPage />} />
+        </Route>
+
+        {/* Protected: Shared routes — all authenticated roles */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<MainLayout />}>
+            <Route path="/profile" element={<ProfileViewPage />} />
+            <Route path="/profile/edit" element={<ProfileEditPage />} />
+            <Route path="/change-password" element={<ChangePasswordPage />} />
+          </Route>
+        </Route>
+
+        {/* Protected: VOLUNTEER routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<MainLayout />}>
+            <Route element={<RoleRoute allowedRoles={[ROLES.VOLUNTEER]} />}>
+              <Route path="/home" element={<HomePage />} />
+              <Route path="/history" element={<VolunteerHistoryPage />} />
+              <Route path="/volunteer/events" element={<PlaceholderPage title="Danh sách Sự kiện" member="NamLD (Member 2)" />} />
+              <Route path="/volunteer/certificates" element={<PlaceholderPage title="Chứng nhận" member="NamLD (Member 2)" />} />
+            </Route>
+          </Route>
+        </Route>
+
+        {/* Protected: STAFF routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<MainLayout />}>
+            <Route element={<RoleRoute allowedRoles={[ROLES.STAFF]} />}>
+              <Route path="/staff/events" element={<PlaceholderPage title="Quản lý Sự kiện (Staff)" member="TienTD (Member 3)" />} />
+              <Route path="/staff/applications" element={<PlaceholderPage title="Xét duyệt Đơn đăng ký" member="TienTD (Member 3)" />} />
+              <Route path="/staff/attendance" element={<PlaceholderPage title="Điểm danh" member="TienTD (Member 3)" />} />
+            </Route>
+          </Route>
+        </Route>
+
+        {/* Protected: MANAGER routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<MainLayout />}>
+            <Route element={<RoleRoute allowedRoles={[ROLES.MANAGER]} />}>
+              <Route path="/manager/dashboard" element={<PlaceholderPage title="Dashboard (Manager)" member="DucNM (Member 5)" />} />
+            </Route>
+          </Route>
+        </Route>
+
+        {/* Protected: ADMIN routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<MainLayout />}>
+            <Route element={<RoleRoute allowedRoles={[ROLES.ADMIN]} />}>
+              <Route path="/admin/dashboard" element={<PlaceholderPage title="Dashboard (Admin)" member="AnhND (Member 4)" />} />
+              <Route path="/admin/users" element={<PlaceholderPage title="Quản lý Người dùng" member="AnhND (Member 4)" />} />
+              <Route path="/admin/categories" element={<PlaceholderPage title="Quản lý Danh mục" member="AnhND (Member 4)" />} />
+              <Route path="/admin/skills" element={<PlaceholderPage title="Quản lý Kỹ năng" member="AnhND (Member 4)" />} />
+            </Route>
+          </Route>
         </Route>
 
         {/* 404 */}

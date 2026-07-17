@@ -40,7 +40,8 @@ Content-Type: application/json
 
 ```json
 {
-  "email": "user@example.com"
+  "success": true,
+    "message": "Mật khẩu đã được đặt lại thành công. Bạn có thể đăng nhập ngay."
 }
 ```
 
@@ -91,7 +92,8 @@ Content-Type: application/json
 ```json
 {
   "success": false,
-  "error": "Email không hợp lệ"
+  "message": "email: Email không hợp lệ",
+  "code": "VALIDATION_ERROR"
 }
 ```
 
@@ -118,7 +120,8 @@ Content-Type: application/json
 ```json
 {
   "success": false,
-  "error": "Hệ thống đang bảo trì. Vui lòng thử lại sau"
+  "message": "Có lỗi xảy ra trong quá trình xử lý.",
+  "code": "INTERNAL_SERVER_ERROR"
 }
 ```
 
@@ -138,7 +141,6 @@ Content-Type: application/json
    - Send email async (try-catch, silent failure)
 3. **If user NOT exists**:
    - Generate fake OTP (discard, không lưu DB)
-   - Simulate DB write delay via noop query
    - Skip email sending
 4. **Return identical success response** cho cả 2 cases
 
@@ -183,7 +185,8 @@ Content-Type: application/json
 
 ```json
 {
-  "email": "user@example.com",
+  "success": true,
+    "message": "Mật khẩu đã được đặt lại thành công. Bạn có thể đăng nhập ngay.",
   "otp": "123456"
 }
 ```
@@ -209,15 +212,15 @@ Content-Type: application/json
 ```json
 {
   "success": true,
-  "message": "Mã OTP hợp lệ. Vui lòng nhập mật khẩu mới.",
+  "message": "Mã OTP xác thực thành công.",
   "data": {
-    "email": "user@example.com",
-    "verified": true
+    "verified": true,
+    "message": "Mã OTP xác thực thành công."
   }
 }
 ```
 
-**Note**: Frontend cần lưu `verified: true` state để cho phép user tiếp tục sang bước 3 (reset password).
+**Note**: `verified: true` để frontend kiểm tra và chuyển sang Step 3. Không chứa `email` trong response data (email đã có sẵn từ Step 1 frontend state).
 
 ---
 
@@ -228,7 +231,8 @@ Content-Type: application/json
 ```json
 {
   "success": false,
-  "error": "Mã OTP không đúng. Bạn còn 3 lần thử."
+  "message": "Mã OTP không đúng. Bạn còn 3 lần thử.",
+  "code": "INVALID_OTP"
 }
 ```
 
@@ -237,7 +241,8 @@ Content-Type: application/json
 ```json
 {
   "success": false,
-  "error": "Mã OTP đã hết hạn. Vui lòng yêu cầu mã mới."
+  "message": "Mã OTP đã hết hạn. Vui lòng yêu cầu mã mới.",
+  "code": "OTP_EXPIRED"
 }
 ```
 
@@ -246,7 +251,8 @@ Content-Type: application/json
 ```json
 {
   "success": false,
-  "error": "Không tìm thấy mã OTP hợp lệ. Vui lòng yêu cầu mã mới."
+  "message": "Không tìm thấy mã OTP hợp lệ. Vui lòng yêu cầu mã mới.",
+  "code": "VERIFICATION_NOT_FOUND"
 }
 ```
 
@@ -255,7 +261,11 @@ Content-Type: application/json
 ```json
 {
   "success": false,
-  "error": "Bạn đã nhập sai quá 5 lần. Tài khoản bị khóa 14 phút 25 giây."
+  "message": "Bạn đã nhập sai quá 5 lần. Tài khoản bị khóa 14 phút 25 giây.",
+  "code": "EMAIL_LOCKED",
+  "details": {
+    "lock_remaining_seconds": 865
+  }
 }
 ```
 
@@ -264,7 +274,8 @@ Content-Type: application/json
 ```json
 {
   "success": false,
-  "error": "Hệ thống đang bảo trì. Vui lòng thử lại sau"
+  "message": "Có lỗi xảy ra trong quá trình xử lý.",
+  "code": "INTERNAL_SERVER_ERROR"
 }
 ```
 
@@ -274,9 +285,9 @@ Content-Type: application/json
 
 1. **Check Lockout**: Query `email_verifications` by `(email, type='RESET_PASSWORD')`, check `locked_until > NOW()` → Return 429
 2. **Find OTP Record**: `SELECT * FROM email_verifications WHERE email = ? AND type = 'RESET_PASSWORD'` (UNIQUE constraint đảm bảo tối đa 1 record)
-3. **Check Expiry**: `created_at + 10 min < NOW()` → Return 400 "OTP đã hết hạn"
+3. **Check Expiry**: `last_sent_at + 10 min < NOW()` → Return 400 "OTP đã hết hạn"
 4. **Verify OTP**:
-   - If match (`bcrypt.compare`): Return 200 success, **KHÔNG** xóa record (giữ lại để verify lần nữa ở bước 3)
+   - If match (`bcrypt.compare`): Return 200 success, **KHÔNG** xóa record (giữ lại để re-verify ở bước 3)
    - If mismatch: Increment attempts → Return 400 with remaining attempts
 5. **Trigger Lockout**: If `attempts >= 5` after increment → `UPDATE email_verifications SET is_locked=true, locked_until = NOW() + INTERVAL 15 MINUTE`
 
@@ -319,7 +330,8 @@ Content-Type: application/json
 
 ```json
 {
-  "email": "user@example.com",
+  "success": true,
+    "message": "Mật khẩu đã được đặt lại thành công. Bạn có thể đăng nhập ngay.",
   "otp": "123456",
   "newPassword": "NewSecure@123"
 }
@@ -352,14 +364,15 @@ Content-Type: application/json
 ```json
 {
   "success": true,
-  "message": "Mật khẩu đã được đặt lại thành công. Vui lòng đăng nhập bằng mật khẩu mới.",
+  "message": "Mật khẩu đã được đặt lại thành công. Bạn có thể đăng nhập ngay.",
   "data": {
-    "email": "user@example.com"
+    "success": true,
+    "message": "Mật khẩu đã được đặt lại thành công. Bạn có thể đăng nhập ngay."
   }
 }
 ```
 
-**Note**: Frontend redirect user về `/login` sau khi nhận response này. KHÔNG tự động đăng nhập (Out of Scope).
+**Note**: Frontend redirect user về `/login` sau khi nhận response này với `state: { passwordReset: true }`. KHÔNG tự động đăng nhập (Out of Scope).
 
 ---
 
@@ -370,7 +383,8 @@ Content-Type: application/json
 ```json
 {
   "success": false,
-  "error": "Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt"
+  "message": "newPassword: Mật khẩu phải có ít nhất 8 ký tự",
+  "code": "VALIDATION_ERROR"
 }
 ```
 
@@ -379,7 +393,8 @@ Content-Type: application/json
 ```json
 {
   "success": false,
-  "error": "Mã OTP không đúng hoặc đã hết hạn"
+  "message": "Mã OTP không đúng hoặc đã hết hạn",
+  "code": "INVALID_OTP"
 }
 ```
 
@@ -388,7 +403,8 @@ Content-Type: application/json
 ```json
 {
   "success": false,
-  "error": "Không tìm thấy tài khoản với email này"
+  "message": "Không tìm thấy tài khoản với email này.",
+  "code": "USER_NOT_FOUND"
 }
 ```
 
@@ -397,7 +413,8 @@ Content-Type: application/json
 ```json
 {
   "success": false,
-  "error": "Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên"
+  "message": "Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên.",
+  "code": "ACCOUNT_DISABLED"
 }
 ```
 
@@ -406,7 +423,8 @@ Content-Type: application/json
 ```json
 {
   "success": false,
-  "error": "Hệ thống đang bảo trì. Vui lòng thử lại sau"
+  "message": "Có lỗi xảy ra trong quá trình xử lý.",
+  "code": "INTERNAL_SERVER_ERROR"
 }
 ```
 
@@ -417,26 +435,14 @@ Content-Type: application/json
 1. **Verify OTP Again**: Gọi lại logic verify từ API 2 (check expiry, lockout, attempts)
 2. **Find User**: Query `users` table by email, check `is_active = true`
 3. **Hash New Password**: `bcrypt.hash(newPassword, BCRYPT_SALT_ROUNDS)` (12 rounds theo AGENTS.md)
-4. **Transaction**:
+4. **Sequential update + delete**:
 
    ```javascript
-   await prisma.$transaction(async (tx) => {
-     // Update user password
-     await tx.user.update({
-       where: { email },
-       data: { 
-         password_hash: hashedPassword,
-         updated_at: new Date()
-       }
-     });
-     
-     // Hard DELETE OTP record (FR-012: xóa hoàn toàn sau reset thành công)
-     await tx.emailVerification.delete({
-       where: {
-         email_type: { email, type: 'RESET_PASSWORD' }
-       }
-     });
-   });
+   // Step 1: Update user password via authRepository.updatePassword()
+   await authRepository.updatePassword(normalizedEmail, passwordHash);
+
+   // Step 2: Delete OTP record via authRepository.deleteVerification()
+   await authRepository.deleteVerification(normalizedEmail, 'RESET_PASSWORD');
    ```
 
 5. **Return Success**: Frontend redirect to `/login`
@@ -445,17 +451,17 @@ Content-Type: application/json
 
 ### Performance Requirements
 
-- **Response Time**: < 1 second (bcrypt hashing + DB transaction)
+- **Response Time**: < 1 second (bcrypt hashing + sequential DB operations)
 - **Throughput**: Support 50 concurrent requests
 
 ---
 
 ### Security Considerations
 
-- **Password Hashing**: bcrypt với 12 rounds (ADR-002 trong CLAUDE.md)
-- **OTP Reuse Prevention**: Soft delete OTP sau khi dùng xong
+- **Password Hashing**: bcrypt với 12 rounds
+- **OTP Reuse Prevention**: Hard DELETE OTP record sau khi reset thành công
 - **No Password History Check**: KHÔNG validate mật khẩu mới trùng mật khẩu cũ (Out of Scope theo spec.md)
-- **Atomic Transaction**: Đảm bảo password update và OTP invalidation happen together (không có case password đổi nhưng OTP còn dùng được)
+
 
 ---
 
@@ -478,16 +484,18 @@ Tất cả API tuân thủ ADR-006 trong CLAUDE.md:
 ```json
 {
   "success": false,
-  "error": "Human-readable error message"
+  "message": "Human-readable error message",
+  "code": "MACHINE_READABLE_CODE",
+  "details": { /* Optional extra info (e.g., remaining_seconds, locked_until) */ }
 }
 ```
 
 **Lưu ý**:
 
-- `message` cho success cases
-- `error` cho error cases
-- KHÔNG dùng `message` trong error response
-- HTTP status code phải match semantic (200 OK, 400 Bad Request, 429 Too Many Requests, 500 Internal Server Error)
+- `message` dùng cho cả success và error cases
+- `code` là machine-readable (ví dụ: `COOLDOWN_ACTIVE`, `EMAIL_LOCKED`, `INVALID_OTP`, `VALIDATION_ERROR`)
+- `details` là optional extra info (ví dụ: `{ remaining_seconds: 45 }`, `{ lock_remaining_seconds: 900 }`)
+- HTTP status code must match semantic (200 OK, 400 Bad Request, 403 Forbidden, 404 Not Found, 429 Too Many Requests, 500 Internal Server Error)
 
 ---
 

@@ -11,6 +11,11 @@
 
 API endpoint cho phép người dùng đăng nhập vào hệ thống VMS bằng Email và Password. Trả về JWT token trong HttpOnly Cookie và thông tin user trong response body.
 
+> **Note on Response Format**: The actual `response.util.js` returns plain objects (not Express responses directly):
+>
+> - `successResponse(res, data, message)` returns `{ success: true, message, data }` (message defaults to "Thành công")
+> - `errorResponse(res, message, errorCode, details)` returns `{ success: false, message, code, details }`
+>
 ---
 
 ## Request
@@ -68,7 +73,7 @@ POST /api/v1/auth/login
 **Headers**:
 
 ```
-Set-Cookie: vms_access_token=<JWT_TOKEN>; HttpOnly; Secure; SameSite=Lax; Max-Age=604800; Path=/
+Set-Cookie: token=<JWT_TOKEN>; HttpOnly; Secure; SameSite=Lax; Max-Age=604800; Path=/
 ```
 
 **Body Schema**:
@@ -76,13 +81,17 @@ Set-Cookie: vms_access_token=<JWT_TOKEN>; HttpOnly; Secure; SameSite=Lax; Max-Ag
 ```json
 {
   "success": true,
+  "message": "Đăng nhập thành công",
   "data": {
     "user": {
       "id": "number",
       "email": "string",
       "full_name": "string",
       "role_id": "number",
-      "avatar_url": "string | null"
+      "role_name": "string",
+      "phone": "string | null",
+      "avatar_url": "string | null",
+      "created_at": "string (ISO 8601)"
     }
   }
 }
@@ -109,8 +118,8 @@ Set-Cookie: vms_access_token=<JWT_TOKEN>; HttpOnly; Secure; SameSite=Lax; Max-Ag
 
 | Attribute | Value | Purpose |
 |-----------|-------|---------|
-| `name` | `vms_access_token` | Cookie name |
-| `value` | JWT token string | Encoded: `{user_id, email, role_id, jti}` |
+| `name` | `token` | Cookie name |
+| `value` | JWT token string | Encoded: `{user_id, email, role_id, role_name, jti}` |
 | `HttpOnly` | `true` | Prevent JavaScript access (anti-XSS) |
 | `Secure` | `true` (prod), `false` (dev) | HTTPS only in production |
 | `SameSite` | `Lax` | CSRF protection, allow top-level navigation |
@@ -137,13 +146,8 @@ Set-Cookie: vms_access_token=<JWT_TOKEN>; HttpOnly; Secure; SameSite=Lax; Max-Ag
 ```json
 {
   "success": false,
-  "error": "Validation failed",
-  "details": [
-    {
-      "field": "email",
-      "message": "Email không hợp lệ"
-    }
-  ]
+  "message": "email: Email không hợp lệ; password: Mật khẩu là bắt buộc",
+  "code": "VALIDATION_ERROR"
 }
 ```
 
@@ -165,7 +169,8 @@ Set-Cookie: vms_access_token=<JWT_TOKEN>; HttpOnly; Secure; SameSite=Lax; Max-Ag
 ```json
 {
   "success": false,
-  "error": "Email hoặc mật khẩu không đúng"
+  "message": "Email hoặc mật khẩu chưa chính xác",
+  "code": "UNAUTHORIZED"
 }
 ```
 
@@ -185,18 +190,33 @@ Set-Cookie: vms_access_token=<JWT_TOKEN>; HttpOnly; Secure; SameSite=Lax; Max-Ag
 
 #### 403 Forbidden — Account Disabled
 
-**Scenario**: User account có `is_active = false` (soft deleted)
+**Scenario 1**: User account có `isActive = false` (soft deleted)
 
 **Body**:
 
 ```json
 {
   "success": false,
-  "error": "Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên."
+  "message": "Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên.",
+  "code": "ACCOUNT_DISABLED"
 }
 ```
 
 **Trigger**: Admin đã vô hiệu hóa tài khoản qua User Management (UC29)
+
+**Scenario 2**: User account có `emailVerified = false` (chưa xác thực email)
+
+**Body**:
+
+```json
+{
+  "success": false,
+  "message": "Email chưa được xác thực. Vui lòng kiểm tra email để xác nhận tài khoản.",
+  "code": "EMAIL_NOT_VERIFIED"
+}
+```
+
+**Trigger**: Đăng nhập khi email chưa được xác thực qua UC62/UC64
 
 ---
 
@@ -209,19 +229,22 @@ Set-Cookie: vms_access_token=<JWT_TOKEN>; HttpOnly; Secure; SameSite=Lax; Max-Ag
 ```json
 {
   "success": false,
-  "error": "Tài khoản tạm thời bị khóa do nhập sai mật khẩu quá nhiều lần. Vui lòng thử lại sau 15 phút.",
-  "locked_until": "2026-06-29T10:30:00.000Z"
+  "message": "Tài khoản tạm thời bị khóa do nhập sai mật khẩu quá nhiều lần. Vui lòng thử lại sau 15 phút.",
+  "code": "ACCOUNT_LOCKED",
+  "details": {
+    "locked_until": "2026-06-29T10:30:00.000Z"
+  }
 }
 ```
 
 **Side Effect**:
 
-- `login_attempts.locked_until` set to NOW() + 15 minutes
+- `loginAttempt.lockedUntil` set to NOW() + 15 minutes
 - User KHÔNG thể login (kể cả password đúng) cho đến khi hết thời gian khóa
 
 **Auto-Unlock**:
 
-- Sau 15 phút, `locked_until < NOW()` → Account tự động unlock
+- Sau 15 phút, `lockedUntil < NOW()` → Account tự động unlock
 - User có thể thử login lại
 
 ---
@@ -235,7 +258,8 @@ Set-Cookie: vms_access_token=<JWT_TOKEN>; HttpOnly; Secure; SameSite=Lax; Max-Ag
 ```json
 {
   "success": false,
-  "error": "Internal server error. Please try again later."
+  "message": "Internal server error. Please try again later.",
+  "code": "INTERNAL_SERVER_ERROR"
 }
 ```
 
@@ -255,7 +279,8 @@ Set-Cookie: vms_access_token=<JWT_TOKEN>; HttpOnly; Secure; SameSite=Lax; Max-Ag
   "user_id": 123,
   "email": "volunteer@vms.com",
   "role_id": 1,
-  "jti": "550e8400-e29b-41d4-a716-446655440000",
+  "role_name": "VOLUNTEER",
+  "jti": "123-1719648000000-abc123def",
   "iat": 1719648000,
   "exp": 1720252800
 }
@@ -268,14 +293,15 @@ Set-Cookie: vms_access_token=<JWT_TOKEN>; HttpOnly; Secure; SameSite=Lax; Max-Ag
 | `user_id` | number | User ID from `users.id` |
 | `email` | string | User email (lowercase) |
 | `role_id` | number | User role ID (1=VOLUNTEER, 2=STAFF, 3=MANAGER, 4=ADMIN) |
-| `jti` | string (UUID v4) | JWT ID for session tracking |
+| `role_name` | string | Role name string (VOLUNTEER, STAFF, MANAGER, ADMIN) |
+| `jti` | string (composite: `{userId}-{timestamp}-{random}`) | JWT ID for session tracking |
 | `iat` | number (Unix timestamp) | Issued At timestamp |
 | `exp` | number (Unix timestamp) | Expiry timestamp (iat + 7 days) |
 
 **Signing**:
 
 - Algorithm: HS256 (HMAC SHA-256)
-- Secret: `AUTH_SECRET` from .env (min 256 bits)
+- Secret: `SECRET_KEY` from .env (min 256 bits)
 
 ---
 
@@ -312,9 +338,9 @@ Set-Cookie: vms_access_token=<JWT_TOKEN>; HttpOnly; Secure; SameSite=Lax; Max-Ag
    → IF match: Continue
 
 7. [Service] Generate JWT
-   jti = uuid.v4()
-   payload = { user_id, email, role_id, jti }
-   token = jwt.sign(payload, AUTH_SECRET, { expiresIn: '7d' })
+   jti = `${user.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+   payload = { user_id, email, role_id, role_name, jti }
+   token = jwt.sign(payload, SECRET_KEY, { expiresIn: '7d' })
 
 8. [Service] Upsert session (Single Active Session)
    Query: UPSERT user_sessions SET jti = ?, expires_at = ? WHERE user_id = ?
@@ -324,10 +350,10 @@ Set-Cookie: vms_access_token=<JWT_TOKEN>; HttpOnly; Secure; SameSite=Lax; Max-Ag
    Query: DELETE FROM login_attempts WHERE email = ?
 
 10. [Controller] Set HttpOnly Cookie
-    res.cookie('vms_access_token', token, { httpOnly, secure, sameSite, maxAge })
+    res.cookie('token', token, { httpOnly, secure, sameSite, maxAge })
 
 11. [Controller] Return success response
-    res.json({ success: true, data: { user: {...} } })
+    res.json({ success: true, message: 'Đăng nhập thành công', data: { user: {...} } })
 ```
 
 ### Error Path: Account Locked
@@ -339,7 +365,7 @@ Set-Cookie: vms_access_token=<JWT_TOKEN>; HttpOnly; Secure; SameSite=Lax; Max-Ag
    locked_until = 2026-06-29T10:30:00Z
    NOW() = 2026-06-29T10:20:00Z
    → locked_until > NOW() = true
-   → Throw Error(429, "Account locked...")
+   → Throw Error(429, "Account locked...", "ACCOUNT_LOCKED")
 
 6. [Controller] Catch error
    → Return 429 response with locked_until timestamp
@@ -364,7 +390,7 @@ Set-Cookie: vms_access_token=<JWT_TOKEN>; HttpOnly; Secure; SameSite=Lax; Max-Ag
    → attempts = 3 (example, < 5)
    → NO lockout yet
 
-9. [Service] Throw Error(401, "Email hoặc mật khẩu không đúng")
+9. [Service] Throw Error(401, "Email hoặc mật khẩu chưa chính xác")
 
 10. [Controller] Return 401 response
 ```
@@ -378,7 +404,7 @@ Set-Cookie: vms_access_token=<JWT_TOKEN>; HttpOnly; Secure; SameSite=Lax; Max-Ag
    → attempts = 5
    → SET locked_until = NOW() + INTERVAL 15 MINUTE
 
-10. [Service] Throw Error(429, "Account locked...")
+10. [Service] Throw Error(429, "Account locked...", "ACCOUNT_LOCKED")
 
 11. [Controller] Return 429 response
 ```
@@ -513,7 +539,7 @@ const LoginPage = () => {
 
 - [ ] Login với credentials hợp lệ → Return 200 + JWT cookie + user data
 - [ ] JWT cookie có đúng attributes (httpOnly, secure, sameSite, maxAge)
-- [ ] Response body có đầy đủ user fields (id, email, full_name, role_id, avatar_url)
+- [ ] Response body có đầy đủ user fields (id, email, full_name, role_id, role_name, phone, avatar_url, created_at)
 - [ ] Response body KHÔNG chứa password_hash, jti, is_active
 - [ ] Session được tạo trong `user_sessions` table với jti mới
 - [ ] Login lần 2 cùng account → jti cũ bị ghi đè (Single Active Session)
@@ -527,14 +553,14 @@ const LoginPage = () => {
 
 ### Auth Error Tests
 
-- [ ] Email không tồn tại → Return 401 "Email hoặc mật khẩu không đúng"
-- [ ] Password sai → Return 401 "Email hoặc mật khẩu không đúng"
+- [ ] Email không tồn tại → Return 401 "Email hoặc mật khẩu chưa chính xác"
+- [ ] Password sai → Return 401 "Email hoặc mật khẩu chưa chính xác"
 - [ ] Email không tồn tại và password sai → Cùng message 401 (không tiết lộ email existence)
 
 ### Account Status Tests
 
-- [ ] User có `is_active = false` → Return 403 "Tài khoản đã bị vô hiệu hóa"
-- [ ] User có `email_verified = false` → (Out of scope UC03, may pass for now)
+- [ ] User có `isActive = false` → Return 403 "Tài khoản đã bị vô hiệu hóa"
+- [ ] User có `emailVerified = false` → Return 403 "Email chưa được xác thực"
 
 ### Lockout Tests
 
@@ -547,7 +573,7 @@ const LoginPage = () => {
 ### Security Tests
 
 - [ ] JWT payload chứa đúng fields: user_id, email, role_id, jti, iat, exp
-- [ ] JWT signature valid với AUTH_SECRET
+- [ ] JWT signature valid với SECRET_KEY
 - [ ] JWT expires_at = iat + 7 days
 - [ ] Cookie httpOnly = true (cannot access via document.cookie)
 - [ ] Cookie secure = true in production
@@ -597,7 +623,7 @@ const LoginPage = () => {
           Set-Cookie:
             schema:
               type: string
-              example: "vms_access_token=<JWT>; HttpOnly; Secure; SameSite=Lax; Max-Age=604800; Path=/"
+              example: "token=<JWT>; HttpOnly; Secure; SameSite=Lax; Max-Age=604800; Path=/"
         content:
           application/json:
             schema:
@@ -606,6 +632,9 @@ const LoginPage = () => {
                 success:
                   type: boolean
                   example: true
+                message:
+                  type: string
+                  example: "Đăng nhập thành công"
                 data:
                   type: object
                   properties:

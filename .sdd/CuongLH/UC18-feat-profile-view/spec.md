@@ -104,7 +104,7 @@ Người dùng mới đăng ký chưa kịp thêm kỹ năng vào hồ sơ. Hệ
 
 - **FR-004**: WHEN JWT token hợp lệ, THE system SHALL truy xuất thông tin cá nhân của người dùng từ cơ sở dữ liệu dựa trên `user_id` đã xác thực.
 
-- **FR-005**: THE system SHALL trả về CHÍNH XÁC các trường thông tin cá nhân sau: `full_name`, `email`, `phone_number`, `avatar_url`.
+- **FR-005**: THE system SHALL trả về CHÍNH XÁC các trường thông tin cá nhân sau: `full_name`, `email`, `phone_number`, `avatar_url`, `role_name`, `created_at`.
 
 - **FR-006**: THE system SHALL kết nối dữ liệu từ bảng quan hệ và trả về mảng danh sách kỹ năng của người dùng, mỗi phần tử trong mảng chỉ bao gồm `skill_id` và `skill_name`.
 
@@ -112,7 +112,7 @@ Người dùng mới đăng ký chưa kịp thêm kỹ năng vào hồ sơ. Hệ
 
 **Data Privacy & Sanitization (Bảo mật & Làm sạch dữ liệu)**
 
-- **FR-008**: THE system SHALL loại bỏ TẤT CẢ các trường bảo mật nội bộ và quản trị khỏi response, bao gồm nhưng không giới hạn: `password`, `refresh_token`, `user_id`, `role_id`, `is_active`, `created_at`, `updated_at`, `deleted_at`.
+- **FR-008**: THE system SHALL loại bỏ TẤT CẢ các trường bảo mật nội bộ và quản trị khỏi response, bao gồm nhưng không giới hạn: `password`, `refresh_token`, `user_id`, `role_id` (FK nội bộ, thay bằng `role_name` từ Prisma relation), `is_active`, `updated_at`, `deleted_at`. Riêng `created_at` (ngày tham gia) và `role_name` (tên vai trò để hiển thị) được phép trả về.
 
 - **FR-009**: THE system SHALL ONLY trả về các trường dữ liệu đã được liệt kê rõ ràng trong FR-005 và FR-006, không trả về bất kỳ trường dữ liệu nào khác.
 

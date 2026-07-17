@@ -6,8 +6,6 @@
 
 **Status**: APPROVED
 
-**Input**: User description: "Hãy viết Đặc tả yêu cầu (Feature Specification) cho tính năng Thay đổi mật khẩu (UC06 - Change Password) dựa trên CONTEXT.md."
-
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Thay đổi mật khẩu thành công (Priority: P1)
@@ -90,15 +88,13 @@ Người dùng chưa đăng nhập hoặc JWT token đã hết hạn cố gắng
 
 ### Edge Cases
 
-- **Người dùng nhập mật khẩu mới giống hệt mật khẩu cũ**: Hệ thống có từ chối hay chấp nhận? *(Khuyến nghị: Chấp nhận - đây là lựa chọn hợp lệ của người dùng, không phải lỗi bảo mật)*
+- **Người dùng nhập mật khẩu mới giống hệt mật khẩu cũ**: Hệ thống có từ chối hay chấp nhận? *(Chấp nhận - đây là lựa chọn hợp lệ của người dùng, không phải lỗi bảo mật)*
 
 - **Người dùng thay đổi mật khẩu đồng thời từ hai thiết bị khác nhau**: Race condition có thể xảy ra không? *(Cơ chế database transaction đảm bảo chỉ một request được xử lý thành công)*
 
 - **Mật khẩu chứa ký tự Unicode hoặc Emoji**: Hệ thống xử lý như thế nào? *(Cho phép - validation chỉ kiểm tra độ dài và các ký tự trong bộ quy tắc policy)*
 
 - **Request payload thiếu một trong ba trường bắt buộc**: Hệ thống trả về lỗi validation rõ ràng chỉ ra trường nào bị thiếu.
-
-- **Tài khoản đăng nhập qua Social Login (Google OAuth) cố gắng đổi mật khẩu**: WHERE tài khoản không có mật khẩu local (social login account), THE system SHALL từ chối request với thông báo "Tài khoản đăng nhập qua mạng xã hội không thể thay đổi mật khẩu bằng chức năng này".
 
 ---
 
@@ -179,7 +175,7 @@ Người dùng chưa đăng nhập hoặc JWT token đã hết hạn cố gắng
 
 **Reliability & Data Integrity (Độ tin cậy & Toàn vẹn dữ liệu)**
 
-- **NFR-007**: WHEN xảy ra lỗi trong quá trình cập nhật mật khẩu, THE system SHALL sử dụng database transaction để đảm bảo rollback hoàn toàn, không để lại trạng thái dữ liệu không nhất quán.
+- **NFR-007**: WHEN xảy ra lỗi trong quá trình cập nhật mật khẩu, THE system SHALL sử dụng **database transaction** để đảm bảo rollback hoàn toàn, không để lại trạng thái dữ liệu không nhất quán.
 
 - **NFR-008**: THE system SHALL đảm bảo tính atomic của thao tác cập nhật mật khẩu - hoặc thành công hoàn toàn hoặc thất bại hoàn toàn, không có trạng thái trung gian.
 

@@ -60,7 +60,8 @@ export const validateQuery = (schema) => (req, res, next) => {
     });
   }
 
-  // Ghi đè req.query = dữ liệu đã parse (loại bỏ field lạ + type coercion)
-  req.query = result.data;
+  // Express 5.x does not allow reassigning req.query (getter-only).
+  // Store validated + coerced query params on req.validatedQuery instead.
+  req.validatedQuery = result.data;
   next();
 };
