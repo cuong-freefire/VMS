@@ -1,0 +1,50 @@
+/**
+ * Event Controller - HTTP layer for Event Management module
+ * Owner: Member 5 - DucNM (UC67)
+ *
+ * Responsibilities:
+ * - Handle HTTP request/response for event management endpoints
+ * - Extract user info and pass to Service layer
+ * - Return standardized API response
+ *
+ * Rules:
+ * - Role-based visibility handled by Service layer
+ * - Always use response.util.js for response format
+ */
+
+import eventService from '../services/event.service.js';
+import { successResponse, errorResponse } from '../utils/response.util.js';
+
+/**
+ * GET /api/v1/events
+ * Lấy danh sách sự kiện với role-based visibility và status filter.
+ * UC67: Manager/Admin có thể lọc theo status=pending_approval.
+ * - Guest/Volunteer/Staff (không status) → chỉ PUBLISHED
+ * - Manager/Admin (không status) → tất cả events
+ * - Manager/Admin (status=pending_approval) → chỉ PENDING_APPROVAL
+ */
+async function getEventsHandler(req, res, next) {
+    try {
+        const query = req.validatedQuery || req.query;
+        const result = await eventService.getEvents(query, req.user);
+
+        const message = result.events.length > 0
+            ? 'Lấy danh sách sự kiện thành công'
+            : 'Không có sự kiện nào';
+
+        return res.status(200).json(
+            successResponse(result, message)
+        );
+    } catch (error) {
+        if (error.status && error.code) {
+            return res.status(error.status).json(
+                errorResponse(error.message, error.code, error.details)
+            );
+        }
+        next(error);
+    }
+}
+
+export {
+    getEventsHandler
+};
