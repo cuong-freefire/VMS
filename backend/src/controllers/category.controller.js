@@ -1,6 +1,6 @@
 /**
  * Category Controller - HTTP layer for Category Management module
- * Owner: Member 4 - DucNM (UC31)
+ * Owner: Member 4 - DucNM (UC31, UC-feat-search-category)
  *
  * Responsibilities:
  * - Handle HTTP request/response for category management endpoints
@@ -18,13 +18,14 @@ import { successResponse, errorResponse } from '../utils/response.util.js';
 /**
  * GET /api/v1/categories
  * Lấy danh sách danh mục với role-based visibility.
+ * Hỗ trợ search và type filter (UC-feat-search-category).
  * - Guest (không token) → chỉ active
  * - Volunteer/Staff → chỉ active
  * - Manager/Admin → tất cả (active + inactive)
  */
 async function getCategoriesHandler(req, res, next) {
     try {
-        const result = await categoryService.getCategories(req.user);
+        const result = await categoryService.getCategories(req.user, req.query);
 
         const message = result.categories.length > 0
             ? 'Lấy danh sách danh mục thành công'

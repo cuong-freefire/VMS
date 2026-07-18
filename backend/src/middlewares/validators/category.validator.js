@@ -3,8 +3,10 @@
  *
  * Validation cho Category Management API.
  * - createCategorySchema: POST /api/v1/categories
+ * - updateCategorySchema: PATCH /api/v1/categories/:id
+ * - getCategoriesQuerySchema: GET /api/v1/categories (Search Category)
  *
- * Owner: Member 4 - DucNM (UC32)
+ * Owner: Member 4 - DucNM (UC32, UC33, UC-feat-search-category)
  */
 
 import { z } from 'zod';
@@ -33,4 +35,35 @@ export const updateCategorySchema = z.object({
     is_active: z.boolean().optional()
 }).strict().refine(data => Object.keys(data).length > 0, {
     message: 'No fields to update.'
+});
+
+/**
+ * Schema validation cho GET /api/v1/categories query params.
+ * UC-feat-search-category: thêm search param để tìm kiếm danh mục.
+ */
+export const getCategoriesQuerySchema = z.object({
+    search: z
+        .string()
+        .trim()
+        .optional()
+        .refine(
+            (val) => {
+                if (!val) return true;
+                // Cho phép chữ, số, khoảng trắng, -
+                return /^[\w\s\-À-ÿà-ỹ]+$/.test(val);
+            },
+            { message: 'Từ khóa tìm kiếm không hợp lệ' }
+        ),
+    type: z
+        .string()
+        .trim()
+        .optional()
+        .refine(
+            (val) => {
+                if (!val) return true;
+                const allowedTypes = ['location', 'event_type', 'time_frame'];
+                return allowedTypes.includes(val.trim().toLowerCase());
+            },
+            { message: 'Type không hợp lệ. Chấp nhận: location, event_type, time_frame' }
+        )
 });
