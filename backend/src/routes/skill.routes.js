@@ -3,7 +3,9 @@
  *
  * Các endpoint liên quan đến kỹ năng (Skill Management):
  * - GET /: Lấy danh sách kỹ năng (UC34 - View Skill List)
- *
+ * - POST /: Tạo kỹ năng (UC35 - Add Skill)
+ * - PATCH /:id: Cập nhật kỹ năng (UC36 - Edit Skill)
+ * 
  * Prefix: /api/v1/skills (mount tại app.js)
  *
  * Owner: Member 4 - DucNM
@@ -14,9 +16,9 @@ import { Router } from "express";
 import authMiddleware from "../middlewares/auth.middleware.js";
 import authorize from "../middlewares/authorize.middleware.js";
 import optionalAuth from "../middlewares/optionalAuth.middleware.js";
-import { validate } from "../middlewares/validators/validate.js";
+import { validate, validateQuery } from "../middlewares/validators/validate.js";
 import { getSkillsHandler, createSkillHandler, updateSkillHandler } from "../controllers/skill.controller.js";
-import { createSkillSchema, updateSkillSchema } from "../validators/skill.validator.js";
+import { createSkillSchema, updateSkillSchema, getSkillsQuerySchema } from "../middlewares/validators/skill.validator.js";
 
 const router = Router();
 
@@ -27,6 +29,7 @@ const router = Router();
  *   - Guest (không token) → chỉ active skills
  *   - Volunteer/Staff → chỉ active skills
  *   - Manager/Admin → tất cả skills (active + inactive)
+ * Hỗ trợ tìm kiếm theo tên/mô tả (search) (UC-feat-search-skill).
  */
 /**
  * @swagger
@@ -38,10 +41,16 @@ const router = Router();
  *       - Nếu không có token (Guest): trả về skills active (public)
  *       - Nếu có token Volunteer/Staff: trả về skills active
  *       - Nếu có token Manager/Admin: trả về tất cả skills (active + inactive)
- *       Endpoint này phục vụ lấy danh sách kỹ năng trong hệ thống
+ *       Hỗ trợ tìm kiếm theo tên hoặc mô tả (search).
  *     tags: [Skill Management]
  *     security:
  *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Tìm kiếm theo tên hoặc mô tả (case-insensitive, partial match)
  *     responses:
  *       200:
  *         description: Thành công, trả về danh sách skills
@@ -56,12 +65,15 @@ const router = Router();
  *                     name: "Giao tiếp"
  *                     description: "Kỹ năng giao tiếp hiệu quả"
  *                     is_active: true
+ *       400:
+ *         description: Lỗi validation (search)
  *       500:
  *         description: Lỗi server
  */
 router.get(
     "/",
     optionalAuth,
+    validateQuery(getSkillsQuerySchema),
     getSkillsHandler
 );
 
@@ -189,6 +201,7 @@ router.post(
  *               data:
  *                 skill_id: 1
  *                 name: "Giao tiếp (Updated)"
+ *                 description: "Kỹ năng giao tiếp cập nhật"
  *                 is_active: true
  *       400:
  *         description: Dữ liệu không hợp lệ hoặc body rỗng

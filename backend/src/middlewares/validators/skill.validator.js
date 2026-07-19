@@ -2,13 +2,19 @@
  * Skill Validator - Zod Schemas
  *
  * Validation cho Skill Management API.
+ * - skillIdSchema
+ * - getSkillsQuerySchema: GET /api/v1/skills (Search Skill)
+ * - createSkillSchema: POST /api/v1/skills
+ * - updateSkillSchema: PATCH /api/v1/skills/:id
  *
- * Owner: Member 4 - DucNM (UC34, UC35)
+ * Owner: Member 4 - DucNM (UC34, UC35, UC36, UC-feat-search-skill)
  */
 
 import { z } from 'zod';
 
-// Validator (dự phòng cho các UC sau)
+/**
+ * Schema validation cho skillId route param.
+ */
 export const skillIdSchema = z.object({
     id: z.coerce
         .number()
@@ -36,4 +42,23 @@ export const updateSkillSchema = z.object({
     is_active: z.boolean().optional()
 }).strict().refine(data => Object.keys(data).length > 0, {
     message: 'No fields to update.'
+});
+
+/**
+ * Schema validation cho GET /api/v1/skills query params.
+ * UC-feat-search-skill: thêm search param để tìm kiếm kỹ năng.
+ */
+export const getSkillsQuerySchema = z.object({
+    search: z
+        .string()
+        .trim()
+        .optional()
+        .refine(
+            (val) => {
+                if (!val) return true;
+                // Cho phép chữ, số, khoảng trắng, -
+                return /^[\w\s\-À-ÿà-ỹ]+$/.test(val);
+            },
+            { message: 'Từ khóa tìm kiếm không hợp lệ' }
+        )
 });

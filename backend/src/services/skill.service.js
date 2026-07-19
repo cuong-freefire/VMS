@@ -1,11 +1,13 @@
 /**
  * Skill Service - Business logic for Skill Management module
- * Owner: Member 4 - DucNM (UC34, UC35, UC36)
+ * Owner: Member 4 - DucNM (UC34, UC35, UC36, UC-feat-search-skill)
  *
  * Responsibilities:
  * - Get list of skills with role-based visibility
+ * - Search skills by name and description (UC-feat-search-skill)
  * - Create new skill
  * - Update existing skill
+ *
  * Rules:
  * - Guest (req.user = null) → chỉ thấy active skills
  * - Volunteer → chỉ thấy active skills
@@ -33,14 +35,59 @@ function formatSkill(skill) {
 }
 
 /**
- * Get skills based on user role.
- * Manager/Admin → thấy tất cả (active + inactive)
- * Staff/Volunteer/Guest → chỉ thấy active
+ * Build Prisma where clause from query params
+ * và query params.
+ *
+ * @param {boolean} showAll
+ * @param {Object} query
+ * @returns {Object}
+ */
+function buildWhereClause(showAll, query) {
+    const conditions = [];
+
+    // Role visibility
+    if (!showAll) {
+        conditions.push({
+            isActive: true
+        });
+    }
+
+    // Search
+    if (query.search) {
+        const keyword = query.search.trim();
+
+        conditions.push({
+            OR: [
+                {
+                    name: {
+                        contains: keyword,
+                        mode: 'insensitive'
+                    }
+                },
+                {
+                    description: {
+                        contains: keyword,
+                        mode: 'insensitive'
+                    }
+                }
+            ]
+        });
+    }
+
+    return conditions.length
+        ? { AND: conditions }
+        : {};
+}
+
+/**
+ * Get skills based on user role, with optional search.
+ * UC-feat-search-skill: thêm search support.
  *
  * @param {Object|null} currentUser - User from JWT (req.user) or null for Guest
+ * @param {Object} [query={}] - Query params: { search }
  * @returns {Promise<Object>} { skills: Array }
  */
-async function getSkills(currentUser) {
+async function getSkills(currentUser, query = {}) {
     let roleName = null;
 
     if (currentUser?.role_id) {
@@ -55,7 +102,7 @@ async function getSkills(currentUser) {
         normalizedRole === 'MANAGER' ||
         normalizedRole === 'ADMIN';
 
-    const where = showAll ? {} : { isActive: true };
+    const where = buildWhereClause(showAll, query);
 
     const skills = await skillRepository.findAll(where);
 
@@ -115,7 +162,7 @@ async function createSkillService(data) {
  * @throws {ServiceError} 400/404/409 errors
  */
 async function updateSkillService(skillId, data) {
-    
+
     // Validate skill ID
     if (!Number.isInteger(skillId) || skillId <= 0) {
         throw new ServiceError(
@@ -140,7 +187,7 @@ async function updateSkillService(skillId, data) {
         : undefined;
 
     // 2. If name changed, check uniqueness (exclude self)
-    if (normalizedName && normalizedName !== existing.name) {
+    if (normalizedName !== undefined && normalizedName !== existing.name) {
         const conflict = await skillRepository.findByNameExcluding(
             normalizedName,
             skillId
@@ -175,7 +222,7 @@ async function updateSkillService(skillId, data) {
     } catch (error) {
         if (error.code === 'P2002') {
             throw new ServiceError(
-                'Skill name already exists in this type.',
+                'Skill name already exists.',
                 409,
                 'SKILL_EXISTS'
             );

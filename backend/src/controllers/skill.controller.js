@@ -1,6 +1,6 @@
 /**
  * Skill Controller - HTTP layer for Skill Management module
- * Owner: Member 4 - DucNM (UC34, UC35, UC36)
+ * Owner: Member 4 - DucNM (UC34, UC35, UC36, UC-feat-search-skill)
  *
  * Responsibilities:
  * - Handle HTTP request/response for skill management endpoints
@@ -18,13 +18,14 @@ import { successResponse, errorResponse } from '../utils/response.util.js';
 /**
  * GET /api/v1/skills
  * Lấy danh sách kỹ năng với role-based visibility.
+ * Hỗ trợ search param (UC-feat-search-skill).
  * - Guest (không token) → chỉ active
  * - Volunteer/Staff → chỉ active
  * - Manager/Admin → tất cả (active + inactive)
  */
 async function getSkillsHandler(req, res, next) {
     try {
-        const result = await skillService.getSkills(req.user);
+        const result = await skillService.getSkills(req.user, req.query);
 
         const message = result.skills.length > 0
             ? 'Lấy danh sách kỹ năng thành công'
@@ -73,7 +74,16 @@ async function createSkillHandler(req, res, next) {
  */
 async function updateSkillHandler(req, res, next) {
     try {
-        const skillId = parseInt(req.params.id, 10);
+        const skillId = Number.parseInt(req.params.id, 10);
+        if (Number.isNaN(skillId)) {
+            return res.status(400).json(
+                errorResponse(
+                    'Invalid skill ID.',
+                    'INVALID_SKILL_ID'
+                )
+            );
+        }
+
         const skill = await skillService.updateSkillService(skillId, req.body);
 
         return res.status(200).json(

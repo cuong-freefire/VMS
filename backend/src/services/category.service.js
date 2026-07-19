@@ -1,9 +1,11 @@
 /**
  * Category Service - Business logic for Category Management module
- * Owner: Member 4 - DucNM (UC31)
+ * Owner: Member 4 - DucNM (UC31, UC-feat-search-category)
  *
  * Responsibilities:
  * - Get list of categories with role-based visibility
+ * - Search categories by name and description (UC-feat-search-category)
+ * - Filter categories by type
  *
  * Rules:
  * - Guest (req.user = null) → chỉ thấy active categories
@@ -32,14 +34,81 @@ function formatCategory(cat) {
 }
 
 /**
- * Get categories based on user role.
- * Manager/Admin → thấy tất cả (active + inactive)
- * Staff/Volunteer/Guest → chỉ thấy active
+ * Map type string từ request body sang Prisma EventCategoryType enum.
+ * "location" → "LOCATION", "event_type" → "TYPE", "time_frame" → "TIME"
+ */
+const CATEGORY_TYPE_MAP = {
+    'location': 'LOCATION',
+    'event_type': 'TYPE',
+    'time_frame': 'TIME'
+};
+
+/**
+ * Build Prisma where clause từ role visibility
+ * và query params.
+ *
+ * @param {boolean} showAll
+ * @param {Object} query
+ * @returns {Object}
+ */
+function buildWhereClause(showAll, query) {
+    const conditions = [];
+
+    // Role visibility
+    if (!showAll) {
+        conditions.push({
+            isActive: true
+        });
+    }
+
+    // Search
+    if (query.search) {
+        const keyword = query.search.trim();
+
+        conditions.push({
+            OR: [
+                {
+                    name: {
+                        contains: keyword,
+                        mode: 'insensitive'
+                    }
+                },
+                {
+                    description: {
+                        contains: keyword,
+                        mode: 'insensitive'
+                    }
+                }
+            ]
+        });
+    }
+
+    // Type filter
+    if (query.type) {
+        const categoryType =
+            CATEGORY_TYPE_MAP[query.type.toLowerCase()];
+
+        if (categoryType) {
+            conditions.push({
+                categoryType
+            });
+        }
+    }
+
+    return conditions.length
+        ? { AND: conditions }
+        : {};
+}
+
+/**
+ * Get categories based on user role, with optional search and type filter.
+ * UC-feat-search-category: thêm search và type filter support.
  *
  * @param {Object|null} currentUser - User from JWT (req.user) or null for Guest
+ * @param {Object} [query={}] - Query params: { search, type }
  * @returns {Promise<Object>} { categories: Array }
  */
-async function getCategories(currentUser) {
+async function getCategories(currentUser, query = {}) {
     let roleName = null;
 
     if (currentUser?.role_id) {
@@ -54,7 +123,8 @@ async function getCategories(currentUser) {
         normalizedRole === "MANAGER" ||
         normalizedRole === "ADMIN";
 
-    const where = showAll ? {} : { isActive: true };
+
+    const where = buildWhereClause(showAll, query);
 
     const categories = await categoryRepository.findAll(where);
 
@@ -62,16 +132,6 @@ async function getCategories(currentUser) {
         categories: categories.map(formatCategory)
     };
 }
-
-/**
- * Map type string từ request body sang Prisma EventCategoryType enum.
- * "location" → "LOCATION", "event_type" → "TYPE", "time_frame" → "TIME"
- */
-const typeMap = {
-    'location': 'LOCATION',
-    'event_type': 'TYPE',
-    'time_frame': 'TIME'
-};
 
 /**
  * Create a new category.
@@ -93,7 +153,7 @@ async function createCategoryService(data) {
     const name = data.name.trim();
 
     // Map type string sang Prisma enum
-    const categoryType = typeMap[data.type];
+    const categoryType = CATEGORY_TYPE_MAP[data.type];
     if (!categoryType) {
         throw new ServiceError(
             'Invalid category type.',
@@ -173,8 +233,8 @@ async function updateCategoryService(categoryId, data) {
     }
 
     const normalizedName = data.name !== undefined
-            ? data.name.trim()
-            : undefined;
+        ? data.name.trim()
+        : undefined;
 
     // 2. If name changed, check uniqueness trong cùng type (exclude self)
     if (normalizedName !== undefined && normalizedName !== existing.name) {
