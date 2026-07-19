@@ -4,10 +4,11 @@
  * Các endpoint liên quan đến sự kiện (Event Management):
  * - GET /: Lấy danh sách sự kiện (UC67 - View Pending Event)
  * - PATCH /:id/approve: Phê duyệt sự kiện (UC69 - Approve Event)
+ * - PATCH /:id/reject: Từ chối sự kiện (UC70 - Reject Event)
  *
  * Prefix: /api/v1/events (mount tại app.js)
  *
- * Owner: Member 5 - DucNM
+ * Owner: Member 5 - DucNM (UC67, UC69, UC70)
  * Module: Event Approval Management
  */
 
@@ -15,9 +16,9 @@ import { Router } from "express";
 import authMiddleware from "../middlewares/auth.middleware.js";
 import authorize from "../middlewares/authorize.middleware.js";
 import optionalAuth from "../middlewares/optionalAuth.middleware.js";
-import { validateQuery } from "../middlewares/validators/validate.js";
-import { getEventsHandler, approveEventHandler } from "../controllers/event.controller.js";
-import { getEventsQuerySchema } from "../middlewares/validators/event.validator.js";
+import { validate, validateQuery } from "../middlewares/validators/validate.js";
+import { getEventsHandler, approveEventHandler, rejectEventHandler } from "../controllers/event.controller.js";
+import { getEventsQuerySchema, rejectEventSchema } from "../middlewares/validators/event.validator.js";
 
 const router = Router();
 
@@ -147,7 +148,7 @@ router.get(
  *       404:
  *         description: Event not found
  *       409:
- *         description: Event is not in PENDING_APPROVAL status
+ *         description: Event is not in PENDING status
  *       500:
  *         description: Lỗi server
  */
@@ -156,6 +157,83 @@ router.patch(
     authMiddleware,
     authorize("MANAGER", "ADMIN"),
     approveEventHandler
+);
+
+/**
+ * PATCH /api/v1/events/:id/reject
+ * Từ chối sự kiện (UC70: Reject Event)
+ * Chỉ Manager/Admin mới có quyền truy cập.
+ */
+/**
+ * @swagger
+ * /api/v1/events/{id}/reject:
+ *   patch:
+ *     summary: Từ chối sự kiện (Manager/Admin only)
+ *     description: |
+ *       Từ chối một sự kiện đang chờ duyệt (PENDING_APPROVAL) kèm lý do.
+ *       Chỉ Manager và Admin mới có quyền truy cập.
+ *       Staff/Volunteer nhận 403. Guest nhận 401.
+ *       Event phải có status = PENDING_APPROVAL — nếu không trả về 409.
+ *       rejection_reason là bắt buộc, tối thiểu 10 ký tự.
+ *     tags: [Event Management]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID của sự kiện
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - rejection_reason
+ *             properties:
+ *               rejection_reason:
+ *                 type: string
+ *                 minLength: 10
+ *                 description: Lý do từ chối (tối thiểu 10 ký tự)
+ *           example:
+ *             rejection_reason: "Thông tin sự kiện chưa đầy đủ và cần bổ sung thêm chi tiết."
+ *     responses:
+ *       200:
+ *         description: Từ chối thành công
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: "Từ chối sự kiện thành công"
+ *               data:
+ *                 event_id: 1
+ *                 title: "Dọn dẹp bãi biển"
+ *                 status: "rejected"
+ *                 rejected_by: 2
+ *                 rejected_at: "2026-07-01T10:30:00.000Z"
+ *                 rejection_reason: "Thông tin sự kiện chưa đầy đủ và cần bổ sung thêm chi tiết."
+ *       400:
+ *         description: Dữ liệu không hợp lệ (rejection_reason thiếu hoặc quá ngắn)
+ *       401:
+ *         description: Chưa xác thực
+ *       403:
+ *         description: Không có quyền (không phải Manager/Admin)
+ *       404:
+ *         description: Event not found
+ *       409:
+ *         description: Event is not in PENDING status
+ *       500:
+ *         description: Lỗi server
+ */
+router.patch(
+    "/:id/reject",
+    authMiddleware,
+    authorize("MANAGER", "ADMIN"),
+    validate(rejectEventSchema),
+    rejectEventHandler
 );
 
 export default router;

@@ -1,6 +1,6 @@
 /**
  * Event Service - Business logic for Event Management module
- * Owner: Member 5 - DucNM (UC67, UC69)
+ * Owner: Member 5 - DucNM (UC67, UC69, UC70)
  *
  * Responsibilities:
  * - Get paginated list of events with role-based visibility and status filter
@@ -14,6 +14,7 @@
  * - Manager/Admin → thấy tất cả events (không status) hoặc lọc theo status
  * - Manager/Admin mới có quyền xem PENDING_APPROVAL events
  * - Manager/Admin mới có quyền approve event
+ * - Manager/Admin mới có quyền reject event
  */
 
 import { parsePagination, createPaginationMeta } from '../utils/pagination.util.js';
@@ -70,6 +71,25 @@ function formatApprovedEvent(event) {
         approved_at: event.approvedAt
             ? event.approvedAt.toISOString()
             : null,
+        created_at: event.createdAt
+            ? event.createdAt.toISOString()
+            : null,
+        updated_at: event.updatedAt
+            ? event.updatedAt.toISOString()
+            : null
+    };
+}
+
+function formatRejectedEvent(event) {
+    return {
+        event_id: event.id,
+        title: event.title,
+        status: event.status.toLowerCase(),
+        rejected_by: event.rejectedBy,
+        rejected_at: event.rejectedAt
+            ? event.rejectedAt.toISOString()
+            : null,
+        rejection_reason: event.rejectedReason,
         created_at: event.createdAt
             ? event.createdAt.toISOString()
             : null,
@@ -265,7 +285,43 @@ async function approveEvent(eventId, currentUser) {
     return formatApprovedEvent(updatedEvent);
 }
 
+/**
+ * Reject a pending event.
+ * UC70: Reject Event — Manager/Admin từ chối sự kiện PENDING_APPROVAL
+ *
+ * Business Logic:
+ * 1. Validate pending event
+ * 2. Get rejection reason
+ * 3. Update event
+ * 4. Return formatted response
+ *
+ * @param {number} eventId - Event ID từ route param
+ * @param {Object} data - Request body: { rejection_reason }
+ * @param {Object} currentUser - User from JWT (req.user)
+ * @returns {Promise<Object>} Formatted event object
+ * @throws {ServiceError} 400/404/409 errors
+ */
+async function rejectEvent(eventId, data, currentUser) {
+    // 1. Validate pending event
+    await validatePendingEvent(eventId);
+
+    // 2. Get rejection_reason
+    const reason = data.rejection_reason.trim();
+
+    // 3. Update event: status = REJECTED, rejectedReason, rejectedBy, rejectedAt
+    const updatedEvent = await eventRepository.updateEventStatus(eventId, {
+        status: 'REJECTED',
+        rejectedReason: reason,
+        rejectedBy: currentUser.user_id,
+        rejectedAt: new Date()
+    });
+
+    // 4. Return formatted response
+    return formatRejectedEvent(updatedEvent);
+}
+
 export default {
     getEvents,
-    approveEvent
+    approveEvent,
+    rejectEvent
 };

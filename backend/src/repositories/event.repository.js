@@ -1,11 +1,11 @@
 /**
  * Event Repository - Database operations for Event Management module
- * Owner: Member 5 - DucNM (UC67, UC69)
+ * Owner: Member 5 - DucNM (UC67, UC69, UC70)
  *
  * Responsibilities:
  * - Query events with pagination, status filter, and organization include
- * - Find event by ID (UC69)
- * - Update event status and approval info (UC69)
+ * - Find event by ID (UC69, UC70)
+ * - Update event status, approval, and rejection info (UC69)
  *
  * Rules:
  * - All database access goes through Prisma ORM
@@ -108,7 +108,8 @@ const findById = async (id) => {
 /**
  * Update event status and approval info.
  * UC69: Approve Event — update status, approved_by, approved_at.
- *
+ * UC70: Reject Event
+ * 
  * @param {number} id - Event ID
  * @param {Object} data - Fields to update (status, approvedBy, approvedAt)
  * @returns {Promise<Object>} Updated event
@@ -123,6 +124,9 @@ const updateEventStatus = async (id, data) => {
             status: true,
             approvedBy: true,
             approvedAt: true,
+            rejectedBy: true,
+            rejectedAt: true,
+            rejectedReason: true,
             createdAt: true,
             updatedAt: true
         }

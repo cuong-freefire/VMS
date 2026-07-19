@@ -1,6 +1,6 @@
 /**
  * Event Controller - HTTP layer for Event Management module
- * Owner: Member 5 - DucNM (UC67, UC69)
+ * Owner: Member 5 - DucNM (UC67, UC69, UC70)
  *
  * Responsibilities:
  * - Handle HTTP request/response for event management endpoints
@@ -48,11 +48,7 @@ async function getEventsHandler(req, res, next) {
 /**
  * PATCH /api/v1/events/:id/approve
  * Phê duyệt sự kiện PENDING (UC69).
- *
- * Flow:
- * - Manager/Admin xác thực qua middleware
- * - Service kiểm tra event tồn tại và đang ở trạng thái PENDING_APPROVAL
- * - Chuyển trạng thái sang PUBLISHED
+ * Chỉ Manager/Admin mới có quyền (kiểm tra ở middleware).
  */
 async function approveEventHandler(req, res, next) {
     try {
@@ -72,7 +68,31 @@ async function approveEventHandler(req, res, next) {
     }
 }
 
+/**
+ * PATCH /api/v1/events/:id/reject
+ * Từ chối sự kiện PENDING_APPROVAL kèm lý do (UC70).
+ * Chỉ Manager/Admin mới có quyền (kiểm tra ở middleware).
+ */
+async function rejectEventHandler(req, res, next) {
+    try {
+        const eventId = parseInt(req.params.id, 10);
+        const result = await eventService.rejectEvent(eventId, req.body, req.user);
+
+        return res.status(200).json(
+            successResponse(result, 'Từ chối sự kiện thành công')
+        );
+    } catch (error) {
+        if (error.status && error.code) {
+            return res.status(error.status).json(
+                errorResponse(error.message, error.code, error.details)
+            );
+        }
+        next(error);
+    }
+}
+
 export {
     getEventsHandler,
-    approveEventHandler
+    approveEventHandler,
+    rejectEventHandler
 };
