@@ -18,6 +18,7 @@ import ChangePasswordPage from "./components/pages/auth/ChangePasswordPage";
 import ProfileViewPage from "./components/pages/profile/ProfileViewPage";
 import ProfileEditPage from "./components/pages/profile/ProfileEditPage";
 import VolunteerHistoryPage from "./components/pages/profile/VolunteerHistoryPage";
+import EventDetailPage from "./components/pages/EventDetailPage";
 import NotFoundPage from "./components/pages/NotFoundPage";
 import AboutPage from "./components/pages/AboutPage";
 import PlaceholderPage from "./components/pages/PlaceholderPage";
@@ -61,6 +62,7 @@ function App() {
               <Route path="/home" element={<HomePage />} />
               <Route path="/history" element={<VolunteerHistoryPage />} />
               <Route path="/volunteer/events" element={<PlaceholderPage title="Danh sách Sự kiện" member="NamLD (Member 2)" />} />
+              <Route path="/volunteer/events/:id" element={<EventDetailPage />} />
               <Route path="/volunteer/certificates" element={<PlaceholderPage title="Chứng nhận" member="NamLD (Member 2)" />} />
             </Route>
           </Route>
