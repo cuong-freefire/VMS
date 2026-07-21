@@ -3,6 +3,40 @@
 import authRepository from "../repositories/auth.repository.js";
 import { verifyAccessToken } from "../utils/jwt.util.js";
 import { errorResponse } from "../utils/response.util.js";
+import logger from "../config/logger.config.js";
+
+/**
+ * Optional authentication middleware.
+ * Parse JWT from cookie if present.
+ * Does NOT throw 401 if no valid token — sets req.user = null instead.
+ *
+ * Dùng cho các endpoint public (VD: xem chi tiết sự kiện) nhưng vẫn cần
+ * biết user hiện tại để custom response (VD: hiển thị trạng thái đơn đăng ký).
+ *
+ * @param {Request} req
+ * @param {Response} res
+ * @param {NextFunction} next
+ */
+export function authenticateOptional(req, res, next) {
+    const token = req.cookies.token;
+    if (!token) {
+        req.user = null;
+        return next();
+    }
+
+    const decoded = verifyAccessToken(token);
+    if (!decoded || !decoded.user_id) {
+        req.user = null;
+        return next();
+    }
+
+    req.user = {
+        user_id: decoded.user_id,
+        email: decoded.email,
+        role: decoded.role
+    };
+    next();
+}
 
 export default async function authMiddleware(req, res, next) {
     const token = req.cookies.token;
@@ -68,6 +102,7 @@ export default async function authMiddleware(req, res, next) {
     }
 
     if (!user.isActive) {
+        logger.warn({ userId, email: user.email, code: 'ACCOUNT_DISABLED' }, 'Auth rejected: account disabled');
         res.clearCookie('token', {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
@@ -82,6 +117,7 @@ export default async function authMiddleware(req, res, next) {
     }
 
     if (!user.emailVerified) {
+        logger.warn({ userId, email: user.email, code: 'EMAIL_NOT_VERIFIED' }, 'Auth rejected: email not verified');
         return res.status(403).json(
             errorResponse(
                 'Email chưa được xác thực. Vui lòng kiểm tra hộp thư để xác thực tài khoản.',

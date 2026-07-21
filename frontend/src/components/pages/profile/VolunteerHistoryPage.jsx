@@ -341,10 +341,7 @@ export default function VolunteerHistoryPage() {
   const hasData = !loading && !error && history.length > 0;
 
   return (
-    <div style={{
-      maxWidth: 'var(--max-content-width)', margin: 'var(--space-6) auto',
-      padding: '0 var(--space-4)',
-    }}>
+    <>
       {/* Header */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 12,
@@ -406,6 +403,6 @@ export default function VolunteerHistoryPage() {
           <PaginationBar pagination={pagination} onPageChange={goToPage} />
         </>
       )}
-    </div>
+    </>
   );
 }

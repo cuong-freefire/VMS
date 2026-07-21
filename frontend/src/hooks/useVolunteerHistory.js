@@ -53,7 +53,7 @@ export function useVolunteerHistory(initialParams = {}) {
         total: rawPagination.total || 0,
         totalPages: rawPagination.total_pages || 0,
       });
-      setSummary({ total_events: data.summary?.total || 0, completed_events: 0 });
+      setSummary({ total_events: data.summary?.total || 0, completed_events: data.summary?.approved || 0 });
 
       if (newParams) setParams(merged);
     } catch (err) {

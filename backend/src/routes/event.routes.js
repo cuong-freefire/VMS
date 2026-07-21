@@ -1,239 +1,435 @@
-/**
- * Event Routes
- *
- * Các endpoint liên quan đến sự kiện (Event Management):
- * - GET /: Lấy danh sách sự kiện (UC67 - View Pending Event)
- * - PATCH /:id/approve: Phê duyệt sự kiện (UC69 - Approve Event)
- * - PATCH /:id/reject: Từ chối sự kiện (UC70 - Reject Event)
- *
- * Prefix: /api/v1/events (mount tại app.js)
- *
- * Owner: Member 5 - DucNM (UC67, UC69, UC70)
- * Module: Event Approval Management
- */
-
 import { Router } from "express";
-import authMiddleware from "../middlewares/auth.middleware.js";
-import authorize from "../middlewares/authorize.middleware.js";
-import optionalAuth from "../middlewares/optionalAuth.middleware.js";
-import { validate, validateQuery } from "../middlewares/validators/validate.js";
-import { getEventsHandler, approveEventHandler, rejectEventHandler } from "../controllers/event.controller.js";
-import { getEventsQuerySchema, rejectEventSchema } from "../middlewares/validators/event.validator.js";
+import eventController from "../controllers/event.controller.js";
+import { getByIdParamSchema } from "../middlewares/validators/event.validator.js";
+import { validateParams } from "../middlewares/validators/validate.js";
+import { authenticateOptional } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
 /**
- * GET /api/v1/events
- * Lấy danh sách sự kiện (UC67: View Pending Event)
- * Hỗ trợ optional auth:
- *   - Guest (không token) → chỉ PUBLISHED events
- *   - Volunteer/Staff → chỉ PUBLISHED events
- *   - Manager/Admin → tất cả events; có thể lọc status=pending_approval
- */
-/**
  * @swagger
- * /api/v1/events:
+ * /api/v1/events/{id}:
  *   get:
- *     summary: Lấy danh sách sự kiện
+ *     summary: Xem chi tiết sự kiện
  *     description: |
- *       Trả về danh sách sự kiện với phân trang và lọc theo status.
- *       Hỗ trợ optional auth:
- *       - Guest (không token): chỉ PUBLISHED events
- *       - Volunteer/Staff: chỉ PUBLISHED events
- *       - Manager/Admin: tất cả events; có thể lọc status=pending_approval
- *       Chỉ Manager/Admin mới có quyền xem PENDING_APPROVAL events.
- *     tags: [Event Management]
- *     security:
- *       - cookieAuth: []
+ *       Endpoint công khai cho phép Guest (không đăng nhập) và Volunteer (đã đăng nhập) xem chi tiết sự kiện.
+ *
+ *       **Phân biệt Guest vs Volunteer:**
+ *       - Guest / không có JWT cookie → `userApplication: null`
+ *       - Volunteer đã đăng nhập → trả thêm thông tin đơn đăng ký của chính user đó (nếu có)
+ *
+ *       **Business Rules:**
+ *       - Chỉ hiển thị event có `isActive = true`
+ *       - Chỉ hiển thị event có `status IN ['PUBLISHED', 'IN_PROGRESS', 'COMPLETED']`
+ *       - Tất cả tình huống không tìm thấy event đều trả về 404 (zero information disclosure)
+ *     tags:
+ *       - Events
  *     parameters:
- *       - in: query
- *         name: page
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         description: ID của sự kiện (số nguyên dương)
  *         schema:
  *           type: integer
- *           default: 1
- *         description: Số trang hiện tại
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 20
- *         description: Số items mỗi trang (max 100)
- *       - in: query
- *         name: status
- *         schema:
- *           type: string
- *           enum: [draft, pending_approval, published, rejected, in_progress, completed, cancelled]
- *         description: Lọc theo trạng thái sự kiện
+ *           minimum: 1
+ *           example: 1
+ *     security: []
  *     responses:
  *       200:
- *         description: Thành công, trả về danh sách sự kiện
+ *         description: |
+ *           Thành công. Response khác nhau tùy theo Guest hay Volunteer.
+ *
+ *           **Guest Response (không đăng nhập):**
+ *           ```json
+ *           {
+ *             "success": true,
+ *             "data": {
+ *               "id": 1,
+ *               "title": "Dọn dẹp công viên Tao Đàn",
+ *               "description": "<p>Tham gia dọn dẹp, trồng cây xanh...</p>",
+ *               "location": "Công viên Tao Đàn, Quận 1, TP.HCM",
+ *               "startDate": "2026-08-15T08:00:00.000Z",
+ *               "endDate": "2026-08-15T17:00:00.000Z",
+ *               "applicationDeadline": "2026-08-10T23:59:59.000Z",
+ *               "maxCapacity": 50,
+ *               "approvedParticipants": 32,
+ *               "remainingSlots": 18,
+ *               "isFull": false,
+ *               "imageUrl": "https://res.cloudinary.com/vms/image/upload/event-banner.jpg",
+ *               "status": "PUBLISHED",
+ *               "createdAt": "2026-07-01T10:00:00.000Z",
+ *               "updatedAt": "2026-07-10T15:30:00.000Z",
+ *               "category": {
+ *                 "id": 3,
+ *                 "name": "Môi trường",
+ *                 "categoryType": "TYPE"
+ *               },
+ *               "createdBy": {
+ *                 "id": 5,
+ *                 "fullName": "Nguyễn Văn A",
+ *                 "avatarUrl": "https://res.cloudinary.com/vms/image/upload/avatar.jpg"
+ *               },
+ *               "userApplication": null
+ *             }
+ *           }
+ *           ```
+ *
+ *           **Volunteer Response — Đã apply, trạng thái PENDING:**
+ *           ```json
+ *           {
+ *             "success": true,
+ *             "data": {
+ *               "id": 1,
+ *               "title": "Dọn dẹp công viên Tao Đàn",
+ *               "description": "<p>Tham gia dọn dẹp, trồng cây xanh...</p>",
+ *               "location": "Công viên Tao Đàn, Quận 1, TP.HCM",
+ *               "startDate": "2026-08-15T08:00:00.000Z",
+ *               "endDate": "2026-08-15T17:00:00.000Z",
+ *               "applicationDeadline": "2026-08-10T23:59:59.000Z",
+ *               "maxCapacity": 50,
+ *               "approvedParticipants": 32,
+ *               "remainingSlots": 18,
+ *               "isFull": false,
+ *               "imageUrl": "https://res.cloudinary.com/vms/image/upload/event-banner.jpg",
+ *               "status": "PUBLISHED",
+ *               "createdAt": "2026-07-01T10:00:00.000Z",
+ *               "updatedAt": "2026-07-10T15:30:00.000Z",
+ *               "category": {
+ *                 "id": 3,
+ *                 "name": "Môi trường",
+ *                 "categoryType": "TYPE"
+ *               },
+ *               "createdBy": {
+ *                 "id": 5,
+ *                 "fullName": "Nguyễn Văn A",
+ *                 "avatarUrl": "https://res.cloudinary.com/vms/image/upload/avatar.jpg"
+ *               },
+ *               "userApplication": {
+ *                 "id": 42,
+ *                 "status": "PENDING",
+ *                 "createdAt": "2026-07-12T09:30:00.000Z"
+ *               }
+ *             }
+ *           }
+ *           ```
+ *
+ *           **Volunteer Response — Đã apply, trạng thái APPROVED:**
+ *           ```json
+ *           {
+ *             "success": true,
+ *             "data": {
+ *               "id": 1,
+ *               "title": "Dọn dẹp công viên Tao Đàn",
+ *               "description": "<p>Tham gia dọn dẹp, trồng cây xanh...</p>",
+ *               "location": "Công viên Tao Đàn, Quận 1, TP.HCM",
+ *               "startDate": "2026-08-15T08:00:00.000Z",
+ *               "endDate": "2026-08-15T17:00:00.000Z",
+ *               "applicationDeadline": "2026-08-10T23:59:59.000Z",
+ *               "maxCapacity": 50,
+ *               "approvedParticipants": 32,
+ *               "remainingSlots": 18,
+ *               "isFull": false,
+ *               "imageUrl": "https://res.cloudinary.com/vms/image/upload/event-banner.jpg",
+ *               "status": "PUBLISHED",
+ *               "createdAt": "2026-07-01T10:00:00.000Z",
+ *               "updatedAt": "2026-07-10T15:30:00.000Z",
+ *               "category": {
+ *                 "id": 3,
+ *                 "name": "Môi trường",
+ *                 "categoryType": "TYPE"
+ *               },
+ *               "createdBy": {
+ *                 "id": 5,
+ *                 "fullName": "Nguyễn Văn A",
+ *                 "avatarUrl": "https://res.cloudinary.com/vms/image/upload/avatar.jpg"
+ *               },
+ *               "userApplication": {
+ *                 "id": 42,
+ *                 "status": "APPROVED",
+ *                 "createdAt": "2026-07-12T09:30:00.000Z"
+ *               }
+ *             }
+ *           }
+ *           ```
+ *
+ *           **Volunteer Response — Đã apply, trạng thái REJECTED:**
+ *           ```json
+ *           {
+ *             "success": true,
+ *             "data": {
+ *               "id": 1,
+ *               "title": "Dọn dẹp công viên Tao Đàn",
+ *               "description": "<p>Tham gia dọn dẹp, trồng cây xanh...</p>",
+ *               "location": "Công viên Tao Đàn, Quận 1, TP.HCM",
+ *               "startDate": "2026-08-15T08:00:00.000Z",
+ *               "endDate": "2026-08-15T17:00:00.000Z",
+ *               "applicationDeadline": "2026-08-10T23:59:59.000Z",
+ *               "maxCapacity": 50,
+ *               "approvedParticipants": 32,
+ *               "remainingSlots": 18,
+ *               "isFull": false,
+ *               "imageUrl": "https://res.cloudinary.com/vms/image/upload/event-banner.jpg",
+ *               "status": "PUBLISHED",
+ *               "createdAt": "2026-07-01T10:00:00.000Z",
+ *               "updatedAt": "2026-07-10T15:30:00.000Z",
+ *               "category": {
+ *                 "id": 3,
+ *                 "name": "Môi trường",
+ *                 "categoryType": "TYPE"
+ *               },
+ *               "createdBy": {
+ *                 "id": 5,
+ *                 "fullName": "Nguyễn Văn A",
+ *                 "avatarUrl": "https://res.cloudinary.com/vms/image/upload/avatar.jpg"
+ *               },
+ *               "userApplication": {
+ *                 "id": 42,
+ *                 "status": "REJECTED",
+ *                 "createdAt": "2026-07-12T09:30:00.000Z"
+ *               }
+ *             }
+ *           }
+ *           ```
+ *
+ *           **Volunteer Response — Đã apply, trạng thái CANCELLED:**
+ *           ```json
+ *           {
+ *             "success": true,
+ *             "data": {
+ *               "id": 1,
+ *               "title": "Dọn dẹp công viên Tao Đàn",
+ *               "description": "<p>Tham gia dọn dẹp, trồng cây xanh...</p>",
+ *               "location": "Công viên Tao Đàn, Quận 1, TP.HCM",
+ *               "startDate": "2026-08-15T08:00:00.000Z",
+ *               "endDate": "2026-08-15T17:00:00.000Z",
+ *               "applicationDeadline": "2026-08-10T23:59:59.000Z",
+ *               "maxCapacity": 50,
+ *               "approvedParticipants": 32,
+ *               "remainingSlots": 18,
+ *               "isFull": false,
+ *               "imageUrl": "https://res.cloudinary.com/vms/image/upload/event-banner.jpg",
+ *               "status": "PUBLISHED",
+ *               "createdAt": "2026-07-01T10:00:00.000Z",
+ *               "updatedAt": "2026-07-10T15:30:00.000Z",
+ *               "category": {
+ *                 "id": 3,
+ *                 "name": "Môi trường",
+ *                 "categoryType": "TYPE"
+ *               },
+ *               "createdBy": {
+ *                 "id": 5,
+ *                 "fullName": "Nguyễn Văn A",
+ *                 "avatarUrl": "https://res.cloudinary.com/vms/image/upload/avatar.jpg"
+ *               },
+ *               "userApplication": {
+ *                 "id": 42,
+ *                 "status": "CANCELLED",
+ *                 "createdAt": "2026-07-12T09:30:00.000Z"
+ *               }
+ *             }
+ *           }
+ *           ```
+ *
+ *           **Volunteer Response — Event đầy (isFull: true):**
+ *           ```json
+ *           {
+ *             "success": true,
+ *             "data": {
+ *               "id": 2,
+ *               "title": "Hiến máu nhân đạo",
+ *               "description": "<p>Sự kiện hiến máu tình nguyện...</p>",
+ *               "location": "Bệnh viện Chợ Rẫy, TP.HCM",
+ *               "startDate": "2026-08-20T08:00:00.000Z",
+ *               "endDate": "2026-08-20T12:00:00.000Z",
+ *               "applicationDeadline": "2026-08-18T23:59:59.000Z",
+ *               "maxCapacity": 50,
+ *               "approvedParticipants": 50,
+ *               "remainingSlots": 0,
+ *               "isFull": true,
+ *               "imageUrl": "https://res.cloudinary.com/vms/image/upload/blood-donation.jpg",
+ *               "status": "PUBLISHED",
+ *               "createdAt": "2026-07-05T08:00:00.000Z",
+ *               "updatedAt": "2026-07-18T10:00:00.000Z",
+ *               "category": {
+ *                 "id": 5,
+ *                 "name": "Y tế",
+ *                 "categoryType": "TYPE"
+ *               },
+ *               "createdBy": {
+ *                 "id": 8,
+ *                 "fullName": "Trần Thị B",
+ *                 "avatarUrl": "https://res.cloudinary.com/vms/image/upload/avatar2.jpg"
+ *               },
+ *               "userApplication": {
+ *                 "id": 88,
+ *                 "status": "APPROVED",
+ *                 "createdAt": "2026-07-15T08:00:00.000Z"
+ *               }
+ *             }
+ *           }
+ *           ```
+ *
+ *           **Volunteer Response — Token hết hạn / invalid → Fallback Guest:**
+ *           Vẫn trả về 200 với `userApplication: null` (giống Guest response).
+ *           Middleware `authenticateOptional` không throw 401.
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               message: "Lấy danh sách sự kiện thành công"
- *               data:
- *                 events:
- *                   - event_id: 1
- *                     title: "Dọn dẹp bãi biển"
- *                     status: "pending_approval"
- *                     created_at: "2026-06-15T08:30:00.000Z"
- *                 pagination:
- *                   page: 1
- *                   limit: 20
- *                   total: 3
- *                   totalPages: 1
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                       example: 1
+ *                     title:
+ *                       type: string
+ *                       example: "Dọn dẹp công viên Tao Đàn"
+ *                     description:
+ *                       type: string
+ *                       nullable: true
+ *                       example: "<p>Tham gia dọn dẹp, trồng cây xanh tại công viên Tao Đàn.</p>"
+ *                     location:
+ *                       type: string
+ *                       example: "Công viên Tao Đàn, Quận 1, TP.HCM"
+ *                     startDate:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2026-08-15T08:00:00.000Z"
+ *                     endDate:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2026-08-15T17:00:00.000Z"
+ *                     applicationDeadline:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2026-08-10T23:59:59.000Z"
+ *                     maxCapacity:
+ *                       type: integer
+ *                       example: 50
+ *                     approvedParticipants:
+ *                       type: integer
+ *                       example: 32
+ *                     remainingSlots:
+ *                       type: integer
+ *                       example: 18
+ *                     isFull:
+ *                       type: boolean
+ *                       example: false
+ *                     imageUrl:
+ *                       type: string
+ *                       nullable: true
+ *                       example: "https://res.cloudinary.com/vms/image/upload/event-banner.jpg"
+ *                     status:
+ *                       type: string
+ *                       enum: [PUBLISHED, IN_PROGRESS, COMPLETED]
+ *                       example: "PUBLISHED"
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2026-07-01T10:00:00.000Z"
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2026-07-10T15:30:00.000Z"
+ *                     category:
+ *                       type: object
+ *                       nullable: true
+ *                       properties:
+ *                         id:
+ *                           type: integer
+ *                           example: 3
+ *                         name:
+ *                           type: string
+ *                           example: "Môi trường"
+ *                         categoryType:
+ *                           type: string
+ *                           enum: [LOCATION, TIME, TYPE]
+ *                           example: "TYPE"
+ *                     createdBy:
+ *                       type: object
+ *                       nullable: true
+ *                       properties:
+ *                         id:
+ *                           type: integer
+ *                           example: 5
+ *                         fullName:
+ *                           type: string
+ *                           example: "Nguyễn Văn A"
+ *                         avatarUrl:
+ *                           type: string
+ *                           nullable: true
+ *                           example: "https://res.cloudinary.com/vms/image/upload/avatar.jpg"
+ *                     userApplication:
+ *                       type: object
+ *                       nullable: true
+ *                       description: |
+ *                         null nếu user là Guest hoặc Volunteer chưa apply.
+ *                         Có giá trị nếu Volunteer đã apply.
+ *                       properties:
+ *                         id:
+ *                           type: integer
+ *                           example: 42
+ *                         status:
+ *                           type: string
+ *                           enum: [PENDING, APPROVED, REJECTED, CANCELLED]
+ *                           example: "PENDING"
+ *                         createdAt:
+ *                           type: string
+ *                           format: date-time
+ *                           example: "2026-07-12T09:30:00.000Z"
  *       400:
- *         description: Lỗi validation (page, limit, status)
- *       401:
- *         description: Chưa xác thực
- *       403:
- *         description: Không có quyền (Staff/Volunteer xem pending_approval)
+ *         description: ID sự kiện không hợp lệ (không phải số nguyên dương)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               success: false
+ *               error:
+ *                 code: "VALIDATION_ERROR"
+ *                 message: "ID sự kiện không hợp lệ."
+ *                 details:
+ *                   - field: "id"
+ *                     message: "ID sự kiện phải là số nguyên dương"
+ *       404:
+ *         description: |
+ *           Không tìm thấy sự kiện — các tình huống:
+ *           - ID không tồn tại trong DB
+ *           - Event bị soft-delete (isActive = false)
+ *           - Event ở trạng thái DRAFT / PENDING_APPROVAL / REJECTED / CANCELLED
+ *
+ *           Tất cả trả về cùng message để tránh information disclosure.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               success: false
+ *               error:
+ *                 code: "NOT_FOUND"
+ *                 message: "Không tìm thấy sự kiện."
  *       500:
- *         description: Lỗi server
+ *         description: Lỗi server không mong đợi (database timeout, internal error)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               success: false
+ *               error:
+ *                 code: "INTERNAL_ERROR"
+ *                 message: "Đã xảy ra lỗi không mong đợi. Vui lòng thử lại sau."
  */
 router.get(
-    "/",
-    optionalAuth,
-    validateQuery(getEventsQuerySchema),
-    getEventsHandler
-);
-
-/**
- * PATCH /api/v1/events/:id/approve
- * Phê duyệt sự kiện (UC69: Approve Event)
- * Chỉ Manager/Admin mới có quyền truy cập.
- */
-/**
- * @swagger
- * /api/v1/events/{id}/approve:
- *   patch:
- *     summary: Phê duyệt sự kiện (Manager/Admin only)
- *     description: |
- *       Phê duyệt một sự kiện đang chờ duyệt (PENDING_APPROVAL).
- *       Chỉ Manager và Admin mới có quyền truy cập.
- *       Staff/Volunteer nhận 403. Guest nhận 401.
- *       Event phải có status = PENDING_APPROVAL — nếu không trả về 409.
- *       Sau khi phê duyệt, event chuyển sang status PUBLISHED.
- *     tags: [Event Management]
- *     security:
- *       - cookieAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID của sự kiện
- *     responses:
- *       200:
- *         description: Phê duyệt thành công
- *         content:
- *           application/json:
- *             example:
- *               success: true
- *               message: "Phê duyệt sự kiện thành công"
- *               data:
- *                 event_id: 1
- *                 title: "Dọn dẹp bãi biển"
- *                 status: "published"
- *                 approved_by: 2
- *                 approved_at: "2026-07-01T10:00:00.000Z"
- *       400:
- *         description: Event ID không hợp lệ
- *       401:
- *         description: Chưa xác thực
- *       403:
- *         description: Không có quyền (không phải Manager/Admin)
- *       404:
- *         description: Event not found
- *       409:
- *         description: Event is not in PENDING status
- *       500:
- *         description: Lỗi server
- */
-router.patch(
-    "/:id/approve",
-    authMiddleware,
-    authorize("MANAGER", "ADMIN"),
-    approveEventHandler
-);
-
-/**
- * PATCH /api/v1/events/:id/reject
- * Từ chối sự kiện (UC70: Reject Event)
- * Chỉ Manager/Admin mới có quyền truy cập.
- */
-/**
- * @swagger
- * /api/v1/events/{id}/reject:
- *   patch:
- *     summary: Từ chối sự kiện (Manager/Admin only)
- *     description: |
- *       Từ chối một sự kiện đang chờ duyệt (PENDING_APPROVAL) kèm lý do.
- *       Chỉ Manager và Admin mới có quyền truy cập.
- *       Staff/Volunteer nhận 403. Guest nhận 401.
- *       Event phải có status = PENDING_APPROVAL — nếu không trả về 409.
- *       rejection_reason là bắt buộc, tối thiểu 10 ký tự.
- *     tags: [Event Management]
- *     security:
- *       - cookieAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID của sự kiện
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - rejection_reason
- *             properties:
- *               rejection_reason:
- *                 type: string
- *                 minLength: 10
- *                 description: Lý do từ chối (tối thiểu 10 ký tự)
- *           example:
- *             rejection_reason: "Thông tin sự kiện chưa đầy đủ và cần bổ sung thêm chi tiết."
- *     responses:
- *       200:
- *         description: Từ chối thành công
- *         content:
- *           application/json:
- *             example:
- *               success: true
- *               message: "Từ chối sự kiện thành công"
- *               data:
- *                 event_id: 1
- *                 title: "Dọn dẹp bãi biển"
- *                 status: "rejected"
- *                 rejected_by: 2
- *                 rejected_at: "2026-07-01T10:30:00.000Z"
- *                 rejection_reason: "Thông tin sự kiện chưa đầy đủ và cần bổ sung thêm chi tiết."
- *       400:
- *         description: Dữ liệu không hợp lệ (rejection_reason thiếu hoặc quá ngắn)
- *       401:
- *         description: Chưa xác thực
- *       403:
- *         description: Không có quyền (không phải Manager/Admin)
- *       404:
- *         description: Event not found
- *       409:
- *         description: Event is not in PENDING status
- *       500:
- *         description: Lỗi server
- */
-router.patch(
-    "/:id/reject",
-    authMiddleware,
-    authorize("MANAGER", "ADMIN"),
-    validate(rejectEventSchema),
-    rejectEventHandler
+    "/:id",
+    authenticateOptional,
+    validateParams(getByIdParamSchema),
+    eventController.getEventById
 );
 
 export default router;

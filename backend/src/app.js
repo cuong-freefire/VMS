@@ -91,7 +91,7 @@ app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/categories', categoryRoutes);
 // 6.5 Skill Management routes
 app.use('/api/v1/skills', skillRoutes);
-// 6.6 Event Management routes (UC67: View Pending Event)
+// 6.6 Event routes
 app.use('/api/v1/events', eventRoutes);
 
 app.get('/', (req, res) => {

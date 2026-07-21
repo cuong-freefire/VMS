@@ -168,7 +168,7 @@ Promise<{ success: boolean, messageId?: string, error?: string }>
 
 **Email Template Content**:
 
-- Subject: "❌ Đơn đăng ký không được chấp nhận - {eventName}"
+- Subject: "Đơn đăng ký không được chấp nhận - {eventName}"
 - Body: Event name, status (rejected), reason (if provided), volunteer name, alternative events/contact
 
 **Constraints**:
@@ -348,11 +348,8 @@ SMTP_FROM_NAME=VMS System
 
 ```javascript
 // backend/src/services/email.service.js
-const EmailService = require('./email.service');
-const emailService = new EmailService();
-
-// Exported singleton
-module.exports = emailService;
+export default { sendEmail, sendVerificationEmail, sendResetPasswordEmail,
+  sendApprovalEmail, sendRejectionEmail, sendReminderEmail, sendCertificateEmail };
 ```
 
 ---

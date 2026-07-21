@@ -60,8 +60,35 @@ export const validateQuery = (schema) => (req, res, next) => {
     });
   }
 
-  // Express 5.x does not allow reassigning req.query (getter-only).
-  // Store validated + coerced query params on req.validatedQuery instead.
-  req.validatedQuery = result.data;
+// Express 5.x does not allow reassigning req.query (getter-only).
+// Store validated + coerced query params on req.validatedQuery instead.
+req.validatedQuery = result.data;
+next();
+};
+
+/**
+ * Middleware validate req.params bằng Zod schema.
+ * Dùng cho các endpoint có path params (:id, :slug, ...).
+ *
+ * @param {z.ZodSchema} schema - Zod schema để validate req.params
+ * @returns {Function} Express middleware
+ */
+export const validateParams = (schema) => (req, res, next) => {
+  const result = schema.safeParse(req.params);
+
+  if (!result.success) {
+    const messages = result.error.issues
+      .map((e) => `${e.path.join(".")}: ${e.message}`)
+      .join("; ");
+
+    return res.status(400).json({
+      success: false,
+      message: messages,
+      code: "VALIDATION_ERROR",
+    });
+  }
+
+  // Store validated + coerced params on req.validatedParams
+  req.validatedParams = result.data;
   next();
 };

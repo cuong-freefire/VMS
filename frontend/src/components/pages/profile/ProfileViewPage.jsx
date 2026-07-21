@@ -20,7 +20,7 @@ export default function ProfileViewPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
-  if (loading || !user) return <div style={{ maxWidth: 'var(--max-content-width)', margin: 'var(--space-6) auto', padding: '0 var(--space-4)' }}><LoadingSpinner message="Đang tải hồ sơ..." /></div>;
+  if (loading || !user) return <LoadingSpinner message="Đang tải hồ sơ..." />;
 
   const fields = [
     { icon: User, label: 'Họ và tên', value: user.full_name || 'Chưa cập nhật' },
@@ -30,7 +30,7 @@ export default function ProfileViewPage() {
   ];
 
   return (
-    <div style={{ maxWidth: 600, margin: 'var(--space-6) auto', padding: '0 var(--space-4)' }}>
+    <div style={{ maxWidth: 600, margin: '0 auto' }}>
       <Card>
         <div style={{ textAlign: 'center', marginBottom: 'var(--space-4)' }}>
           <div style={{ width: 96, height: 96, borderRadius: '50%%', backgroundColor: 'var(--green-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto var(--space-3)', overflow: 'hidden', fontSize: 'var(--font-size-jumbo)', fontWeight: 'var(--font-weight-bold)', color: 'var(--text-on-dark)' }}>

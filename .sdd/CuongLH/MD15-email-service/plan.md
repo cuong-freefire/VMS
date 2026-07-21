@@ -8,7 +8,7 @@
 
 ## Summary
 
-MD15 triển khai Email Service tập trung để quản lý gửi mail cho 5 use cases: UC62 (Email Verification), UC63 (Forgot Password), UC64 (Event Approval), UC65 (Event Reminder), UC66 (Certificate). Sử dụng NodeMailer + SMTP với async/await (non-blocking), JavaScript Template Strings cho HTML templates, Pino logging. NO external queue (Redis/BullMQ). NO template engine (Handlebars). Cron Job chạy hàng giờ cho UC65 (24h event reminder). 99%+ success rate cho transactional emails.
+Module 15 (Email Service) triển khai một dịch vụ gửi email tập trung, phục vụ cho 5 use case gồm UC62 - Email Verification, UC63 - Forgot Password, UC64 - Event Approval, UC65 - Event Reminder và UC66 - Certificate. Hệ thống sử dụng NodeMailer kết hợp với SMTP để gửi email, thực hiện theo cơ chế bất đồng bộ (async/await) và tạo nội dung email bằng JavaScript Template Strings mà không sử dụng template engine như Handlebars. Toàn bộ quá trình gửi email được ghi log bằng Pino để hỗ trợ theo dõi và xử lý lỗi. Hệ thống không sử dụng hàng chờ (Message Queue) như Redis hoặc BullMQ. Đối với UC65 - Event Reminder, một Cron Job sẽ chạy mỗi giờ để kiểm tra các sự kiện diễn ra trong vòng 24 giờ tiếp theo và tự động gửi email nhắc nhở đến các tình nguyện viên đã được phê duyệt. Hệ thống được thiết kế nhằm đạt tỷ lệ gửi thành công trên 99%.
 
 ## Technical Context
 
@@ -27,7 +27,7 @@ MD15 triển khai Email Service tập trung để quản lý gửi mail cho 5 us
 **Performance Goals**:
 
 - UC62/63: Email gửi <30s, success rate ≥99%
-- UC64: Email gửi <1min, success rate ≥95%, 0% duplicates
+- UC64: Email gửi < 1 phút, success rate ≥95%, 0% duplicates
 - UC65: Cron job chạy hàng giờ, gửi 24h-ahead reminders, 0% duplicates
 - UC66: Email gửi <5min (including PDF generation), success rate ≥95%
 - Handle ≥100 concurrent send requests without blocking main thread

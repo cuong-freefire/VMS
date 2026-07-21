@@ -14,8 +14,6 @@
 import { Router } from "express";
 import authMiddleware from "../middlewares/auth.middleware.js";
 import uploadMiddleware from "../middlewares/upload.middleware.js";
-import { updateProfileSchema } from "../middlewares/validators/profile.validator.js";
-import { getMyProfile, updateMyProfile } from "../controllers/profile.controller.js";
 import { getUsersHandler, getUserByIdHandler, createUserHandler, updateUserHandler } from "../controllers/user.controller.js";
 import { updateProfileSchema, validateVolunteerHistoryQuery } from "../middlewares/validators/profile.validator.js";
 import { getMyProfile, updateMyProfile, getMyHistory } from "../controllers/profile.controller.js";
@@ -47,346 +45,6 @@ const validateUserId = (req, res, next) => {
 
     next();
 };
-
-/**
- * GET /api/v1/users
- * Lấy danh sách người dùng (Admin only)
- * UC26: View User List
- * UC30: Filter User — thêm is_active, from_date, to_date params
- */
-/**
- * @swagger
- * /api/v1/users:
- *   get:
- *     summary: Lấy danh sách người dùng (Admin only)
- *     description: |
- *       Trả về danh sách người dùng với phân trang, tìm kiếm, lọc theo role.
- *       Hỗ trợ lọc theo trạng thái active/inactive (is_active) và khoảng thời gian tạo (from_date, to_date).
- *       Chỉ Admin mới có quyền truy cập. Staff/Manager/Volunteer nhận 403.
- *       Guest chưa đăng nhập nhận 401.
- *     tags: [User Management]
- *     security:
- *       - cookieAuth: []
- *     parameters:
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *           default: 1
- *         description: Số trang hiện tại
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 20
- *         description: Số items mỗi trang (max 100)
- *       - in: query
- *         name: search
- *         schema:
- *           type: string
- *         description: Tìm kiếm theo tên hoặc email (case-insensitive)
- *       - in: query
- *         name: role
- *         schema:
- *           type: string
- *           enum: [volunteer, staff, manager, admin]
- *         description: Lọc theo role
- *       - in: query
- *         name: sort
- *         schema:
- *           type: string
- *           default: created_at:desc
- *         description: Sắp xếp (field:direction)
- *       - in: query
- *         name: is_active
- *         schema:
- *           type: boolean
- *         description: Lọc theo trạng thái active (true) / inactive (false)
- *       - in: query
- *         name: from_date
- *         schema:
- *           type: string
- *           format: date
- *         description: Ngày tạo từ (format: YYYY-MM-DD, inclusive)
- *       - in: query
- *         name: to_date
- *         schema:
- *           type: string
- *           format: date
- *         description: Ngày tạo đến (format: YYYY-MM-DD, inclusive)
- *     responses:
- *       200:
- *         description: Thành công, trả về danh sách người dùng
- *         content:
- *           application/json:
- *             example:
- *               success: true
- *               message: "Lấy danh sách người dùng thành công"
- *               data:
- *                 users:
- *                   - user_id: 1
- *                     full_name: "Nguyễn Văn A"
- *                     email: "nguyenvana@example.com"
- *                     role: "VOLUNTEER"
- *                     is_active: true
- *                     created_at: "2026-01-15T08:30:00.000Z"
- *                 pagination:
- *                   page: 1
- *                   limit: 20
- *                   total: 50
- *                   totalPages: 3
- *       400:
- *         description: Lỗi validation (page, limit, role, sort, is_active, from_date, to_date)
- *       401:
- *         description: Chưa xác thực
- *       403:
- *         description: Không có quyền (không phải Admin)
- *       500:
- *         description: Lỗi server
- */
-router.get(
-    "/",
-    authMiddleware,
-    authorize("ADMIN"),
-    validateQuery(getUsersSchema),
-    getUsersHandler
-);
-
-/**
- * POST /api/v1/users
- * Tạo người dùng mới (Admin only)
- * UC28: Add User
- */
-/**
- * @swagger
- * /api/v1/users:
- *   post:
- *     summary: Tạo người dùng mới (Admin only)
- *     description: |
- *       Tạo một tài khoản người dùng mới trong hệ thống.
- *       Chỉ Admin mới có quyền truy cập. Staff/Manager/Volunteer nhận 403.
- *       Guest chưa đăng nhập nhận 401.
- *       Email phải duy nhất — nếu đã tồn tại trả về 409.
- *       Mật khẩu được hash bằng bcryptjs trước khi lưu.
- *     tags: [User Management]
- *     security:
- *       - cookieAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - full_name
- *               - email
- *               - password
- *               - role_id
- *             properties:
- *               full_name:
- *                 type: string
- *                 description: Họ và tên
- *               email:
- *                 type: string
- *                 format: email
- *                 description: Email đăng nhập
- *               phone:
- *                 type: string
- *                 description: Số điện thoại (optional)
- *               password:
- *                 type: string
- *                 minLength: 8
- *                 description: Mật khẩu (tối thiểu 8 ký tự)
- *               role_id:
- *                 type: integer
- *                 description: ID của role
- *           example:
- *             full_name: "Nguyễn Văn B"
- *             email: "nguyenvanb@example.com"
- *             phone: "0987654321"
- *             password: "password123"
- *             role_id: 1
- *     responses:
- *       201:
- *         description: Tạo user thành công
- *         content:
- *           application/json:
- *             example:
- *               success: true
- *               message: "Tạo người dùng thành công"
- *               data:
- *                 user_id: 2
- *                 full_name: "Nguyễn Văn B"
- *                 email: "nguyenvanb@example.com"
- *                 role: "VOLUNTEER"
- *                 is_active: true
- *                 created_at: "2026-06-30T12:00:00.000Z"
- *       400:
- *         description: Dữ liệu đầu vào không hợp lệ
- *       401:
- *         description: Chưa xác thực
- *       403:
- *         description: Không có quyền (không phải Admin)
- *       409:
- *         description: Email already exists
- *       500:
- *         description: Lỗi server
- */
-router.post(
-    "/",
-    authMiddleware,
-    authorize("ADMIN"),
-    validate(createUserSchema),
-    createUserHandler
-);
-
-/**
- * GET /api/v1/users/:id
- * Lấy thông tin chi tiết người dùng (Admin only)
- * UC27: View User Detail
- */
-/**
- * @swagger
- * /api/v1/users/{id}:
- *   get:
- *     summary: Lấy thông tin chi tiết người dùng (Admin only)
- *     description: |
- *       Trả về thông tin chi tiết của một người dùng theo ID.
- *       Chỉ Admin mới có quyền truy cập. Staff/Manager/Volunteer nhận 403.
- *       Guest chưa đăng nhập nhận 401.
- *       Nếu ID không tồn tại, trả về 404.
- *       Vẫn trả về user bị soft-delete (is_active = false).
- *     tags: [User Management]
- *     security:
- *       - cookieAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID của user
- *     responses:
- *       200:
- *         description: Thành công, trả về thông tin chi tiết user
- *         content:
- *           application/json:
- *             example:
- *               success: true
- *               message: "Lấy thông tin người dùng thành công"
- *               data:
- *                 user_id: 1
- *                 full_name: "Nguyễn Văn A"
- *                 email: "nguyenvana@example.com"
- *                 role: "VOLUNTEER"
- *                 is_active: true
- *                 created_at: "2026-01-15T08:30:00.000Z"
- *       400:
- *         description: User ID không hợp lệ
- *       401:
- *         description: Chưa xác thực
- *       403:
- *         description: Không có quyền (không phải Admin)
- *       404:
- *         description: User not found
- *       500:
- *         description: Lỗi server
- */
-router.get(
-    "/:id",
-    authMiddleware,
-    authorize("ADMIN"),
-    validateUserId,
-    getUserByIdHandler
-);
-
-/**
- * PATCH /api/v1/users/:id
- * Cập nhật thông tin người dùng (Admin only)
- * UC29: Edit User
- */
-/**
- * @swagger
- * /api/v1/users/{id}:
- *   patch:
- *     summary: Cập nhật thông tin người dùng (Admin only)
- *     description: |
- *       Cập nhật thông tin của một người dùng theo ID.
- *       Chỉ Admin mới có quyền truy cập. Staff/Manager/Volunteer nhận 403.
- *       Guest chưa đăng nhập nhận 401.
- *       Email không thể thay đổi (bất biến).
- *       Admin không thể tự hạ role của chính mình.
- *     tags: [User Management]
- *     security:
- *       - cookieAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID của user
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               full_name:
- *                 type: string
- *                 description: Họ và tên
- *               phone:
- *                 type: string
- *                 description: Số điện thoại
- *               avatar_url:
- *                 type: string
- *                 format: uri
- *                 description: URL ảnh đại diện
- *               role_id:
- *                 type: integer
- *                 description: ID của role
- *               is_active:
- *                 type: boolean
- *                 description: Trạng thái hoạt động
- *           example:
- *             full_name: "Nguyễn Văn B (Updated)"
- *             phone: "0909123456"
- *             role_id: 2
- *             is_active: true
- *     responses:
- *       200:
- *         description: Cập nhật thành công
- *         content:
- *           application/json:
- *             example:
- *               success: true
- *               message: "Cập nhật thông tin người dùng thành công"
- *               data:
- *                 user_id: 1
- *                 full_name: "Nguyễn Văn B (Updated)"
- *                 email: "nguyenvanb@example.com"
- *                 role: "STAFF"
- *                 is_active: true
- *       400:
- *         description: Dữ liệu không hợp lệ hoặc body rỗng
- *       401:
- *         description: Chưa xác thực
- *       403:
- *         description: Không có quyền hoặc tự hạ role
- *       404:
- *         description: User not found
- *       500:
- *         description: Lỗi server
- */
-router.patch(
-    "/:id",
-    authMiddleware,
-    authorize("ADMIN"),
-    validateUserId,
-    validate(updateUserSchema),
-    updateUserHandler
-);
 
 /**
  * @swagger
@@ -948,6 +606,327 @@ router.patch(
     handleMulterUpload,
     validate(updateProfileSchema),
     updateMyProfile
+);
+
+/**
+ * GET /api/v1/users
+ * Lấy danh sách người dùng (Admin only)
+ * UC26: View User List
+ */
+/**
+ * @swagger
+ * /api/v1/users:
+ *   get:
+ *     summary: Lấy danh sách người dùng (Admin only)
+ *     description: |
+ *       Trả về danh sách người dùng với phân trang, tìm kiếm, lọc theo role.
+ *       Chỉ Admin mới có quyền truy cập. Staff/Manager/Volunteer nhận 403.
+ *       Guest chưa đăng nhập nhận 401.
+ *     tags: [User Management]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Số trang hiện tại
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Số items mỗi trang (max 100)
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Tìm kiếm theo tên hoặc email (case-insensitive)
+ *       - in: query
+ *         name: role
+ *         schema:
+ *           type: string
+ *           enum: [volunteer, staff, manager, admin]
+ *         description: Lọc theo role
+ *       - in: query
+ *         name: sort
+ *         schema:
+ *           type: string
+ *           default: created_at:desc
+ *         description: Sắp xếp (field:direction)
+ *     responses:
+ *       200:
+ *         description: Thành công, trả về danh sách người dùng
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: "Lấy danh sách người dùng thành công"
+ *               data:
+ *                 users:
+ *                   - user_id: 1
+ *                     full_name: "Nguyễn Văn A"
+ *                     email: "nguyenvana@example.com"
+ *                     role: "VOLUNTEER"
+ *                     is_active: true
+ *                     created_at: "2026-01-15T08:30:00.000Z"
+ *                 pagination:
+ *                   page: 1
+ *                   limit: 20
+ *                   total: 50
+ *                   totalPages: 3
+ *       400:
+ *         description: Lỗi validation (page, limit, role, sort)
+ *       401:
+ *         description: Chưa xác thực
+ *       403:
+ *         description: Không có quyền (không phải Admin)
+ *       500:
+ *         description: Lỗi server
+ */
+router.get(
+    "/",
+    authMiddleware,
+    authorize("ADMIN"),
+    validateQuery(getUsersSchema),
+    getUsersHandler
+);
+
+/**
+ * POST /api/v1/users
+ * Tạo người dùng mới (Admin only)
+ * UC28: Add User
+ */
+/**
+ * @swagger
+ * /api/v1/users:
+ *   post:
+ *     summary: Tạo người dùng mới (Admin only)
+ *     description: |
+ *       Tạo một tài khoản người dùng mới trong hệ thống.
+ *       Chỉ Admin mới có quyền truy cập. Staff/Manager/Volunteer nhận 403.
+ *       Guest chưa đăng nhập nhận 401.
+ *       Email phải duy nhất — nếu đã tồn tại trả về 409.
+ *       Mật khẩu được hash bằng bcryptjs trước khi lưu.
+ *     tags: [User Management]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - full_name
+ *               - email
+ *               - password
+ *               - role_id
+ *             properties:
+ *               full_name:
+ *                 type: string
+ *                 description: Họ và tên
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Email đăng nhập
+ *               phone:
+ *                 type: string
+ *                 description: Số điện thoại (optional)
+ *               password:
+ *                 type: string
+ *                 minLength: 8
+ *                 description: Mật khẩu (tối thiểu 8 ký tự)
+ *               role_id:
+ *                 type: integer
+ *                 description: ID của role
+ *           example:
+ *             full_name: "Nguyễn Văn B"
+ *             email: "nguyenvanb@example.com"
+ *             phone: "0987654321"
+ *             password: "password123"
+ *             role_id: 1
+ *     responses:
+ *       201:
+ *         description: Tạo user thành công
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: "Tạo người dùng thành công"
+ *               data:
+ *                 user_id: 2
+ *                 full_name: "Nguyễn Văn B"
+ *                 email: "nguyenvanb@example.com"
+ *                 role: "VOLUNTEER"
+ *                 is_active: true
+ *                 created_at: "2026-06-30T12:00:00.000Z"
+ *       400:
+ *         description: Dữ liệu đầu vào không hợp lệ
+ *       401:
+ *         description: Chưa xác thực
+ *       403:
+ *         description: Không có quyền (không phải Admin)
+ *       409:
+ *         description: Email already exists
+ *       500:
+ *         description: Lỗi server
+ */
+router.post(
+    "/",
+    authMiddleware,
+    authorize("ADMIN"),
+    validate(createUserSchema),
+    createUserHandler
+);
+
+/**
+ * GET /api/v1/users/:id
+ * Lấy thông tin chi tiết người dùng (Admin only)
+ * UC27: View User Detail
+ */
+/**
+ * @swagger
+ * /api/v1/users/{id}:
+ *   get:
+ *     summary: Lấy thông tin chi tiết người dùng (Admin only)
+ *     description: |
+ *       Trả về thông tin chi tiết của một người dùng theo ID.
+ *       Chỉ Admin mới có quyền truy cập. Staff/Manager/Volunteer nhận 403.
+ *       Guest chưa đăng nhập nhận 401.
+ *       Nếu ID không tồn tại, trả về 404.
+ *       Vẫn trả về user bị soft-delete (is_active = false).
+ *     tags: [User Management]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID của user
+ *     responses:
+ *       200:
+ *         description: Thành công, trả về thông tin chi tiết user
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: "Lấy thông tin người dùng thành công"
+ *               data:
+ *                 user_id: 1
+ *                 full_name: "Nguyễn Văn A"
+ *                 email: "nguyenvana@example.com"
+ *                 role: "VOLUNTEER"
+ *                 is_active: true
+ *                 created_at: "2026-01-15T08:30:00.000Z"
+ *       400:
+ *         description: User ID không hợp lệ
+ *       401:
+ *         description: Chưa xác thực
+ *       403:
+ *         description: Không có quyền (không phải Admin)
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Lỗi server
+ */
+router.get(
+    "/:id",
+    authMiddleware,
+    authorize("ADMIN"),
+    validateUserId,
+    getUserByIdHandler
+);
+
+/**
+ * PATCH /api/v1/users/:id
+ * Cập nhật thông tin người dùng (Admin only)
+ * UC29: Edit User
+ */
+/**
+ * @swagger
+ * /api/v1/users/{id}:
+ *   patch:
+ *     summary: Cập nhật thông tin người dùng (Admin only)
+ *     description: |
+ *       Cập nhật thông tin của một người dùng theo ID.
+ *       Chỉ Admin mới có quyền truy cập. Staff/Manager/Volunteer nhận 403.
+ *       Guest chưa đăng nhập nhận 401.
+ *       Email không thể thay đổi (bất biến).
+ *       Admin không thể tự hạ role của chính mình.
+ *     tags: [User Management]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID của user
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               full_name:
+ *                 type: string
+ *                 description: Họ và tên
+ *               phone:
+ *                 type: string
+ *                 description: Số điện thoại
+ *               avatar_url:
+ *                 type: string
+ *                 format: uri
+ *                 description: URL ảnh đại diện
+ *               role_id:
+ *                 type: integer
+ *                 description: ID của role
+ *               is_active:
+ *                 type: boolean
+ *                 description: Trạng thái hoạt động
+ *           example:
+ *             full_name: "Nguyễn Văn B (Updated)"
+ *             phone: "0909123456"
+ *             role_id: 2
+ *             is_active: true
+ *     responses:
+ *       200:
+ *         description: Cập nhật thành công
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: "Cập nhật thông tin người dùng thành công"
+ *               data:
+ *                 user_id: 1
+ *                 full_name: "Nguyễn Văn B (Updated)"
+ *                 email: "nguyenvanb@example.com"
+ *                 role: "STAFF"
+ *                 is_active: true
+ *       400:
+ *         description: Dữ liệu không hợp lệ hoặc body rỗng
+ *       401:
+ *         description: Chưa xác thực
+ *       403:
+ *         description: Không có quyền hoặc tự hạ role
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Lỗi server
+ */
+router.patch(
+    "/:id",
+    authMiddleware,
+    authorize("ADMIN"),
+    validateUserId,
+    validate(updateUserSchema),
+    updateUserHandler
 );
 
 export default router;
