@@ -121,7 +121,6 @@ Là người dùng, khi tôi truy cập trang Event Detail, tôi muốn thấy t
 
 - **Sự kiện có `approved_participants >= max_capacity` (đã đầy)**: WHEN sự kiện đã đạt sức chứa tối đa, THE system SHALL hiển thị "Đã đầy" (Full) thay vì số "20/20", và Volunteer chưa apply vẫn thấy nút Apply (UC12 sẽ từ chối nếu đầy). Volunteer đã có đơn `APPROVED` vẫn xem được thông tin bình thường.
 
-
 - **Người tạo sự kiện đã bị soft delete (`is_active = false`)**: WHEN Staff tạo sự kiện đã bị vô hiệu hóa tài khoản, THE system SHALL vẫn hiển thị tên của người tạo trong phần thông tin sự kiện vì mục đích lịch sử và minh bạch. Không ẩn thông tin này chỉ vì tài khoản người tạo không còn active.
 
 - **Danh mục sự kiện bị xóa**: WHEN `event_category` đã bị soft delete (`is_active = false`) nhưng sự kiện vẫn tham chiếu đến nó, THE system SHALL vẫn hiển thị tên danh mục (vì mục đích lịch sử) hoặc hiển thị "Danh mục không khả dụng".
