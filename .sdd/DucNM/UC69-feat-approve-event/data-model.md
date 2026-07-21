@@ -1,42 +1,29 @@
 # Data Model: Approve Event (UC69)
 
 **Phase**: 1 — Design & Contracts
+**Date**: 2026-07-06 | **Updated**: 2026-07-18
+**Status**: REVIEWED
 
-**Date**: 2026-07-06
+**Consistency Check**: Aligned with Prisma schema v3.0 and existing backend implementation (event.service.js).
 
 ---
 
 ## 1. Entity: Event (Approve)
 
-### Fields (cập nhật)
+### Fields (per Prisma schema)
 
 | Field | Type | Description | Constraints |
 |-------|------|-------------|------------|
-| `event_id` | Integer (PK) | ID duy nhất của sự kiện | Primary key |
+| `id` | Integer (PK) | ID duy nhất của sự kiện | Primary key |
 | `title` | String | Tên sự kiện | NOT NULL |
-| `status` | String (varchar 50) | Trạng thái: PENDING, APPROVED, REJECTED, ONGOING, COMPLETED | NOT NULL |
-| `approved_by` | Integer (FK, nullable) | **MỚI**: ID người phê duyệt | Foreign key → User |
-| `approved_at` | DateTime (nullable) | **MỚI**: Thời điểm phê duyệt | Auto-set |
-| `created_at` | DateTime | Ngày tạo | Auto |
-| `updated_at` | DateTime | Ngày cập nhật | Auto |
-
-### Entity: User (approver reference)
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `user_id` | Integer (PK) | ID người dùng |
-| `full_name` | String | Họ tên người phê duyệt |
-
-### Relationships
-
-```
-Event N:1 → User (event.approved_by = user.user_id)
-```
+| `status` | Enum | PENDING_APPROVAL, PUBLISHED, ... | NOT NULL |
+| `approvedBy` | Integer (FK, nullable) | ID người phê duyệt | FK → User |
+| `approvedAt` | DateTime (nullable) | Thời điểm phê duyệt | Auto-set |
 
 ### Status Transition
 
 ```
-PENDING → APPROVED (via UC69)
+PENDING_APPROVAL → PUBLISHED (via UC69)
 ```
 
 ### Validation Rules
@@ -44,18 +31,16 @@ PENDING → APPROVED (via UC69)
 | Rule | Error Code | HTTP Status |
 |------|------------|-------------|
 | Event ID không tồn tại | `EVENT_NOT_FOUND` | 404 |
-| Event status không phải PENDING | `INVALID_STATUS` | 409 |
+| Event status không phải PENDING_APPROVAL | `INVALID_STATUS` | 409 |
 
 ---
 
-## 2. API Request/Response
+## 2. API
 
 ### Request
-
 ```
 PATCH /api/v1/events/:id/approve
 ```
-
 Không có request body.
 
 ### Success Response (200 OK)
@@ -67,34 +52,38 @@ Không có request body.
   "data": {
     "event_id": 1,
     "title": "Dọn dẹp bãi biển",
-    "status": "APPROVED",
-    "approved_by": {
-      "user_id": 3,
-      "full_name": "Manager Nguyễn"
-    },
-    "approved_at": "2026-07-06T12:00:00.000Z",
-    "created_at": "2026-07-01T08:30:00.000Z",
-    "updated_at": "2026-07-06T12:00:00.000Z"
+    "status": "published",
+    "approved_by": 3,
+    "approved_at": "2026-07-06T12:00:00.000Z"
   }
 }
 ```
 
-### Error Responses
+**Note**: Response format follows `event.service.js` `formatApprovedEvent()` — returns `approved_by` as integer (user_id), not nested object.
 
-| Status | Code | Description |
-|--------|------|-------------|
-| 401 | `UNAUTHORIZED` | Chưa đăng nhập |
-| 403 | `FORBIDDEN` | Không phải Manager/Admin |
-| 404 | `EVENT_NOT_FOUND` | Event ID không tồn tại |
-| 409 | `INVALID_STATUS` | Event không ở trạng thái PENDING |
-| 500 | `INTERNAL_SERVER_ERROR` | Lỗi server |
-
-### 409 Conflict Response
+### Error Responses (theo response.util.js)
 
 ```json
 {
   "success": false,
-  "message": "Event is not in PENDING status.",
+  "message": "Event is not in PENDING_APPROVAL status.",
   "code": "INVALID_STATUS",
   "details": null
 }
+```
+
+---
+
+## 3. Existing Backend Behavior (Verified)
+
+Current `event.service.js` `approveEvent()`:
+- Updates `status = 'PUBLISHED'`
+- Sets `approvedBy = currentUser.user_id`
+- Sets `approvedAt = new Date()`
+- Does NOT clear `rejectedBy`, `rejectedAt`, `rejectedReason`
+
+---
+
+**Version**: 2.0
+**Status**: REVIEWED
+**Last Updated**: 2026-07-18
