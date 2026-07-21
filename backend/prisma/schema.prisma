@@ -261,7 +261,6 @@ model Application {
   event           Event @relation(fields: [eventId], references: [id])
   processedByUser User? @relation("applicationProcessedByUser", fields: [processedBy], references: [id])
 
-  @@unique([userId, eventId])
   @@index([userId, status])
   @@index([eventId, status])
   @@index([processedBy])
