@@ -1,10 +1,13 @@
 /**
  * Event Controller - HTTP layer for Event Management module
- * Owner: Member 5 - DucNM (UC67, UC69, UC70)
+ * Owner: Member 5 - DucNM (UC15, UC67, UC69, UC70)
  *
  * Responsibilities:
- * - Handle HTTP request/response for event management endpoints
- * - Extract user info and pass to Service layer
+ * - UC15: Create event
+ * - UC67: Get event list
+ * - UC69: Approve event
+ * - UC70: Reject event
+ * - Handle HTTP request/response
  * - Return standardized API response
  *
  * Rules:
@@ -91,8 +94,31 @@ async function rejectEventHandler(req, res, next) {
     }
 }
 
+/**
+ * POST /api/v1/events
+ * UC15: Staff tạo sự kiện mới.
+ * Authentication và Authorization được xử lý ở middleware.
+ */
+async function createEventHandler(req, res, next) {
+    try {
+        const result = await eventService.createEvent(req.body, req.user);
+
+        return res.status(201).json(
+            successResponse(result, 'Tạo sự kiện thành công')
+        );
+    } catch (error) {
+        if (error.status && error.code) {
+            return res.status(error.status).json(
+                errorResponse(error.message, error.code, error.details)
+            );
+        }
+        next(error);
+    }
+}
+
 export {
     getEventsHandler,
     approveEventHandler,
-    rejectEventHandler
+    rejectEventHandler,
+    createEventHandler
 };

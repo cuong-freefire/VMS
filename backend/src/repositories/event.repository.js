@@ -1,11 +1,13 @@
 /**
  * Event Repository - Database operations for Event Management module
- * Owner: Member 5 - DucNM (UC67, UC69, UC70)
+ * Owner: Member 5 - DucNM (UC15, UC67, UC69, UC70)
  *
  * Responsibilities:
- * - Query events with pagination, status filter, and organization include
+ * - Query events with pagination, status filter, category and creator information
  * - Find event by ID (UC69, UC70)
  * - Update event status, approval, and rejection info (UC69)
+ * - Create event
+ * - Find category
  *
  * Rules:
  * - All database access goes through Prisma ORM
@@ -18,13 +20,13 @@ const prisma = new PrismaClient();
 
 /**
  * Find events with pagination and optional where filter.
- * Includes organization name for display.
+ * Includes category and creator information.
  *
  * @param {Object} options - Query options
  * @param {number} options.skip - Number of records to skip (pagination)
  * @param {number} options.take - Number of records to take (pagination)
  * @param {Object} [options.where={}] - Prisma where clause for filtering
- * @returns {Promise<Array>} List of events with organization info
+ * @returns {Promise<Array>} List of events with category and creator information
  */
 const findEvents = async ({ skip, take, where = {} }) => {
     return prisma.event.findMany({
@@ -133,10 +135,75 @@ const updateEventStatus = async (id, data) => {
     });
 };
 
+/**
+ * Create a new event record.
+ * UC15: Add Event — Staff tạo sự kiện mới với trạng thái DRAFT.
+ *
+ * @param {Object} data - Event data to create
+ * @returns {Promise<Object>} Created event record
+ */
+const createEvent = async (data) => {
+    return prisma.event.create({
+        data,
+        select: {
+            id: true,
+            title: true,
+            description: true,
+            location: true,
+            startDate: true,
+            endDate: true,
+            applicationDeadline: true,
+            maxCapacity: true,
+            approvedParticipants: true,
+            imageUrl: true,
+            status: true,
+            isActive: true,
+            createdAt: true,
+            updatedAt: true,
+
+            category: {
+                select: {
+                    id: true,
+                    name: true,
+                    categoryType: true
+                }
+            },
+
+            createdByUser: {
+                select: {
+                    id: true,
+                    fullName: true,
+                    email: true
+                }
+            }
+        }
+    });
+};
+
+/**
+ * Find active event category by ID.
+ * UC15: Add Event — validate category exists before creating event.
+ *
+ * @param {number} categoryId - Category ID
+ * @returns {Promise<Object|null>} Category record or null
+ */
+const findCategoryById = async (categoryId) => {
+    return prisma.eventCategory.findUnique({
+        where: { id: categoryId },
+        select: {
+            id: true,
+            name: true,
+            isActive: true
+        }
+    });
+};
+
 export default {
     findEvents,
     countEvents,
     findRoleNameById,
     findById,
-    updateEventStatus
+    updateEventStatus,
+    createEvent,
+    findCategoryById
 };

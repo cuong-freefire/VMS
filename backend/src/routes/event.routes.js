@@ -2,13 +2,14 @@
  * Event Routes
  *
  * Các endpoint liên quan đến sự kiện (Event Management):
- * - GET /: Lấy danh sách sự kiện (UC67 - View Pending Event)
- * - PATCH /:id/approve: Phê duyệt sự kiện (UC69 - Approve Event)
- * - PATCH /:id/reject: Từ chối sự kiện (UC70 - Reject Event)
+ * - POST / (UC15 - Add Event)
+ * - GET / (UC67 - View Pending Event)
+ * - PATCH /:id/approve (UC69)
+ * - PATCH /:id/reject (UC70)
  *
  * Prefix: /api/v1/events (mount tại app.js)
  *
- * Owner: Member 5 - DucNM (UC67, UC69, UC70)
+ * Owner: Member 5 - DucNM (UC15, UC67, UC69, UC70)
  * Module: Event Approval Management
  */
 
@@ -17,8 +18,8 @@ import authMiddleware from "../middlewares/auth.middleware.js";
 import authorize from "../middlewares/authorize.middleware.js";
 import optionalAuth from "../middlewares/optionalAuth.middleware.js";
 import { validate, validateQuery } from "../middlewares/validators/validate.js";
-import { getEventsHandler, approveEventHandler, rejectEventHandler } from "../controllers/event.controller.js";
-import { getEventsQuerySchema, rejectEventSchema } from "../middlewares/validators/event.validator.js";
+import { getEventsHandler, approveEventHandler, rejectEventHandler, createEventHandler } from "../controllers/event.controller.js";
+import { getEventsQuerySchema, rejectEventSchema, createEventSchema } from "../middlewares/validators/event.validator.js";
 
 const router = Router();
 
@@ -234,6 +235,143 @@ router.patch(
     authorize("MANAGER", "ADMIN"),
     validate(rejectEventSchema),
     rejectEventHandler
+);
+
+/**
+ * POST /api/v1/events
+ * Tạo sự kiện mới (UC15: Add Event)
+ * Chỉ Staff mới có quyền truy cập.
+ */
+/**
+ * @swagger
+ * /api/v1/events:
+ *   post:
+ *     summary: Tạo sự kiện mới (Staff only)
+ *     description: |
+ *       Tạo một sự kiện tình nguyện mới với trạng thái DRAFT.
+ *       Chỉ Staff mới có quyền truy cập.
+ *       createdBy được lấy từ JWT token — không tin request body.
+ *       Sau khi tạo, event ở trạng thái DRAFT chờ Staff submit để chuyển sang PENDING_APPROVAL.
+ *     tags: [Event Management]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *               - description
+ *               - startDate
+ *               - endDate
+ *               - applicationDeadline
+ *               - location
+ *               - maxCapacity
+ *               - categoryId
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 minLength: 10
+ *                 maxLength: 500
+ *                 description: Tiêu đề sự kiện
+ *               description:
+ *                 type: string
+ *                 minLength: 50
+ *                 maxLength: 5000
+ *                 description: Mô tả chi tiết sự kiện
+ *               startDate:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Ngày giờ bắt đầu (ISO 8601, phải ở tương lai)
+ *               endDate:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Ngày giờ kết thúc (ISO 8601, phải sau startDate)
+ *               applicationDeadline:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Hạn đăng ký (ISO 8601, phải trước startDate)
+ *               location:
+ *                 type: string
+ *                 minLength: 5
+ *                 maxLength: 500
+ *                 description: Địa điểm tổ chức
+ *               maxCapacity:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 10000
+ *                 description: Số lượng tối đa
+ *               categoryId:
+ *                 type: integer
+ *                 description: ID danh mục sự kiện (FK -> event_categories.id)
+ *               imageUrl:
+ *                 type: string
+ *                 format: uri
+ *                 description: URL ảnh bìa từ Cloudinary (tùy chọn)
+ *           example:
+ *             title: "Mùa Hè Xanh 2026 - Hà Giang"
+ *             description: "Chiến dịch tình nguyện mùa hè tại các tỉnh miền núi phía Bắc. Tình nguyện viên sẽ tham gia các hoạt động xây dựng trường học, dạy học cho trẻ em vùng cao và hỗ trợ cộng đồng địa phương."
+ *             startDate: "2026-07-15T08:00:00.000Z"
+ *             endDate: "2026-07-20T17:00:00.000Z"
+ *             applicationDeadline: "2026-07-10T23:59:59.000Z"
+ *             location: "Hà Giang, Việt Nam"
+ *             maxCapacity: 50
+ *             categoryId: 1
+ *             imageUrl: "https://res.cloudinary.com/vms-cloud/image/upload/v1234567890/events/summer-2026.jpg"
+ *     responses:
+ *       201:
+ *         description: Tạo sự kiện thành công
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: "Tạo sự kiện thành công"
+ *               data:
+ *                 event_id: 123
+ *                 title: "Mùa Hè Xanh 2026 - Hà Giang"
+ *                 description: "Chiến dịch tình nguyện mùa hè tại các tỉnh miền núi phía Bắc..."
+ *                 location: "Hà Giang, Việt Nam"
+
+ *                 start_date: "2026-07-15T08:00:00.000Z"
+ *                 end_date: "2026-07-20T17:00:00.000Z"
+ *                 application_deadline: "2026-07-10T23:59:59.000Z"
+ *                 max_capacity: 50
+ *                 approved_participants: 0
+ * 
+ *                 image_url: "https://res.cloudinary.com/vms-cloud/image/upload/v1234567890/events/summer-2026.jpg"
+ *
+ *                 status: "draft"
+ *                 is_active: true
+ *
+ *                 created_at: "2026-06-29T15:09:00.000Z"
+ *                 updated_at: "2026-06-29T15:09:00.000Z"
+ *
+ *                 category:
+ *                     id: 1
+ *                     name: "Community"
+ *                     type: "volunteer"
+ *
+ *                 created_by:
+ *                     id: 456
+ *                     full_name: "Nguyen Van A"
+ *                     email: "staff@example.com"
+ *       400:
+ *         description: Dữ liệu không hợp lệ (validation error)
+ *       401:
+ *         description: Chưa xác thực
+ *       403:
+ *         description: Không có quyền (không phải Staff)
+ *       500:
+ *         description: Lỗi server
+ */
+router.post(
+    "/",
+    authMiddleware,
+    authorize("STAFF"),
+    validate(createEventSchema),
+    createEventHandler
 );
 
 export default router;

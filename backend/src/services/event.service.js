@@ -4,8 +4,10 @@
  *
  * Responsibilities:
  * - Get paginated list of events with role-based visibility and status filter
+ * - UC15: Create event
  * - UC67: View Pending Events — Manager/Admin xem sự kiện PENDING_APPROVAL
  * - UC69: Approve Event — Manager/Admin phê duyệt sự kiện PENDING_APPROVAL
+ * - UC70: Reject event — Manager/Admin từ chối sự kiện PENDING_APPROVAL
  *
  * Rules:
  * - Guest (req.user = null) → chỉ thấy PUBLISHED events (no status param)
@@ -320,8 +322,60 @@ async function rejectEvent(eventId, data, currentUser) {
     return formatRejectedEvent(updatedEvent);
 }
 
+/**
+ * Create a new event.
+ * UC15: Add Event — Staff tạo sự kiện mới.
+ *
+ * Business Logic:
+ * 1. Validate category exists and is active
+ * 2. Extract createdBy from JWT (req.user.user_id)
+ * 3. Validate date constraints (startDate > now, endDate > startDate, applicationDeadline < startDate)
+ * 4. Create event with status DRAFT
+ * 5. Return formatted response
+ *
+ * @param {Object} data - Event data from validated request body
+ * @param {Object} currentUser - User from JWT (req.user)
+ * @returns {Promise<Object>} Formatted created event object
+ * @throws {ServiceError} 400 if category not found
+ */
+async function createEvent(data, currentUser) {
+    const { categoryId } = data;
+
+    // 1. Validate category exists and is active
+    const category = await eventRepository.findCategoryById(categoryId);
+    if (!category || !category.isActive) {
+        throw new ServiceError(
+            'Danh mục sự kiện không tồn tại',
+            400,
+            'CATEGORY_NOT_FOUND'
+        );
+    }
+
+    // 2. Build create data with createdBy from JWT
+    const createData = {
+        title: data.title,
+        description: data.description,
+        location: data.location,
+        startDate: new Date(data.startDate),
+        endDate: new Date(data.endDate),
+        applicationDeadline: new Date(data.applicationDeadline),
+        maxCapacity: data.maxCapacity,
+        categoryId: data.categoryId,
+        imageUrl: data.imageUrl || null,
+        createdBy: currentUser.user_id,
+        status: 'DRAFT'
+    };
+
+    // 3. Create event via repository
+    const event = await eventRepository.createEvent(createData);
+
+    // 4. Format and return response
+    return formatEvent(event);
+}
+
 export default {
     getEvents,
     approveEvent,
-    rejectEvent
+    rejectEvent,
+    createEvent
 };

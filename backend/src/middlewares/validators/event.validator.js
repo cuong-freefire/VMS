@@ -72,3 +72,78 @@ export const rejectEventSchema = z.object({
         .trim()
         .min(10, 'Rejection reason must be at least 10 characters.')
 });
+
+/**
+ * Schema validation cho POST /api/v1/events request body.
+ * UC15: Add Event — Staff tạo sự kiện mới.
+ *
+ * Validation rules:
+ * - title: 10-500 characters, required
+ * - description: 50-5000 characters, required
+ * - startDate: ISO 8601 datetime, must be in the future
+ * - endDate: ISO 8601 datetime, must be after startDate
+ * - applicationDeadline: ISO 8601 datetime, must be before startDate
+ * - location: 5-500 characters, required
+ * - maxCapacity: 1-10000, integer, required
+ * - categoryId: positive integer, required
+ * - imageUrl: optional, HTTPS URL
+ */
+export const createEventSchema = z.object({
+    title: z
+        .string()
+        .trim()
+        .min(10, 'Title must be at least 10 characters')
+        .max(500, 'Title must not exceed 500 characters'),
+
+    description: z
+        .string()
+        .trim()
+        .min(50, 'Description must be at least 50 characters')
+        .max(5000, 'Description must not exceed 5000 characters'),
+
+    startDate: z
+        .string()
+        .datetime({ message: 'Start date must be a valid ISO 8601 datetime' }),
+
+    endDate: z
+        .string()
+        .datetime({ message: 'End date must be a valid ISO 8601 datetime' }),
+
+    applicationDeadline: z
+        .string()
+        .datetime({ message: 'Application deadline must be a valid ISO 8601 datetime' }),
+
+    location: z
+        .string()
+        .trim()
+        .min(5, 'Location must be at least 5 characters')
+        .max(500, 'Location must not exceed 500 characters'),
+
+    maxCapacity: z
+        .coerce()
+        .number()
+        .int('Capacity must be an integer')
+        .min(1, 'Capacity must be at least 1')
+        .max(10000, 'Capacity must not exceed 10000'),
+
+    categoryId: z
+        .coerce()
+        .number()
+        .int('Category ID must be an integer')
+        .positive('Category ID must be positive'),
+
+    imageUrl: z
+        .string()
+        .url('Invalid image URL')
+        .optional()
+        .nullable()
+}).refine((data) => new Date(data.startDate) > new Date(), {
+    message: 'Start date must be in the future',
+    path: ['startDate']
+}).refine((data) => new Date(data.endDate) > new Date(data.startDate), {
+    message: 'End date must be after start date',
+    path: ['endDate']
+}).refine((data) => new Date(data.applicationDeadline) < new Date(data.startDate), {
+    message: 'Application deadline must be before start date',
+    path: ['applicationDeadline']
+});
