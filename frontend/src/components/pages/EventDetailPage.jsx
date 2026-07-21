@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
     MapPin,
@@ -13,9 +13,11 @@ import {
     XCircle,
     Clock4,
     Ban,
+    X,
 } from "lucide-react";
 import useEventDetail from "../../hooks/useEventDetail";
 import { useAuth } from "../../contexts/authContext.context";
+import { applicationService } from "../../services/application.service";
 import Card from "../ui/Card";
 import Button from "../ui/Button";
 import Skeleton from "../ui/Skeleton";
@@ -149,6 +151,26 @@ export default function EventDetailPage() {
     const navigate = useNavigate();
     const { isAuthenticated } = useAuth();
     const { event, loading, error, refetch } = useEventDetail(id);
+
+    /* ----- Cancel Application state ----- */
+    const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+    const [cancelling, setCancelling] = useState(false);
+    const [cancelError, setCancelError] = useState(null);
+
+    const handleCancel = async () => {
+        if (!event?.userApplication) return;
+        setCancelling(true);
+        setCancelError(null);
+        try {
+            await applicationService.cancelApplication(event.userApplication.id);
+            setShowCancelConfirm(false);
+            refetch();
+        } catch (err) {
+            setCancelError(err.message || "Không thể hủy đơn đăng ký.");
+        } finally {
+            setCancelling(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -413,8 +435,118 @@ export default function EventDetailPage() {
                             </Link>
                         </div>
                     )}
+
+                    {/* CTA: Cancel application button */}
+                    {isAuthenticated
+                        && event.userApplication
+                        && (event.userApplication.status === "PENDING" || event.userApplication.status === "APPROVED")
+                        && event.status === "PUBLISHED" && (
+                            <div style={{ marginTop: "var(--space-3)" }}>
+                                <Button
+                                    variant="danger"
+                                    style={{ width: "100%" }}
+                                    onClick={() => {
+                                        setCancelError(null);
+                                        setShowCancelConfirm(true);
+                                    }}
+                                >
+                                    Hủy đơn đăng ký
+                                </Button>
+                            </div>
+                        )}
                 </div>
             </div>
+
+            {/* ----- Cancel Confirmation Dialog ----- */}
+            {showCancelConfirm && (
+                <div style={{
+                    position: "fixed",
+                    inset: 0,
+                    backgroundColor: "rgba(0,0,0,0.5)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    zIndex: 1000,
+                }}>
+                    <div style={{
+                        backgroundColor: "var(--surface-white)",
+                        borderRadius: "var(--radius-lg)",
+                        padding: "var(--space-6)",
+                        maxWidth: 440,
+                        width: "100%",
+                        margin: "0 var(--space-4)",
+                        position: "relative",
+                    }}>
+                        <button
+                            onClick={() => setShowCancelConfirm(false)}
+                            disabled={cancelling}
+                            style={{
+                                position: "absolute",
+                                top: "var(--space-4)",
+                                right: "var(--space-4)",
+                                background: "none",
+                                border: "none",
+                                cursor: "pointer",
+                                color: "var(--text-tertiary)",
+                                padding: 0,
+                            }}
+                        >
+                            <X size={20} />
+                        </button>
+
+                        <h3 style={{
+                            fontSize: "var(--font-size-h3)",
+                            fontWeight: "var(--font-weight-semibold)",
+                            color: "var(--text-primary)",
+                            marginBottom: "var(--space-3)",
+                        }}>
+                            Xác nhận hủy đơn
+                        </h3>
+
+                        <p style={{
+                            fontSize: "var(--font-size-body)",
+                            color: "var(--text-secondary)",
+                            marginBottom: "var(--space-4)",
+                            lineHeight: 1.6,
+                        }}>
+                            Bạn có chắc chắn muốn hủy đơn đăng ký sự kiện <strong>{event.title}</strong>?
+                            {event.userApplication?.status === "APPROVED" && (
+                                <span> Hành động này sẽ giải phóng chỗ của bạn cho tình nguyện viên khác.</span>
+                            )}
+                        </p>
+
+                        {cancelError && (
+                            <div style={{
+                                backgroundColor: "#fee2e2",
+                                color: "#991b1b",
+                                borderRadius: "var(--radius-md)",
+                                padding: "var(--space-3)",
+                                marginBottom: "var(--space-4)",
+                                fontSize: "var(--font-size-small)",
+                            }}>
+                                {cancelError}
+                            </div>
+                        )}
+
+                        <div style={{ display: "flex", gap: "var(--space-3)", justifyContent: "flex-end" }}>
+                            <Button
+                                variant="secondary"
+                                onClick={() => setShowCancelConfirm(false)}
+                                disabled={cancelling}
+                            >
+                                Giữ lại
+                            </Button>
+                            <Button
+                                variant="danger"
+                                onClick={handleCancel}
+                                disabled={cancelling}
+                            >
+                                {cancelling ? "Đang hủy..." : "Xác nhận hủy"}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
