@@ -2,8 +2,10 @@
  * Category Routes
  *
  * Các endpoint liên quan đến danh mục (Category Management):
- * - GET /: Lấy danh sách danh mục (UC31 - View Category List)
- *
+ * - GET /: Lấy danh sách danh mục (UC31 - View Category List, UC-feat-search-category)
+ * - POST /       : Add Category (UC32)
+ * - PATCH /:id   : Edit Category (UC33)
+ * 
  * Prefix: /api/v1/categories (mount tại app.js)
  *
  * Owner: Member 4 - DucNM
@@ -14,9 +16,9 @@ import { Router } from "express";
 import authMiddleware from "../middlewares/auth.middleware.js";
 import authorize from "../middlewares/authorize.middleware.js";
 import optionalAuth from "../middlewares/optionalAuth.middleware.js";
-import { validate } from "../middlewares/validators/validate.js";
+import { validate, validateQuery } from "../middlewares/validators/validate.js";
 import { getCategoriesHandler, createCategoryHandler, updateCategoryHandler } from "../controllers/category.controller.js";
-import { createCategorySchema, updateCategorySchema } from "../validators/category.validator.js";
+import { createCategorySchema, updateCategorySchema, getCategoriesQuerySchema } from "../middlewares/validators/category.validator.js";
 
 const router = Router();
 
@@ -27,6 +29,7 @@ const router = Router();
  *   - Guest (không token) → chỉ active categories
  *   - Volunteer/Staff → chỉ active categories
  *   - Manager/Admin → tất cả categories (active + inactive)
+ * Hỗ trợ tìm kiếm theo tên/mô tả (search) và lọc theo type (UC-feat-search-category).
  */
 /**
  * @swagger
@@ -38,10 +41,22 @@ const router = Router();
  *       - Nếu không có token (Guest): trả về categories active (public)
  *       - Nếu có token Volunteer/Staff: trả về categories active
  *       - Nếu có token Manager/Admin: trả về tất cả categories (active + inactive)
- *       Endpoint này phục vụ UC11 (Filter Event) cho Guest và Volunteer.
+ *       Hỗ trợ tìm kiếm theo tên/mô tả (search) và lọc theo type.
  *     tags: [Category Management]
  *     security:
  *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Tìm kiếm theo tên hoặc mô tả (case-insensitive, partial match)
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [location, event_type, time_frame]
+ *         description: Lọc theo loại danh mục
  *     responses:
  *       200:
  *         description: Thành công, trả về danh sách categories
@@ -56,12 +71,15 @@ const router = Router();
  *                     name: "Giáo dục"
  *                     type: "event_type"
  *                     is_active: true
+ *       400:
+ *         description: Lỗi validation (search, type)
  *       500:
  *         description: Lỗi server
  */
 router.get(
     "/",
     optionalAuth,
+    validateQuery(getCategoriesQuerySchema),
     getCategoriesHandler
 );
 

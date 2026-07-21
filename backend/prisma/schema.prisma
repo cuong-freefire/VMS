@@ -220,6 +220,8 @@ model Event {
   createdBy            Int         @map("created_by")
   approvedBy           Int?        @map("approved_by")
   approvedAt           DateTime?   @map("approved_at")
+  rejectedBy           Int?        @map("rejected_by")
+  rejectedAt           DateTime?   @map("rejected_at")
   rejectedReason       String?     @db.Text @map("rejected_reason")
   status               EventStatus @default(DRAFT)
   isActive             Boolean     @default(true) @map("is_active")
@@ -229,11 +231,13 @@ model Event {
   category       EventCategory @relation(fields: [categoryId], references: [id])
   createdByUser  User          @relation("createdByStaff", fields: [createdBy], references: [id])
   approvedByUser User?         @relation("approvedByManager", fields: [approvedBy], references: [id])
+  rejectedByUser User?         @relation("rejectedByManager", fields: [rejectedBy], references: [id])
   applications   Application[]
 
   @@index([categoryId])
   @@index([createdBy])
   @@index([approvedBy])
+  @@index([rejectedBy])
   @@index([status, isActive])
   @@index([startDate])
   @@index([applicationDeadline])
