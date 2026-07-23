@@ -18,8 +18,8 @@ import authMiddleware from "../middlewares/auth.middleware.js";
 import authorize from "../middlewares/authorize.middleware.js";
 import optionalAuth from "../middlewares/optionalAuth.middleware.js";
 import { validate, validateQuery } from "../middlewares/validators/validate.js";
-import { getEventsHandler, approveEventHandler, rejectEventHandler, createEventHandler } from "../controllers/event.controller.js";
-import { getEventsQuerySchema, rejectEventSchema, createEventSchema } from "../middlewares/validators/event.validator.js";
+import { getEventsHandler, approveEventHandler, rejectEventHandler, createEventHandler, updateEventHandler } from "../controllers/event.controller.js";
+import { getEventsQuerySchema, rejectEventSchema, createEventSchema, updateEventSchema } from "../middlewares/validators/event.validator.js";
 
 const router = Router();
 
@@ -372,6 +372,129 @@ router.post(
     authorize("STAFF"),
     validate(createEventSchema),
     createEventHandler
+);
+
+/**
+ * PATCH /api/v1/events/:id
+ * Cập nhật thông tin sự kiện (UC16: Edit Event)
+ * Chỉ Staff — ownership check ở service layer.
+ */
+/**
+ * @swagger
+ * /api/v1/events/{id}:
+ *   patch:
+ *     summary: Cập nhật thông tin sự kiện
+ *     description: |
+ *       Cập nhật thông tin sự kiện. Tất cả các field đều optional (PATCH semantics).
+ *       Chỉ Staff là người tạo event mới có quyền chỉnh sửa.
+ *       - DRAFT/PENDING_APPROVAL/REJECTED: có thể chỉnh sửa
+ *       - PUBLISHED: 
+ *          - Nếu sửa CRITICAL fields -> chuyển về PENDING_APPROVAL 
+ *          - Nếu chỉ sửa SAFE fields -> giữ nguyên PUBLISHED
+ *       - IN_PROGRESS/COMPLETED/CANCELLED: không thể chỉnh sửa (409)
+ *       Không thể giảm maxCapacity dưới approvedParticipants (409).
+ *     tags: [Event Management]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID của sự kiện cần cập nhật
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 minLength: 10
+ *                 maxLength: 500
+ *                 description: Tiêu đề sự kiện (CRITICAL → reset status)
+ *               description:
+ *                 type: string
+ *                 minLength: 50
+ *                 maxLength: 5000
+ *                 description: Mô tả chi tiết (SAFE)
+ *               startDate:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Ngày giờ bắt đầu (CRITICAL → reset status)
+ *               endDate:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Ngày giờ kết thúc (CRITICAL → reset status)
+ *               applicationDeadline:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Hạn đăng ký (CONDITIONAL)
+ *               location:
+ *                 type: string
+ *                 minLength: 5
+ *                 maxLength: 500
+ *                 description: Địa điểm (CRITICAL → reset status)
+ *               maxCapacity:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 10000
+ *                 description: Số lượng tối đa (CONDITIONAL, >= approvedParticipants)
+ *               categoryId:
+ *                 type: integer
+ *                 description: ID danh mục (CRITICAL → reset status)
+ *               imageUrl:
+ *                 type: string
+ *                 format: uri
+ *                 description: URL ảnh bìa (SAFE)
+ *           example:
+ *             title: "Mùa Hè Xanh 2026 - Cập nhật"
+ *             description: "Chiến dịch tình nguyện mùa hè đã được cập nhật với thông tin mới. Tình nguyện viên sẽ tham gia các hoạt động xây dựng trường học và dạy học cho trẻ em."
+ *             maxCapacity: 60
+ *     responses:
+ *       200:
+ *         description: Cập nhật thành công
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: "Cập nhật sự kiện thành công"
+ *               data:
+ *                 event_id: 123
+ *                 title: "Mùa Hè Xanh 2026 - Cập nhật"
+ *                 description: "..."
+ *                 location: "Hà Nội"
+ *                 start_date: "2026-08-01T08:00:00.000Z"
+ *                 end_date: "2026-08-05T17:00:00.000Z"
+ *                 application_deadline: "2026-07-25T23:59:59.000Z"
+ *                 max_capacity: 60
+ *                 approved_participants: 20
+ *                 image_url: "https://..."
+ *                 status: "pending_approval"
+ *                 is_active: true
+ *                 created_at: "2026-07-01T10:00:00.000Z"
+ *                 updated_at: "2026-07-18T10:00:00.000Z"
+ *       400:
+ *         description: Dữ liệu không hợp lệ (validation error)
+ *       401:
+ *         description: Chưa xác thực
+ *       403:
+ *         description: Không có quyền (không phải chủ sở hữu)
+ *       404:
+ *         description: Event not found
+ *       409:
+ *         description: Conflict (status not editable hoặc capacity invalid)
+ *       500:
+ *         description: Lỗi server
+ */
+router.patch(
+    "/:id",
+    authMiddleware,
+    authorize("STAFF"),
+    validate(updateEventSchema),
+    updateEventHandler
 );
 
 export default router;

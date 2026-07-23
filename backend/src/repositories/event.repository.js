@@ -1,6 +1,6 @@
 /**
  * Event Repository - Database operations for Event Management module
- * Owner: Member 5 - DucNM (UC15, UC67, UC69, UC70)
+ * Owner: Member 5 - DucNM (UC15, UC16, UC67, UC69, UC70)
  *
  * Responsibilities:
  * - Query events with pagination, status filter, category and creator information
@@ -96,14 +96,50 @@ const findRoleNameById = async (roleId) => {
 
 /**
  * Find event by ID.
- * UC69: Approve Event — check event tồn tại.
+ * - UC16: Edit Event — validate event exists and ownership.
+ * - UC69: Approve Event — validate event exists.
+ * - UC70: Reject Event — validate event exists.
  *
  * @param {number} id - Event ID
  * @returns {Promise<Object|null>} Event record or null
  */
 const findById = async (id) => {
     return prisma.event.findUnique({
-        where: { id }
+        where: { id },
+        select: {
+            id: true,
+            title: true,
+            description: true,
+            location: true,
+            startDate: true,
+            endDate: true,
+            applicationDeadline: true,
+            maxCapacity: true,
+            approvedParticipants: true,
+            imageUrl: true,
+            categoryId: true,
+            status: true,
+            isActive: true,
+            createdBy: true,
+            createdAt: true,
+            updatedAt: true,
+
+            category: {
+                select: {
+                    id: true,
+                    name: true,
+                    categoryType: true
+                }
+            },
+
+            createdByUser: {
+                select: {
+                    id: true,
+                    fullName: true,
+                    email: true
+                }
+            }
+        }
     });
 };
 
@@ -156,6 +192,8 @@ const createEvent = async (data) => {
             maxCapacity: true,
             approvedParticipants: true,
             imageUrl: true,
+            categoryId: true,
+            createdBy: true,
             status: true,
             isActive: true,
             createdAt: true,
@@ -198,6 +236,53 @@ const findCategoryById = async (categoryId) => {
     });
 };
 
+/**
+ * Update an existing event record.
+ * UC16: Edit Event — Staff cập nhật thông tin sự kiện.
+ *
+ * @param {number} id - Event ID
+ * @param {Object} data - Fields to update
+ * @returns {Promise<Object>} Updated event record
+ */
+const updateEvent = async (id, data) => {
+    return prisma.event.update({
+        where: { id },
+        data,
+        select: {
+            id: true,
+            title: true,
+            description: true,
+            location: true,
+            startDate: true,
+            endDate: true,
+            applicationDeadline: true,
+            maxCapacity: true,
+            approvedParticipants: true,
+            imageUrl: true,
+            categoryId: true,
+            status: true,
+            isActive: true,
+            createdBy: true,
+            createdAt: true,
+            updatedAt: true,
+            category: {
+                select: {
+                    id: true,
+                    name: true,
+                    categoryType: true
+                }
+            },
+            createdByUser: {
+                select: {
+                    id: true,
+                    fullName: true,
+                    email: true
+                }
+            }
+        }
+    });
+};
+
 export default {
     findEvents,
     countEvents,
@@ -205,5 +290,6 @@ export default {
     findById,
     updateEventStatus,
     createEvent,
-    findCategoryById
+    findCategoryById,
+    updateEvent
 };

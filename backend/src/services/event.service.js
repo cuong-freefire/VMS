@@ -1,10 +1,11 @@
 /**
  * Event Service - Business logic for Event Management module
- * Owner: Member 5 - DucNM (UC67, UC69, UC70)
+ * Owner: Member 5 - DucNM (UC15, UC16, UC67, UC69, UC70)
  *
  * Responsibilities:
  * - Get paginated list of events with role-based visibility and status filter
  * - UC15: Create event
+ * - UC16: Edit event
  * - UC67: View Pending Events — Manager/Admin xem sự kiện PENDING_APPROVAL
  * - UC69: Approve Event — Manager/Admin phê duyệt sự kiện PENDING_APPROVAL
  * - UC70: Reject event — Manager/Admin từ chối sự kiện PENDING_APPROVAL
@@ -12,7 +13,7 @@
  * Rules:
  * - Guest (req.user = null) → chỉ thấy PUBLISHED events (no status param)
  * - Volunteer → chỉ thấy PUBLISHED events
- * - Staff → chỉ thấy PUBLISHED events (hoặc events do Staff tạo)
+ * - Staff → thấy các sự kiện do mình tạo hoặc các sự kiện đã PUBLISHED
  * - Manager/Admin → thấy tất cả events (không status) hoặc lọc theo status
  * - Manager/Admin mới có quyền xem PENDING_APPROVAL events
  * - Manager/Admin mới có quyền approve event
@@ -82,6 +83,12 @@ function formatApprovedEvent(event) {
     };
 }
 
+/**
+ * Format rejected event for API response.
+ *
+ * @param {Object} event
+ * @returns {Object}
+ */
 function formatRejectedEvent(event) {
     return {
         event_id: event.id,
@@ -106,12 +113,26 @@ function formatRejectedEvent(event) {
  */
 const EVENT_STATUS_MAP = {
     draft: 'DRAFT',
+    pending_approval: 'PENDING_APPROVAL',
     published: 'PUBLISHED',
     rejected: 'REJECTED',
     in_progress: 'IN_PROGRESS',
     completed: 'COMPLETED',
     cancelled: 'CANCELLED'
 };
+
+
+/**
+ * Non-editable statuses for UC16.
+ * IN_PROGRESS, COMPLETED, CANCELLED cannot be edited.
+ */
+const NON_EDITABLE_STATUSES = ['IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
+
+/**
+ * Critical fields that trigger status reset to PENDING_APPROVAL
+ * when changed on a PUBLISHED event.
+ */
+const CRITICAL_FIELDS = ['title', 'location', 'startDate', 'endDate', 'categoryId'];
 
 /**
  * Build Prisma where clause từ role visibility
@@ -120,9 +141,9 @@ const EVENT_STATUS_MAP = {
  * @param {string|null} normalizedRole - Current user's role
  * @param {Object} query - Query params
  * @returns {Object} Prisma where clause
- * @throws {ServiceError} 403 nếu user không có quyền xem pending events
+ * @throws {ServiceError} 400 nếu status không hợp lệ, 403 nếu user không có quyền xem pending events
  */
-function buildWhereClause(normalizedRole, query) {
+function buildWhereClause(normalizedRole, query, currentUser) {
     const conditions = [];
 
     conditions.push({
@@ -131,13 +152,14 @@ function buildWhereClause(normalizedRole, query) {
 
     const requestedStatus = query.status?.toLowerCase();
 
+    // Manager/Admin mới được xem danh sách pending approval
     if (requestedStatus === 'pending_approval') {
         if (
             normalizedRole !== 'MANAGER' &&
             normalizedRole !== 'ADMIN'
         ) {
             throw new ServiceError(
-                'Bạn không có quyền truy cập tài nguyên này',
+                'Bạn không có quyền thực hiện thao tác này.',
                 403,
                 'FORBIDDEN'
             );
@@ -147,27 +169,53 @@ function buildWhereClause(normalizedRole, query) {
             status: 'PENDING_APPROVAL'
         });
     } else if (requestedStatus) {
+        // Validator đã đảm bảo status hợp lệ
         const mappedStatus = EVENT_STATUS_MAP[requestedStatus];
 
-        if (mappedStatus) {
+        if (normalizedRole === 'STAFF') {
+            if (mappedStatus === 'PUBLISHED') {
+                conditions.push({
+                    status: 'PUBLISHED'
+                });
+            } else {
+                conditions.push({
+                    status: mappedStatus,
+                    createdBy: currentUser.user_id
+                });
+            }
+        } else {
             conditions.push({
                 status: mappedStatus
             });
         }
+
     } else {
-        if (
+        // Không truyền status
+        if (normalizedRole === 'STAFF') {
+            conditions.push({
+                OR: [
+                    {
+                        status: 'PUBLISHED'
+                    },
+                    {
+                        createdBy: currentUser.user_id
+                    }
+                ]
+            });
+        } else if (
             normalizedRole !== 'MANAGER' &&
             normalizedRole !== 'ADMIN'
         ) {
+            // Guest + Volunteer chỉ xem được PUBLISHED
             conditions.push({
                 status: 'PUBLISHED'
             });
         }
     }
 
-    return conditions.length
-        ? { AND: conditions }
-        : {};
+    return {
+        AND: conditions
+    };
 }
 
 /**
@@ -199,7 +247,7 @@ async function getEvents(query, currentUser) {
     const normalizedRole = roleName?.toUpperCase();
 
     // 3. Build where clause
-    const where = buildWhereClause(normalizedRole, query);
+    const where = buildWhereClause(normalizedRole, query, currentUser);
 
     // 4. Query database
     const [events, total] = await Promise.all([
@@ -229,7 +277,7 @@ async function validatePendingEvent(eventId) {
     // Validate event ID 
     if (!Number.isInteger(eventId) || eventId <= 0) {
         throw new ServiceError(
-            'Invalid event id.',
+            'Mã sự kiện không hợp lệ.',
             400,
             'INVALID_EVENT_ID'
         );
@@ -240,7 +288,7 @@ async function validatePendingEvent(eventId) {
     // Check event exists
     if (!event) {
         throw new ServiceError(
-            'Event not found.',
+            'Sự kiện không tồn tại.',
             404,
             'EVENT_NOT_FOUND'
         );
@@ -249,7 +297,7 @@ async function validatePendingEvent(eventId) {
     // Check event is pending approval
     if (event.status !== 'PENDING_APPROVAL') {
         throw new ServiceError(
-            'Event is not in PENDING status.',
+            'Sự kiện không ở trạng thái chờ duyệt.',
             409,
             'INVALID_STATUS'
         );
@@ -329,7 +377,7 @@ async function rejectEvent(eventId, data, currentUser) {
  * Business Logic:
  * 1. Validate category exists and is active
  * 2. Extract createdBy from JWT (req.user.user_id)
- * 3. Validate date constraints (startDate > now, endDate > startDate, applicationDeadline < startDate)
+ * 3. Convert validated date strings to Date objects
  * 4. Create event with status DRAFT
  * 5. Return formatted response
  *
@@ -345,7 +393,7 @@ async function createEvent(data, currentUser) {
     const category = await eventRepository.findCategoryById(categoryId);
     if (!category || !category.isActive) {
         throw new ServiceError(
-            'Danh mục sự kiện không tồn tại',
+            'Danh mục sự kiện không tồn tại.',
             400,
             'CATEGORY_NOT_FOUND'
         );
@@ -373,9 +421,111 @@ async function createEvent(data, currentUser) {
     return formatEvent(event);
 }
 
+/**
+ * Update an existing event.
+ * UC16: Edit Event — Staff cập nhật thông tin sự kiện.
+ *
+ * Business Logic:
+ * 1. Validate event exists (404 if not)
+ * 2. Validate ownership — only creator (createdBy) can edit (403 if not)
+ * 3. Validate status — IN_PROGRESS/COMPLETED/CANCELLED cannot be edited (409)
+ * 4. Validate category if categoryId provided
+ * 5. Validate maxCapacity >= approvedParticipants if maxCapacity provided
+ * 6. If PUBLISHED and critical fields changed → reset status to PENDING_APPROVAL
+ * 7. Update event via repository
+ * 8. Return formatted response
+ *
+ * @param {number} eventId - Event ID from route param
+ * @param {Object} data - Validated update data from request body
+ * @param {Object} currentUser - User from JWT (req.user)
+ * @returns {Promise<Object>} Formatted updated event object
+ * @throws {ServiceError} 404 if event not found
+ * @throws {ServiceError} 403 if not event owner
+ * @throws {ServiceError} 409 if status not editable or capacity invalid
+ */
+async function updateEvent(eventId, data, currentUser) {
+    // 1. Validate event exists
+    const event = await eventRepository.findById(eventId);
+    if (!event) {
+        throw new ServiceError(
+            'Sự kiện không tồn tại.',
+            404,
+            'EVENT_NOT_FOUND'
+        );
+    }
+
+    // 2. Validate ownership — only creator can edit
+    if (event.createdBy !== currentUser.user_id) {
+        throw new ServiceError(
+            'Bạn không có quyền thực hiện thao tác này.',
+            403,
+            'FORBIDDEN'
+        );
+    }
+
+    // 3. Validate status — non-editable statuses
+    if (NON_EDITABLE_STATUSES.includes(event.status)) {
+        throw new ServiceError(
+            'Không thể chỉnh sửa sự kiện ở trạng thái: ' + event.status.toLowerCase(),
+            409,
+            'INVALID_STATUS'
+        );
+    }
+
+    // 4. Validate category if categoryId provided
+    if (data.categoryId !== undefined) {
+        const category = await eventRepository.findCategoryById(data.categoryId);
+        if (!category || !category.isActive) {
+            throw new ServiceError(
+                'Danh mục sự kiện không tồn tại.',
+                400,
+                'CATEGORY_NOT_FOUND'
+            );
+        }
+    }
+
+    // 5. Validate maxCapacity >= approvedParticipants
+    if (data.maxCapacity !== undefined && data.maxCapacity < event.approvedParticipants) {
+        throw new ServiceError(
+            'Sức chứa không được nhỏ hơn số lượng tình nguyện viên đã được duyệt.',
+            409,
+            'INVALID_CAPACITY'
+        );
+    }
+
+    // 6. Build update data
+    const updateData = {};
+    const editableFields = ['title', 'description', 'location', 'startDate', 'endDate', 'applicationDeadline', 'maxCapacity', 'categoryId', 'imageUrl'];
+
+    for (const field of editableFields) {
+        if (data[field] !== undefined) {
+            if (field === 'startDate' || field === 'endDate' || field === 'applicationDeadline') {
+                updateData[field] = new Date(data[field]);
+            } else {
+                updateData[field] = data[field];
+            }
+        }
+    }
+
+    // 7. If PUBLISHED and critical fields changed → reset status to PENDING_APPROVAL
+    if (event.status === 'PUBLISHED') {
+        const hasCriticalChanges = CRITICAL_FIELDS.some(field => data[field] !== undefined);
+        if (hasCriticalChanges) {
+            updateData.status = 'PENDING_APPROVAL';
+        }
+    }
+
+    // 8. Update event via repository
+    const updatedEvent = await eventRepository.updateEvent(eventId, updateData);
+
+    // 9. Return formatted response
+    return formatEvent(updatedEvent);
+}
+
 export default {
     getEvents,
     approveEvent,
     rejectEvent,
-    createEvent
+    createEvent,
+    updateEvent
 };

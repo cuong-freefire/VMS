@@ -39,11 +39,11 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T005 Create `updateEventSchema` Zod validator in backend/src/validators/event.validator.js
-- [ ] T006 [P] Add helper function `extractPublicIdFromUrl()` in backend/src/utils/cloudinary.util.js
-- [ ] T007 [P] Add helper function `extractChanges()` in backend/src/services/event.service.js
-- [ ] T008 [P] Add helper function `getApprovedVolunteerIds()` in backend/src/services/event.service.js
-- [ ] T009 Extend EventRepository with `updateEventWithAuditLog()` method in backend/src/repositories/event.repository.js
+- [x] T005 Create `updateEventSchema` Zod validator in backend/src/middlewares/validators/event.validator.js
+- [ ] T006 [P] Add helper function `extractPublicIdFromUrl()` in backend/src/utils/cloudinary.util.js (SKIPPED - Cloudinary not needed for MVP)
+- [ ] T007 [P] Add helper function `extractChanges()` in backend/src/services/event.service.js (SKIPPED - audit log not in scope)
+- [ ] T008 [P] Add helper function `getApprovedVolunteerIds()` in backend/src/services/event.service.js (SKIPPED - notification not in scope)
+- [x] T009 Add `updateEvent` method in backend/src/repositories/event.repository.js
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -61,17 +61,17 @@
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Implement state validation logic in EventService.updateEvent() - validate NON_EDITABLE_STATUSES in backend/src/services/event.service.js
-- [ ] T011 [US1] Implement field restriction logic for PUBLISHED status in EventService.updateEvent() in backend/src/services/event.service.js
-- [ ] T012 [US1] Implement ownership validation in EventService.updateEvent() - check organization_id match in backend/src/services/event.service.js
-- [ ] T013 [US1] Implement runtime validations (max_capacity >= approved_participants, category active check) in backend/src/services/event.service.js
-- [ ] T014 [US1] Implement image upload logic (upload-first pattern) with CloudinaryService in backend/src/services/event.service.js
-- [ ] T015 [US1] Implement transaction logic (update event + audit log) with Prisma in backend/src/services/event.service.js
-- [ ] T016 [US1] Implement async old image cleanup (delete-after pattern) in backend/src/services/event.service.js
-- [ ] T017 [US1] Implement notification trigger logic (check PUBLISHED + approved_participants + time/location changes) in backend/src/services/event.service.js
-- [ ] T018 [US1] Create PATCH /events/:id endpoint in backend/src/controllers/event.controller.js
-- [ ] T019 [US1] Wire PATCH route with auth middleware and validator in backend/src/routes/event.routes.js
-- [ ] T020 [US1] Add Swagger JSDoc documentation for PATCH /events/:id in backend/src/controllers/event.controller.js
+- [x] T010 [US1] Implement state validation logic in EventService.updateEvent() - validate NON_EDITABLE_STATUSES in backend/src/services/event.service.js
+- [x] T011 [US1] Implement field restriction logic for PUBLISHED status (critical fields → PENDING_APPROVAL) in EventService.updateEvent() in backend/src/services/event.service.js
+- [x] T012 [US1] Implement ownership validation in EventService.updateEvent() - check createdBy match in backend/src/services/event.service.js
+- [x] T013 [US1] Implement runtime validations (max_capacity >= approved_participants, category active check) in backend/src/services/event.service.js
+- [ ] T014 [US1] Implement image upload logic (upload-first pattern) with CloudinaryService in backend/src/services/event.service.js (SKIPPED - Cloudinary not implemented)
+- [ ] T015 [US1] Implement transaction logic (update event + audit log) with Prisma in backend/src/services/event.service.js (SKIPPED - event_audit_log table not created)
+- [ ] T016 [US1] Implement async old image cleanup (delete-after pattern) in backend/src/services/event.service.js (SKIPPED - Cloudinary not implemented)
+- [ ] T017 [US1] Implement notification trigger logic in backend/src/services/event.service.js (SKIPPED - NotificationService not available)
+- [x] T018 [US1] Create PATCH /events/:id endpoint in backend/src/controllers/event.controller.js
+- [x] T019 [US1] Wire PATCH route with auth middleware and validator in backend/src/routes/event.routes.js
+- [x] T020 [US1] Add Swagger JSDoc documentation for PATCH /events/:id in backend/src/routes/event.routes.js
 
 ### Integration Tests for User Story 1
 

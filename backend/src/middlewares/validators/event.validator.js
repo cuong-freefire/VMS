@@ -4,8 +4,9 @@
  * Validation cho Event Management API.
  * - getEventsQuerySchema: GET /api/v1/events (View Pending Event - UC67)
  * - rejectEventSchema: PATCH /api/v1/events/:id/reject (Reject Event - UC70)
- *
- * Owner: Member 5 - DucNM (UC67, UC70)
+ * - createEventSchema POST /api/v1/events (Add event - UC15)
+ * - updateEventSchema PATCH /api/v1/events/:id (Edit event - UC16)
+ * Owner: Member 5 - DucNM (UC15, UC16, UC67, UC69, UC70)
  */
 
 import { z } from 'zod';
@@ -70,7 +71,7 @@ export const rejectEventSchema = z.object({
     rejection_reason: z
         .string()
         .trim()
-        .min(10, 'Rejection reason must be at least 10 characters.')
+        .min(10, 'Lý do từ chối phải có ít nhất 10 ký tự.')
 });
 
 /**
@@ -92,58 +93,159 @@ export const createEventSchema = z.object({
     title: z
         .string()
         .trim()
-        .min(10, 'Title must be at least 10 characters')
-        .max(500, 'Title must not exceed 500 characters'),
+        .min(10, 'Tiêu đề phải có ít nhất 10 ký tự.')
+        .max(500, 'Tiêu đề không được vượt quá 500 ký tự.'),
 
     description: z
         .string()
         .trim()
-        .min(50, 'Description must be at least 50 characters')
-        .max(5000, 'Description must not exceed 5000 characters'),
+        .min(50, 'Mô tả phải có ít nhất 50 ký tự.')
+        .max(5000, 'Mô tả không được vượt quá 5000 ký tự.'),
 
     startDate: z
         .string()
-        .datetime({ message: 'Start date must be a valid ISO 8601 datetime' }),
+        .datetime({ message: 'Ngày bắt đầu không đúng định dạng ISO 8601.' }),
 
     endDate: z
         .string()
-        .datetime({ message: 'End date must be a valid ISO 8601 datetime' }),
+        .datetime({ message: 'Ngày kết thúc không đúng định dạng ISO 8601.' }),
 
     applicationDeadline: z
         .string()
-        .datetime({ message: 'Application deadline must be a valid ISO 8601 datetime' }),
+        .datetime({ message: 'Hạn đăng ký không đúng định dạng ISO 8601.' }),
 
     location: z
         .string()
         .trim()
-        .min(5, 'Location must be at least 5 characters')
-        .max(500, 'Location must not exceed 500 characters'),
+        .min(5, 'Địa điểm phải có ít nhất 5 ký tự.')
+        .max(500, 'Địa điểm không được vượt quá 500 ký tự.'),
 
     maxCapacity: z
         .coerce()
         .number()
-        .int('Capacity must be an integer')
-        .min(1, 'Capacity must be at least 1')
-        .max(10000, 'Capacity must not exceed 10000'),
+        .int('Sức chứa phải là số nguyên.')
+        .min(1, 'Sức chứa phải lớn hơn hoặc bằng 1.')
+        .max(10000, 'Sức chứa không được vượt quá 10000.'),
 
     categoryId: z
         .coerce()
         .number()
-        .int('Category ID must be an integer')
-        .positive('Category ID must be positive'),
+        .int('Danh mục phải là số nguyên.')
+        .positive('Danh mục không hợp lệ.'),
 
     imageUrl: z
         .string()
-        .url('Invalid image URL')
+        .url('Đường dẫn ảnh không hợp lệ.')
         .optional()
         .nullable()
 }).refine((data) => new Date(data.startDate) > new Date(), {
-    message: 'Start date must be in the future',
+    message: 'Ngày bắt đầu phải ở trong tương lai',
     path: ['startDate']
 }).refine((data) => new Date(data.endDate) > new Date(data.startDate), {
-    message: 'End date must be after start date',
+    message: 'Ngày kết thúc phải sau ngày bắt đầu.',
     path: ['endDate']
 }).refine((data) => new Date(data.applicationDeadline) < new Date(data.startDate), {
-    message: 'Application deadline must be before start date',
+    message: 'Hạn đăng ký phải trước ngày bắt đầu.',
     path: ['applicationDeadline']
 });
+
+/**
+ * Schema validation cho PATCH /api/v1/events/:id request body.
+ * UC16: Edit Event — Staff cập nhật thông tin sự kiện.
+ *
+ * Validation rules:
+ * - All fields are optional (PATCH semantics)
+ * - title: 10-500 characters
+ * - description: 50-5000 characters
+ * - location: 5-500 characters
+ * - maxCapacity: 1-10000, integer
+ * - categoryId: positive integer
+ * - imageUrl: optional, HTTPS URL
+ * - startDate: ISO 8601 datetime
+ * - endDate: ISO 8601 datetime
+ * - applicationDeadline: ISO 8601 datetime
+ * - Cross-field: endDate > startDate, applicationDeadline < startDate
+ * - .strict() rejects unknown fields
+ */
+export const updateEventSchema = z.object({
+    title: z
+        .string()
+        .trim()
+        .min(10, 'Tiêu đề phải có ít nhất 10 ký tự.')
+        .max(500, 'Tiêu đề không được vượt quá 500 ký tự.')
+        .optional(),
+
+    description: z
+        .string()
+        .trim()
+        .min(50, 'Mô tả phải có ít nhất 50 ký tự.')
+        .max(5000, 'Mô tả không được vượt quá 5000 ký tự.')
+        .optional(),
+
+    startDate: z
+        .string()
+        .datetime({ message: 'Ngày bắt đầu không đúng định dạng ISO 8601.' })
+        .optional(),
+
+    endDate: z
+        .string()
+        .datetime({ message: 'Ngày kết thúc không đúng định dạng ISO 8601.' })
+        .optional(),
+
+    applicationDeadline: z
+        .string()
+        .datetime({ message: 'Hạn đăng ký không đúng định dạng ISO 8601.' })
+        .optional(),
+
+    location: z
+        .string()
+        .trim()
+        .min(5, 'Địa điểm phải có ít nhất 5 ký tự.')
+        .max(500, 'Địa điểm không được vượt quá 500 ký tự.')
+        .optional(),
+
+    maxCapacity: z
+        .coerce()
+        .number()
+        .int('Sức chứa phải là số nguyên.')
+        .min(1, 'Sức chứa phải lớn hơn hoặc bằng 1.')
+        .max(10000, 'Sức chứa không được vượt quá 10000.')
+        .optional(),
+
+    categoryId: z
+        .coerce()
+        .number()
+        .int('Danh mục phải là số nguyên.')
+        .positive('Danh mục không hợp lệ.')
+        .optional(),
+
+    imageUrl: z
+        .string()
+        .url('Đường dẫn ảnh không hợp lệ.')
+        .optional()
+        .nullable()
+}).strict()
+    .refine(
+        (data) => Object.keys(data).length > 0,
+        {
+            message: 'Phải cung cấp ít nhất một trường để cập nhật.'
+        }
+    )
+    .refine((data) => {
+        if (data.startDate && data.endDate) {
+            return new Date(data.endDate) > new Date(data.startDate);
+        }
+        return true;
+    }, {
+        message: 'Ngày kết thúc phải sau ngày bắt đầu.',
+        path: ['endDate']
+    })
+    .refine((data) => {
+        if (data.startDate && data.applicationDeadline) {
+            return new Date(data.applicationDeadline) < new Date(data.startDate);
+        }
+        return true;
+    }, {
+        message: 'Hạn đăng ký phải trước ngày bắt đầu.',
+        path: ['applicationDeadline']
+    });
