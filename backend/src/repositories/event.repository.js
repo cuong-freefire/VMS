@@ -283,6 +283,45 @@ const updateEvent = async (id, data) => {
     });
 };
 
+/**
+ * Soft delete an event by setting isActive = false.
+ * UC17: Delete Event — Soft delete via isActive flag.
+ *
+ * Business rule:
+ * - Physical delete is NOT allowed.
+ * - Event remains in database.
+ * @param {number} id - Event ID
+ * @returns {Promise<Object>} Updated event record
+ */
+const softDeleteEvent = async (id) => {
+    return prisma.event.update({
+        where: { id },
+        data: {
+            isActive: false
+        },
+        select: {
+            id: true,
+            title: true,
+            status: true,
+            isActive: true,
+            updatedAt: true
+        }
+    });
+};
+
+/**
+ * Count applications for an event.
+ * UC17: Delete Event — check if event has any applications before deleting.
+ *
+ * @param {number} eventId - Event ID
+ * @returns {Promise<number>} Count of applications
+ */
+const countApplications = async (eventId) => {
+    return prisma.application.count({
+        where: { eventId }
+    });
+};
+
 export default {
     findEvents,
     countEvents,
@@ -291,5 +330,7 @@ export default {
     updateEventStatus,
     createEvent,
     findCategoryById,
-    updateEvent
+    updateEvent,
+    softDeleteEvent,
+    countApplications
 };

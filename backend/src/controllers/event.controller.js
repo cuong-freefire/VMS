@@ -1,6 +1,6 @@
 /**
  * Event Controller - HTTP layer for Event Management module
- * Owner: Member 5 - DucNM (UC15, UC67, UC69, UC70)
+ * Owner: Member 5 - DucNM (UC15, UC16, UC17, UC67, UC69, UC70)
  *
  * Responsibilities:
  * - UC15: Create event
@@ -139,10 +139,34 @@ async function updateEventHandler(req, res, next) {
     }
 }
 
+/**
+ * DELETE /api/v1/events/:id
+ * Xóa (soft delete) sự kiện (UC17).
+ * Chỉ Staff (chủ sở hữu) mới có quyền (kiểm tra ở service layer).
+ */
+async function deleteEventHandler(req, res, next) {
+    try {
+        const eventId = parseInt(req.params.id, 10);
+        const result = await eventService.deleteEvent(eventId, req.user);
+
+        return res.status(200).json(
+            successResponse(result, 'Xóa sự kiện thành công')
+        );
+    } catch (error) {
+        if (error.status && error.code) {
+            return res.status(error.status).json(
+                errorResponse(error.message, error.code, error.details)
+            );
+        }
+        next(error);
+    }
+}
+
 export {
     getEventsHandler,
     approveEventHandler,
     rejectEventHandler,
     createEventHandler,
-    updateEventHandler
+    updateEventHandler,
+    deleteEventHandler
 };

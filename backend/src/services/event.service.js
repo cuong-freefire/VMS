@@ -109,6 +109,22 @@ function formatRejectedEvent(event) {
 }
 
 /**
+ * Format deleted event for API response.
+ *
+ * @param {Object} event
+ * @returns {Object}
+ */
+function formatDeletedEvent(event) {
+    return {
+        event_id: event.id,
+        title: event.title,
+        status: event.status.toLowerCase(),
+        is_active: event.isActive,
+        updated_at: event.updatedAt?.toISOString() ?? null
+    };
+}
+
+/**
  * Map status string từ query sang Prisma EventStatus enum.
  */
 const EVENT_STATUS_MAP = {
@@ -265,16 +281,14 @@ async function getEvents(query, currentUser) {
 }
 
 /**
- * Validate pending event before approval.
+ * Validate event ID and ensure event exists.
  *
- * @param {number} eventId - Event ID
- * @returns {Promise<Object>} Event record
- * @throws {ServiceError} 400 nếu ID không hợp lệ
- * @throws {ServiceError} 404 nếu event không tồn tại
- * @throws {ServiceError} 409 nếu event không ở trạng thái PENDING_APPROVAL
+ * @param {number} eventId
+ * @returns {Promise<Object>}
+ * @throws {ServiceError}
  */
-async function validatePendingEvent(eventId) {
-    // Validate event ID 
+async function validateEventExists(eventId) {
+    // Validate event ID
     if (!Number.isInteger(eventId) || eventId <= 0) {
         throw new ServiceError(
             'Mã sự kiện không hợp lệ.',
@@ -293,6 +307,22 @@ async function validatePendingEvent(eventId) {
             'EVENT_NOT_FOUND'
         );
     }
+
+    return event;
+}
+
+/**
+ * Validate pending event before approval.
+ *
+ * @param {number} eventId - Event ID
+ * @returns {Promise<Object>} Event record
+ * @throws {ServiceError} 400 nếu ID không hợp lệ
+ * @throws {ServiceError} 404 nếu event không tồn tại
+ * @throws {ServiceError} 409 nếu event không ở trạng thái PENDING_APPROVAL
+ */
+async function validatePendingEvent(eventId) {
+    // Validate event ID and ensure event exists
+    const event = await validateEventExists(eventId);
 
     // Check event is pending approval
     if (event.status !== 'PENDING_APPROVAL') {
@@ -444,15 +474,8 @@ async function createEvent(data, currentUser) {
  * @throws {ServiceError} 409 if status not editable or capacity invalid
  */
 async function updateEvent(eventId, data, currentUser) {
-    // 1. Validate event exists
-    const event = await eventRepository.findById(eventId);
-    if (!event) {
-        throw new ServiceError(
-            'Sự kiện không tồn tại.',
-            404,
-            'EVENT_NOT_FOUND'
-        );
-    }
+    // 1. Validate event ID and ensure event exists
+    const event = await validateEventExists(eventId);
 
     // 2. Validate ownership — only creator can edit
     if (event.createdBy !== currentUser.user_id) {
@@ -522,10 +545,85 @@ async function updateEvent(eventId, data, currentUser) {
     return formatEvent(updatedEvent);
 }
 
+/**
+ * Non-deletable statuses for UC17.
+ * IN_PROGRESS, COMPLETED cannot be deleted.
+ */
+const NON_DELETABLE_STATUSES = ['IN_PROGRESS', 'COMPLETED'];
+
+/**
+ * Delete (soft delete) an event.
+ * UC17: Delete Event — Staff xóa sự kiện (soft delete via isActive = false).
+ *
+ * Business Logic:
+ * 1. Validate event exists (404 if not)
+ * 2. Validate event is active (not already soft-deleted)
+ * 3. Validate ownership — only creator (createdBy) can delete (403 if not)
+ * 4. Validate status — IN_PROGRESS/COMPLETED cannot be deleted (409)
+ * 5. Validate no applications exist (409 if any)
+ * 6. Soft delete event via repository (isActive = false)
+ * 7. Return success response
+ *
+ * @param {number} eventId - Event ID from route param
+ * @param {Object} currentUser - User from JWT (req.user)
+ * @returns {Promise<Object>} { id, title, status, isActive, updatedAt }
+ * @throws {ServiceError} 404 if event not found or already deleted
+ * @throws {ServiceError} 403 if not event owner
+ * @throws {ServiceError} 409 if status not deletable or has applications
+ */
+async function deleteEvent(eventId, currentUser) {
+    // 1. Validate event ID and ensure event exists
+    const event = await validateEventExists(eventId);
+
+    // 2. Validate event is not already soft-deleted
+    if (!event.isActive) {
+        throw new ServiceError(
+            'Sự kiện không tồn tại.',
+            404,
+            'EVENT_NOT_FOUND'
+        );
+    }
+
+    // 3. Validate ownership — only creator can delete
+    if (event.createdBy !== currentUser.user_id) {
+        throw new ServiceError(
+            'Bạn không có quyền truy cập tài nguyên này',
+            403,
+            'FORBIDDEN'
+        );
+    }
+
+    // 4. Validate status — non-deletable statuses
+    if (NON_DELETABLE_STATUSES.includes(event.status)) {
+        throw new ServiceError(
+            'Không thể xóa sự kiện ở trạng thái: ' + event.status.toLowerCase(),
+            409,
+            'INVALID_STATUS'
+        );
+    }
+
+    // 5. Validate no applications exist
+    const appCount = await eventRepository.countApplications(eventId);
+    if (appCount > 0) {
+        throw new ServiceError(
+            'Sự kiện đã có đơn đăng ký nên không thể xóa.',
+            409,
+            'EVENT_HAS_APPLICATIONS'
+        );
+    }
+
+    // 6. Soft delete event via repository
+    const deletedEvent = await eventRepository.softDelete(eventId);
+
+    // 7. Return success response
+    return formatDeletedEvent(deletedEvent);
+}
+
 export default {
     getEvents,
     approveEvent,
     rejectEvent,
     createEvent,
-    updateEvent
+    updateEvent,
+    deleteEvent
 };

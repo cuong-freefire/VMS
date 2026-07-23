@@ -3,7 +3,7 @@
  *
  * Các endpoint liên quan đến sự kiện (Event Management):
  * - POST / (UC15 - Add Event)
- * - GET / (UC67 - View Pending Event)
+ * - GET / (View Events - supports UC67 Pending filter)
  * - PATCH /:id/approve (UC69)
  * - PATCH /:id/reject (UC70)
  *
@@ -18,7 +18,7 @@ import authMiddleware from "../middlewares/auth.middleware.js";
 import authorize from "../middlewares/authorize.middleware.js";
 import optionalAuth from "../middlewares/optionalAuth.middleware.js";
 import { validate, validateQuery } from "../middlewares/validators/validate.js";
-import { getEventsHandler, approveEventHandler, rejectEventHandler, createEventHandler, updateEventHandler } from "../controllers/event.controller.js";
+import { getEventsHandler, approveEventHandler, rejectEventHandler, createEventHandler, updateEventHandler, deleteEventHandler } from "../controllers/event.controller.js";
 import { getEventsQuerySchema, rejectEventSchema, createEventSchema, updateEventSchema } from "../middlewares/validators/event.validator.js";
 
 const router = Router();
@@ -28,7 +28,9 @@ const router = Router();
  * Lấy danh sách sự kiện (UC67: View Pending Event)
  * Hỗ trợ optional auth:
  *   - Guest (không token) → chỉ PUBLISHED events
- *   - Volunteer/Staff → chỉ PUBLISHED events
+ *   - Volunteer → Published
+ *   - Staff → Published + own events
+ *   - Manager/Admin → all events
  *   - Manager/Admin → tất cả events; có thể lọc status=pending_approval
  */
 /**
@@ -495,6 +497,64 @@ router.patch(
     authorize("STAFF"),
     validate(updateEventSchema),
     updateEventHandler
+);
+
+/**
+ * DELETE /api/v1/events/:id
+ * Xóa (soft delete) sự kiện (UC17: Delete Event)
+ * Chỉ Staff — ownership check ở service layer.
+ */
+/**
+ * @swagger
+ * /api/v1/events/{id}:
+ *   delete:
+ *     summary: Xóa sự kiện (Staff only)
+ *     description: |
+ *       Soft delete sự kiện bằng cách set isActive = false.
+ *       Chỉ Staff là người tạo event mới có quyền xóa.
+ *       - DRAFT/PENDING_APPROVAL/PUBLISHED/REJECTED/CANCELLED: có thể xóa nếu không có application
+ *       - IN_PROGRESS/COMPLETED: không thể xóa (409)
+ *       Không thể xóa nếu event có application (409).
+ *     tags: [Event Management]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID của sự kiện cần xóa
+ *     responses:
+ *       200:
+ *         description: Xóa thành công
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: "Xóa sự kiện thành công"
+ *               data:
+ *                 event_id: 123
+ *                 title: "Mùa Hè Xanh 2026"
+ *                 status: "draft"
+ *                 is_active: false
+ *                 updated_at: "2026-07-23T12:00:00.000Z"
+ *       401:
+ *         description: Chưa xác thực
+ *       403:
+ *         description: Không có quyền (không phải chủ sở hữu)
+ *       404:
+ *         description: Event not found
+ *       409:
+ *         description: Conflict (status not deletable hoặc có application)
+ *       500:
+ *         description: Lỗi server
+ */
+router.delete(
+    "/:id",
+    authMiddleware,
+    authorize("STAFF"),
+    deleteEventHandler
 );
 
 export default router;
