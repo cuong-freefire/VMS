@@ -14,7 +14,7 @@ import app from './app.js';
 import logger from './config/logger.config.js';
 
 // Lấy port từ .env, mặc định 5000 nếu không có
-const PORT = process.env.PORT_BE || 5000;
+const PORT = process.env.PORT || 5000;
 
 /**
  * Khởi động server

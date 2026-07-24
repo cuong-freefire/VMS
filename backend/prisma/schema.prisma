@@ -90,6 +90,7 @@ model User {
   userSkills            UserSkill[]
   eventsCreated         Event[]       @relation("createdByStaff")
   eventsApproved        Event[]       @relation("approvedByManager")
+  eventsRejected Event[] @relation("rejectedByManager")
 
   @@index([roleId])
   @@index([isActive])
