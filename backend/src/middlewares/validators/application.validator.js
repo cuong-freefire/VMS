@@ -3,8 +3,9 @@
  *
  * Validation cho Application Management API.
  * - getApplicationsQuerySchema: GET /api/v1/events/:eventId/applications (UC22)
+ * - applicationIdParamSchema: GET /api/v1/applications/:applicationId (UC23)
  *
- * Owner: Member 4 - DucNM (UC22)
+ * Owner: Member 4 - DucNM (UC22, UC23)
  */
 
 import { z } from 'zod';
@@ -60,5 +61,39 @@ export const getApplicationsQuerySchema = z.object({
                 return Number.isInteger(num) && num >= 1 && num <= 100;
             },
             { message: 'Tham số limit phải từ 1 đến 100' }
+        )
+});
+
+/**
+ * Schema validation cho path param eventId.
+ * UC22: View Application List — validate eventId là số nguyên dương.
+ */
+export const eventIdParamSchema = z.object({
+    eventId: z
+        .string()
+        .trim()
+        .refine(
+            (val) => {
+                const num = Number(val);
+                return Number.isInteger(num) && num > 0;
+            },
+            { message: 'Mã sự kiện phải là số nguyên dương' }
+        )
+});
+
+/**
+ * Schema validation cho path param applicationId.
+ * UC23: View Application Detail — validate applicationId là số nguyên dương.
+ */
+export const applicationIdParamSchema = z.object({
+    applicationId: z
+        .string()
+        .trim()
+        .refine(
+            (val) => {
+                const num = Number(val);
+                return Number.isInteger(num) && num > 0;
+            },
+            { message: 'Mã đơn đăng ký phải là số nguyên dương' }
         )
 });

@@ -77,7 +77,60 @@ const countByEventId = async (eventId, status) => {
     return prisma.application.count({ where });
 };
 
+/**
+ * Find application detail by ID with full volunteer and event info.
+ * UC23: View Application Detail — lấy chi tiết application kèm volunteer profile và event info.
+ *
+ * @param {number} applicationId - Application ID
+ * @returns {Promise<Object|null>} Application with volunteer and event info, or null
+ */
+const findDetailById = async (id) => {
+    return prisma.application.findUnique({
+        where: { id },
+        select: {
+            id: true,
+            userId: true,
+            eventId: true,
+            status: true,
+            message: true,
+            processedBy: true,
+            processedAt: true,
+            createdAt: true,
+            updatedAt: true,
+            submittedByUser: {
+                select: {
+                    id: true,
+                    fullName: true,
+                    email: true,
+                    phone: true,
+                    avatarUrl: true,
+                    userSkills: {
+                        select: {
+                            skill: {
+                                select: {
+                                    id: true,
+                                    name: true
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            event: {
+                select: {
+                    id: true,
+                    title: true,
+                    startDate: true,
+                    endDate: true,
+                    createdBy: true
+                }
+            }
+        }
+    });
+};
+
 export default {
     findByEventId,
-    countByEventId
+    countByEventId,
+    findDetailById
 };
