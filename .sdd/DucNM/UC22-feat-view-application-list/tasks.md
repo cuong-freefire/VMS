@@ -52,40 +52,30 @@
 
 ### Backend Foundation
 
-- [ ] T005 [P] [SHARED] Create constants file `backend/src/constants/application.constants.js` với:
-  - `USER_PUBLIC_PROFILE_SELECT` object (id, name, avatar_url only)
-  - `APPLICATION_LIST_SELECT` object (id, status, notes, created_at)
-  - `PAGINATION_DEFAULTS` object (DEFAULT_PAGE: 1, DEFAULT_LIMIT: 20, MAX_LIMIT: 100, MAX_PAGE: 1000)
-  - `ApplicationStatus` enum (SUBMITTED, APPROVED, REJECTED)
+- [ ] T005 [P] [SHARED] Create constants file (SKIPPED - inline constants sufficient)
 
-- [ ] T006 [P] [SHARED] Create pagination utility `backend/src/utils/pagination.util.js` với function:
-  - `calculatePagination(page, limit, total)` → returns { current_page, total_pages, total_records, limit }
+- [ ] T006 [P] [SHARED] Reuse existing pagination utility `backend/src/utils/pagination.util.js` (parsePagination, createPaginationMeta) - ALREADY EXISTS
 
-- [ ] T007 [P] [SHARED] Create Zod validator `backend/src/validators/application.validator.js` với schemas:
-  - `getApplicationsQuerySchema`: status (optional enum), page (1-1000, default 1), limit (1-100, default 20)
-  - `eventIdParamSchema`: eventId (UUID format validation)
+- [x] T007 [P] [SHARED] Create Zod validator `backend/src/middlewares/validators/application.validator.js` với `getApplicationsQuerySchema` (status optional enum, page 1-1000, limit 1-100)
 
-- [ ] T008 [SHARED] Create repository layer `backend/src/repositories/application.repository.js` với methods:
-  - `findByEventId(eventId, filters, options)` → Prisma query với JOIN users + events, apply filters, pagination, sort by created_at DESC
-  - `countByEventId(eventId, statusFilter)` → Prisma count query for pagination metadata
-  - Use `USER_PUBLIC_PROFILE_SELECT` trong include.user.select để filter sensitive data
+- [x] T008 [SHARED] Create repository layer `backend/src/repositories/application.repository.js` với methods:
+  - `findByEventId(eventId, { skip, take, status })` → Prisma query với submittedByUser (volunteer) info
+  - `countByEventId(eventId, status)` → Prisma count query for pagination metadata
 
-- [ ] T009 [SHARED] Create service layer `backend/src/services/application.service.js` với method:
-  - `getApplicationsByEvent(eventId, staffOrgId, filters)` → Validate event ownership (Prisma nested where), call repository, calculate pagination, return DTO
-  - Throw `ForbiddenError` nếu organization mismatch
-  - Throw `BadRequestError` nếu page out of range
+- [x] T009 [SHARED] Create service layer `backend/src/services/application.service.js` với method:
+  - `getApplicationsByEvent(eventId, query, currentUser)` → Validate event exists, ownership (createdBy), call repository, calculate pagination, format response
+  - Throw ServiceError 404 nếu event không tồn tại, 403 nếu không phải chủ sở hữu
 
-- [ ] T010 [SHARED] Create controller layer `backend/src/controllers/application.controller.js` với function:
-  - `getApplicationsByEvent(req, res, next)` → Parse params/query, extract staffOrgId từ req.user, call service, return successResponse
-  - Use try-catch và forward errors to next(error)
+- [x] T010 [SHARED] Create controller layer `backend/src/controllers/application.controller.js` với `getApplicationsByEventHandler`
 
-- [ ] T011 [SHARED] Create routes file `backend/src/routes/application.routes.js`:
-  - `GET /events/:eventId/applications` → authenticate middleware, validate (eventIdParamSchema, getApplicationsQuerySchema), controller
+- [x] T011 [SHARED] Create routes file `backend/src/routes/application.routes.js`:
+  - `GET /events/:eventId/applications` → authMiddleware, authorize("STAFF","MANAGER","ADMIN"), validateQuery, controller
+  - Include Swagger JSDoc documentation
   - Export router
 
-- [ ] T012 [SHARED] Register routes trong `backend/src/app.js`:
+- [x] T012 [SHARED] Register routes trong `backend/src/app.js`:
   - Import applicationRoutes
-  - Add `app.use('/api/v1', applicationRoutes);` sau existing routes
+  - Add `app.use('/api/v1', applicationRoutes);`
 
 **Checkpoint**: Backend foundation ready → All US1/US2 backend tasks can now proceed
 
