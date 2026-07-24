@@ -55,7 +55,7 @@ app.use(
     // Cho phép requests từ các origins này
     origin: [
       `http://localhost:${process.env.PORT_FE}`, // Frontend: port 3000
-      `http://localhost:${process.env.PORT_BE}`, // Backend + Swagger: port 5000
+      `http://localhost:${process.env.PORT}`, // Backend + Swagger: port 5000
       'http://localhost:3636' // Swagger UI standalone (optional): port 3636
     ],
     methods: 'GET,PUT,PATCH,POST,DELETE', // HTTP methods được phép
