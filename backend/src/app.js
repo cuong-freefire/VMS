@@ -19,6 +19,7 @@ import userRoutes from './routes/user.routes.js';
 import categoryRoutes from './routes/category.routes.js';
 import skillRoutes from './routes/skill.routes.js';
 import eventRoutes from './routes/event.routes.js';
+import applicationRoutes from './routes/application.routes.js';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 
@@ -93,6 +94,8 @@ app.use('/api/v1/categories', categoryRoutes);
 app.use('/api/v1/skills', skillRoutes);
 // 6.6 Event routes
 app.use('/api/v1/events', eventRoutes);
+// 6.7 Application routes
+app.use('/api/v1/applications', applicationRoutes);
 
 app.get('/', (req, res) => {
   res.cookie('testCookie', 'testValue', {

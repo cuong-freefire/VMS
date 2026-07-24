@@ -25,4 +25,37 @@ export async function findByUserAndEvent(userId, eventId) {
   });
 }
 
-export default { findByUserAndEvent };
+/**
+ * Find application by ID with related event data.
+ * Used by cancel flow to validate event state (not InProgress/Completed).
+ *
+ * @param {number} applicationId
+ * @returns {Promise<object|null>} Application with event, or null.
+ */
+export async function findByIdWithEvent(applicationId) {
+  return prisma.application.findFirst({
+    where: { id: applicationId, status: { not: "CANCELLED" } },
+    include: {
+      event: {
+        select: { id: true, status: true, startDate: true },
+      },
+    },
+  });
+}
+
+/**
+ * Cancel (set status = CANCELLED) an application.
+ * Must be called inside a Prisma transaction.
+ *
+ * @param {import("@prisma/client").PrismaClient} tx - Transaction client
+ * @param {number} applicationId
+ * @returns {Promise<object>} Updated application
+ */
+export async function cancelApplication(tx, applicationId) {
+  return tx.application.update({
+    where: { id: applicationId },
+    data: { status: "CANCELLED" },
+  });
+}
+
+export default { findByUserAndEvent, findByIdWithEvent, cancelApplication };

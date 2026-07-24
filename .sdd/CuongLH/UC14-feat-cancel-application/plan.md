@@ -76,7 +76,7 @@ Mapping từ spec.md sang implementation deliverables:
 | **API Style** (RESTful + /api/v1/ prefix) | ✅ PASS | Endpoint: `PATCH /api/v1/applications/:id/cancel` |
 | **Response Format** (ADR-006) | ✅ PASS | Sử dụng `response.util.js`: `{ success, message, data, errors }` |
 | **Validation** (Zod) | ✅ PASS | Param `:id` được validate bằng Zod (positive integer) |
-| **Auth** (JWT HttpOnly Cookie) | ✅ PASS | Sử dụng `authenticate` middleware — chỉ Volunteer được phép |
+| **Auth** (JWT HttpOnly Cookie) | ✅ PASS | Sử dụng `authMiddleware` (JWT required, default export) + kiểm tra role trong Service layer — chỉ Volunteer được phép. `authenticateOptional` có sẵn cho frontend. |
 | **Database Access** (Prisma ORM only) | ✅ PASS | Repository layer sử dụng Prisma Client với transaction cho atomic operation. Service KHÔNG gọi trực tiếp Prisma model. |
 | **Logging** (Pino) | ✅ PASS | Mọi lỗi được log qua Pino logger |
 | **Testing** (>80% Service coverage) | ✅ PASS | Target: ApplicationService >80%, Integration tests cho API |
@@ -119,12 +119,12 @@ backend/
 │   ├── services/
 │   │   └── application.service.js        # [MỚI] Business logic hủy đơn + validation, điều phối transaction
 │   ├── repositories/
-│   │   ├── application.repository.js     # [SỬA] Thêm findById, findByIdInTransaction, cancelApplicationWithStatus, findByIdAfterUpdate (nhận transaction context)
-│   │   └── event.repository.js           # [SỬA] Thêm findByIdInTransaction, findEligibleEventForCancellation, decrementApprovedParticipants (nhận transaction context)
+│   │   ├── application.repository.js     # [SỬA] File đã tồn tại (hiện có findByUserAndEvent). Mở rộng thêm: findById, findByIdInTransaction, cancelApplicationWithStatus, findByIdAfterUpdate (nhận transaction context)
+│   │   └── event.repository.js           # [SỬA] File đã tồn tại (hiện có findByIdWithRelations). Mở rộng thêm: findByIdInTransaction, findEligibleEventForCancellation, decrementApprovedParticipants (nhận transaction context)
 │   ├── routes/
 │   │   └── application.routes.js         # [MỚI] Định nghĩa route PATCH /api/v1/applications/:id/cancel (auth required, Volunteer only)
 │   ├── middlewares/
-│   │   ├── auth.middleware.js             # [CÓ SẴN] Đã có authenticate, authorize('VOLUNTEER')
+│   │   ├── auth.middleware.js             # [CÓ SẴN] Đã có authMiddleware (default export - bắt buộc) và authenticateOptional (named export - optional). CHƯA CÓ authorize middleware — role check thực hiện trong Service layer.
 │   │   └── validators/
 │   │       ├── application.validator.js   # [MỚI] Zod schema validate :id param
 │   │       └── validate.js                # [CÓ SẴN] Middleware validate request
@@ -236,9 +236,10 @@ frontend/
    - **Nghiên cứu cách dùng `updateMany` với Prisma và MySQL**: `updateMany` trả về `{ count }` (số bản ghi được cập nhật). Không trả về dữ liệu bản ghi. Sau khi cập nhật thành công, phải đọc lại Application bằng `findUnique` (qua Repository) trong cùng transaction để lấy `id, status, updatedAt`.
 
 5. **Xác minh Auth Middleware** — Kiểm tra `auth.middleware.js`:
-   - Đã có `authenticate` (bắt buộc) — phù hợp vì chỉ Volunteer đăng nhập mới hủy được
-   - Đã có `authorize('VOLUNTEER')` — đảm bảo chỉ Volunteer mới truy cập
-   - `req.user.id` chứa userId sau khi authenticate
+   - Đã có `authMiddleware` (default export, bắt buộc) — phù hợp vì chỉ Volunteer đăng nhập mới hủy được
+   - Đã có `authenticateOptional` (named export) — parse JWT nếu có, không throw 401 nếu không có (dùng cho frontend EventDetailPage)
+   - **CHƯA CÓ `authorize` middleware** — cần kiểm tra role (`VOLUNTEER`) trong Service layer hoặc tạo authorize middleware mới
+   - `req.user.user_id` (không phải `req.user.id`) chứa userId sau khi authenticate (JWT payload: `{ user_id, email, role, jti }`)
 
 6. **Nghiên cứu error cases** — Tất cả các tình huống lỗi cần xử lý:
    - 400: ID đơn không hợp lệ (Zod validation fail)
@@ -257,13 +258,12 @@ frontend/
    - Nếu luồng Staff duyệt thuộc module hoặc UC khác, UC14 chỉ ghi nhận dependency và yêu cầu test tích hợp, không tự mở rộng phạm vi quá mức.
    - Yêu cầu: Staff không được duyệt Application đã `CANCELLED`.
 
-8. **Kiểm tra ảnh hưởng của `@@unique([userId, eventId])` đối với UC12**:
-   - Schema hiện tại có `@@unique([userId, eventId])` trên bảng Application.
-   - Khi một đơn chuyển sang `CANCELLED`, bản ghi vẫn tồn tại, giữ cặp `userId + eventId` trong unique index.
-   - UC12 (Create Application) nếu dùng `create()` để tạo bản ghi mới với cùng `userId` và `eventId` sẽ gặp lỗi Prisma `P2002` (unique constraint violation).
-   - **Cần xác minh**: UC12 hiện tạo Application như thế nào? Có kiểm tra và xử lý trường hợp đơn cũ `CANCELLED` không?
-   - **Nguyên tắc**: Không xóa đơn `CANCELLED`. Không chuyển `CANCELLED` về `PENDING`. Đơn `CANCELLED` phải được giữ lại. Nếu đăng ký lại, nghiệp vụ yêu cầu tạo một đơn mới.
-   - **Ghi nhận**: Schema hiện có `@@unique([userId, eventId])`, trong khi nghiệp vụ cho phép tình nguyện viên tạo một đơn mới sau khi đơn cũ đã `CANCELLED`. Đây là xung đột giữa schema và yêu cầu nghiệp vụ. UC14 chỉ ghi nhận dependency này. Việc thay đổi unique constraint hoặc thay đổi quy tắc đăng ký lại phải được xử lý trong UC12 hoặc thiết kế dữ liệu chung. Chức năng đăng ký lại chưa thể xác nhận hoạt động cho đến khi xung đột được giải quyết.
+8. **Kiểm tra unique constraint trên Application**:
+   - Schema hiện tại **KHÔNG có `@@unique([userId, eventId])`** trên bảng Application. Chỉ có các index: `@@index([userId, status])`, `@@index([eventId, status])`, `@@index([processedBy])`.
+   - Điều này có nghĩa một Volunteer **có thể tạo nhiều Application cho cùng một Event** (không bị ràng buộc unique ở tầng database).
+   - **Ý nghĩa với UC14**: Khi đơn chuyển sang `CANCELLED`, Volunteer có thể tạo đơn mới cho cùng Event mà không bị lỗi unique constraint. Điều này phù hợp với nghiệp vụ "cho phép đăng ký lại sau khi hủy".
+   - **Cần xác minh**: UC12 (Create Application) có kiểm tra trùng lặp ở tầng Service/Repository (VD: kiểm tra existing application với status != CANCELLED) hay không. Nếu không kiểm tra, Volunteer có thể có nhiều đơn PENDING cho cùng một Event — vi phạm Domain Rule "Mỗi tình nguyện viên chỉ được gửi tối đa 1 đơn".
+   - **Ghi nhận**: UC14 chỉ ghi nhận dependency này. Việc đảm bảo tính duy nhất của Application (1 volunteer / 1 event / 1 active application) phải được xử lý ở UC12. `application.repository.js` hiện có hàm `findByUserAndEvent` (lọc `status != CANCELLED`) — đây có thể là cơ chế kiểm tra trùng lặp cho UC12.
 
 9. **Kiểm tra response convention hiện tại**:
    - Response hiện tại dùng field thời gian nào? `updatedAt`, `updated_at`, hay tên khác?
@@ -429,8 +429,9 @@ frontend/
   - **Giảm thiểu**: Hai thay đổi phải nằm trong cùng `prisma.$transaction` callback. Nếu bất kỳ thao tác nào throw error (lỗi hệ thống), toàn bộ transaction rollback. Phải có integration test mô phỏng lỗi khi cập nhật Event sau khi đã cập nhật Application để xác minh rollback hoạt động.
   - **Lưu ý**: `approvedParticipants = 0` không phải là lỗi hệ thống và không gây rollback. Trường hợp này vẫn cho phép hủy thành công, giữ nguyên giá trị 0.
 
-- **Unique constraint `@@unique([userId, eventId])` chặn đăng ký lại**: Bản ghi `CANCELLED` vẫn giữ cặp `userId + eventId` trong unique index, nên UC12 có thể không tạo được đơn mới và trả lỗi `P2002` (unique constraint violation). Schema hiện có `@@unique([userId, eventId])`, trong khi nghiệp vụ cho phép tình nguyện viên tạo một đơn mới sau khi đơn cũ đã `CANCELLED`. Đây là xung đột giữa schema và yêu cầu nghiệp vụ.
-  - **Giảm thiểu**: UC14 không tự thay đổi schema vì việc đăng ký lại thuộc UC12. Không xóa đơn `CANCELLED`. Không chuyển `CANCELLED` về `PENDING`. Plan ghi nhận đây là dependency cần giải quyết trước khi xác nhận chức năng đăng ký lại hoạt động. Phase 0 sẽ nghiên cứu cách UC12 hiện xử lý và đề xuất hướng giải quyết trong `research.md`. Việc thay đổi unique constraint hoặc thay đổi quy tắc đăng ký lại phải được xử lý trong UC12 hoặc thiết kế dữ liệu chung.
+- **Kiểm tra trùng lặp Application ở tầng Service**:
+  - Schema **KHÔNG có `@@unique([userId, eventId])`** — về mặt database, một Volunteer có thể có nhiều Application cho cùng Event. Không có unique constraint để chặn.
+  - **Giảm thiểu**: `application.repository.js` hiện có hàm `findByUserAndEvent` (lọc `status != CANCELLED`) — đây là cơ chế kiểm tra trùng lặp ở tầng ứng dụng. UC12 cần sử dụng hàm này trước khi tạo Application mới để đảm bảo 1 volunteer chỉ có 1 active application / event. UC14 ghi nhận dependency này. Nếu UC12 chưa kiểm tra, Volunteer có thể có nhiều đơn PENDING cho cùng Event.
 
 - **Staff approval không kiểm tra trạng thái Application**: Nếu thao tác duyệt của Staff không yêu cầu Application vẫn là `PENDING`, Staff có thể vô tình duyệt một đơn đã `CANCELLED` hoặc `REJECTED`. Rủi ro: Application chuyển từ `CANCELLED` sang `APPROVED`, `approvedParticipants` tăng không đúng, vi phạm state machine một chiều.
   - **Giảm thiểu**: Phase 0 sẽ kiểm tra service và repository đang xử lý thao tác Staff duyệt Application. Thao tác duyệt phải cập nhật có điều kiện `id = :id AND status = PENDING`. Có integration test xác nhận Staff không thể duyệt Application đã `CANCELLED`. Nếu luồng duyệt thuộc module khác, UC14 ghi nhận dependency và yêu cầu phối hợp sửa.
