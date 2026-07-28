@@ -48,12 +48,9 @@ Cookie: token=eyJhbGciOiJIUzI1NiIs...
   "data": {
     "event_id": 1,
     "title": "Dọn dẹp bãi biển",
-    "status": "REJECTED",
+    "status": "rejected",
     "rejection_reason": "Thông tin sự kiện chưa đầy đủ, thiếu địa điểm tổ chức.",
-    "rejected_by": {
-      "user_id": 3,
-      "full_name": "Manager Nguyễn"
-    },
+    "rejected_by": 3,
     "rejected_at": "2026-07-06T12:00:00.000Z",
     "created_at": "2026-07-01T08:30:00.000Z",
     "updated_at": "2026-07-06T12:00:00.000Z"
@@ -68,11 +65,9 @@ Cookie: token=eyJhbGciOiJIUzI1NiIs...
 ```json
 {
   "success": false,
-  "message": "Dữ liệu đầu vào không hợp lệ",
+  "message": "rejection_reason: Lý do từ chối phải có ít nhất 10 ký tự.",
   "code": "VALIDATION_ERROR",
-  "details": [
-    { "field": "rejection_reason", "message": "Rejection reason must be at least 10 characters" }
-  ]
+  "details": null
 }
 ```
 

@@ -41,11 +41,8 @@ Cookie: token=eyJhbGciOiJIUzI1NiIs...
   "data": {
     "event_id": 1,
     "title": "Dọn dẹp bãi biển",
-    "status": "APPROVED",
-    "approved_by": {
-      "user_id": 3,
-      "full_name": "Manager Nguyễn"
-    },
+    "status": "published",
+    "approved_by": 3,
     "approved_at": "2026-07-06T12:00:00.000Z",
     "created_at": "2026-07-01T08:30:00.000Z",
     "updated_at": "2026-07-06T12:00:00.000Z"

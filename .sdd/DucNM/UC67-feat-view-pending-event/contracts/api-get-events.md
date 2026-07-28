@@ -44,7 +44,7 @@ GET /api/v1/events
         "event_id": 1,
         "title": "Dọn dẹp bãi biển",
         "status": "pending_approval",
-        "created_by": { "id": 2, "full_name": "Staff Nguyễn" },
+        "created_by": { "id": 2, "full_name": "Staff Nguyễn", "email": "staff@example.com" },
         "created_at": "2026-07-01T08:30:00.000Z"
       }
     ],
