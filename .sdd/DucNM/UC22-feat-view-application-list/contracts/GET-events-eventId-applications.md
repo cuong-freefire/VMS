@@ -90,7 +90,7 @@ GET /api/v1/events/:eventId/applications
 ```json
 {
   "success": false,
-  "message": "Invalid status value. Must be one of: pending, approved, rejected, cancelled",
+  "message": "status: Trạng thái không hợp lệ. Phải là: pending, approved, rejected, cancelled",
   "code": "VALIDATION_ERROR",
   "details": null
 }

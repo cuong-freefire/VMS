@@ -12,8 +12,8 @@
 ## Overview
 
 Staff phê duyệt một đơn đăng ký volunteer. Hệ thống:
-1. Validate ownership (Staff chỉ approve application của event do mình tạo)
-2. Check capacity (`approvedParticipants < maxCapacity`)
+1. Validate ownership (Staff chỉ approve application của event do mình tạo — `created_by`)
+2. Check capacity (`approvedParticipants < maxCapacity`) — hard block
 3. Update application status + timestamp + processedBy
 4. Increment event.approvedParticipants
 
@@ -28,7 +28,7 @@ Staff phê duyệt một đơn đăng ký volunteer. Hệ thống:
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `applicationId` | Integer | ✅ YES | Application ID to approve |
+| `applicationId` | Integer | ✅ YES | Application ID to approve (positive integer) |
 
 ### Request Headers
 
@@ -42,7 +42,7 @@ Staff phê duyệt một đơn đăng ký volunteer. Hệ thống:
 
 ### Authorization Rules
 1. ✅ Token must be valid
-2. ✅ User role must be `STAFF`
+2. ✅ User role must be `STAFF`, `MANAGER`, or `ADMIN`
 3. ✅ Application's event MUST have `createdBy` matching Staff's `user_id`
 4. ❌ If ownership mismatch → 403 Forbidden
 
@@ -55,7 +55,7 @@ Staff phê duyệt một đơn đăng ký volunteer. Hệ thống:
 ```json
 {
   "success": true,
-  "message": "Application approved successfully",
+  "message": "Phê duyệt đơn đăng ký thành công",
   "data": {
     "id": 1,
     "userId": 5,
@@ -71,12 +71,12 @@ Staff phê duyệt một đơn đăng ký volunteer. Hệ thống:
 
 ### Error Responses (theo response.util.js)
 
-#### 400 Bad Request - Invalid State Transition
+#### 400 Bad Request - Invalid Application ID
 ```json
 {
   "success": false,
-  "message": "Cannot approve application in REJECTED state",
-  "code": "INVALID_STATE_TRANSITION",
+  "message": "Mã đơn đăng ký phải là số nguyên dương",
+  "code": "VALIDATION_ERROR",
   "details": null
 }
 ```
@@ -121,11 +121,11 @@ Staff phê duyệt một đơn đăng ký volunteer. Hệ thống:
 }
 ```
 
-#### 409 Conflict - Already Processed
+#### 409 Conflict - Invalid Status
 ```json
 {
   "success": false,
-  "message": "Application is already APPROVED or REJECTED",
+  "message": "Application in APPROVED state cannot be processed",
   "code": "INVALID_STATUS",
   "details": null
 }
@@ -141,16 +141,16 @@ Staff phê duyệt một đơn đăng ký volunteer. Hệ thống:
 - ❌ `REJECTED` → `APPROVED`: 409 Conflict
 - ❌ `CANCELLED` → `APPROVED`: 409 Conflict
 
-### Capacity Enforcement (CRITICAL)
+### Capacity Enforcement (CRITICAL — per AGENTS.md §3.1)
 | Condition | Action |
 |-----------|--------|
 | `approvedParticipants < maxCapacity` | Allow approval, increment approvedParticipants |
-| `approvedParticipants >= maxCapacity` | **REJECT** with 409 Conflict |
+| `approvedParticipants >= maxCapacity` | **REJECT** with 409 Conflict — hard block, no buffer |
 
 No exceptions. No warnings. No over-capacity allowance.
 
 ---
 
-**Contract Version**: 2.0  
-**Last Updated**: 2026-07-18  
-**Status**: REVIEWED
+**Contract Version**: 3.0  
+**Last Updated**: 2026-07-28  
+**Status**: IMPLEMENTED

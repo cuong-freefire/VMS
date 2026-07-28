@@ -1,8 +1,8 @@
 # Feature Specification: Reject Application (UC25)
 **Feature Branch**: `025-feat-reject-application`
 **Created**: 2026-06-28
-**Updated**: 2026-07-18
-**Status**: REVIEWED
+**Updated**: 2026-07-28
+**Status**: IMPLEMENTED
 
 **Consistency Check**: Aligned with Prisma schema — use `message` field for rejection reason.
 

@@ -3,119 +3,89 @@
 **Feature**: View Application Detail  
 **Date**: 2026-06-29  
 **Phase**: Phase 0 - Technical Research  
-**Status**: RESEARCH COMPLETE
+**Status**: RESEARCH COMPLETE — Some decisions superseded by implementation
 
 ---
 
 ## RQ1: Organization Ownership Validation Strategy
 
-### Decision: **Deep JOIN in single query (Option A)**
+### Decision: **Pre-check event creator ownership — ACTUAL IMPLEMENTATION**
 
-**Rationale**: Reuse UC22 pattern - single atomic query với Prisma nested where:
+**Research Decision (Option A)**: Deep JOIN in single query.
+
+**Actual Implementation**: The service calls `applicationRepository.findDetailById(applicationId)` which returns the application with nested event info including `event.createdBy`. Then ownership is validated in service layer:
 ```javascript
-const application = await prisma.application.findUnique({
-  where: { id: applicationId },
-  include: {
-    user: { include: { user_skills: true } },
-    event: { 
-      where: { organization_id: staffOrganizationId },
-      include: { organization: true }
-    }
-  }
-});
-if (!application || !application.event) throw new ForbiddenError();
+if (application.event.createdBy !== currentUser.user_id) {
+  throw new ServiceError('...', 403, 'FORBIDDEN');
+}
 ```
 
-**Performance**: 1 query, atomic security check, leverages existing UC22 indexes.
+**Reason for divergence**: Uses `createdBy` instead of `organization_id` because the current schema has no Organization model.
+
+**Status**: ⚠️ SUPERSEDED
 
 ---
 
 ## RQ2: Sensitive Data Exposure Policy
 
-### Decision: **Expose email + phone, hide address + ID card (Option B)**
+### Decision: **Expose email + phone, hide password — MATCHES IMPLEMENTATION**
 
-**Rationale**: 
-- Detail view CẦN email + phone để Staff liên hệ Volunteer
-- Address + Identity Card KHÔNG cần thiết cho application review
-- Privacy-first approach: only expose data cần cho business purpose
+**Actual Implementation**: Repository uses `select` to expose:
+- id, fullName, email, phone, avatarUrl, userSkills
+- NOT: passwordHash, isActive, roleId, emailVerified
 
-**Implementation**: 
-```javascript
-user: {
-  select: {
-    id: true, name: true, email: true, phone_number: true, avatar_url: true
-    // NOT: address, identity_card_number
-  }
-}
-```
+**Status**: ✅ MATCHES (email and phone exposed as defined in formatApplicationDetail)
 
 ---
 
 ## RQ3: State Transition Implementation
 
-### Decision: **No automatic transition (Option C)**
+### Decision: **No automatic transition (Option C) — MATCHES IMPLEMENTATION**
 
-**Rationale**:
-- FR-004 says "nếu quy trình nghiệp vụ yêu cầu" - KHÔNG mandatory
-- Status changes belong in UC24/UC25 (Approve/Reject) với explicit actions
-- Viewing ≠ Reviewing - Staff có thể xem nhiều lần
-- Avoid race conditions (2 Staff view simultaneously)
+**Actual Implementation**: Viewing detail does NOT change application status. No "Reviewed" status exists in the Prisma schema.
 
-**Alternative**: Add `last_viewed_at` timestamp for audit only, NO status change.
+**Status**: ✅ MATCHES
 
 ---
 
 ## RQ4: Volunteer Statistics Integration
 
-### Decision: **Direct COUNT query in Repository (Option A)**
+### Decision: **Direct COUNT query in Repository (Option A) — NOT IMPLEMENTED**
 
-**Rationale**:
-- Simple aggregation: `COUNT(applications WHERE user_id AND status='Completed')`
-- No cross-module dependency (UC18 may not be ready)
-- Fresh data (no caching issues)
+**Actual Implementation**: The service method `getApplicationDetail` does NOT include any statistics calculation. The research decision was not implemented.
 
-**Implementation**:
-```javascript
-const stats = await prisma.application.aggregate({
-  where: { user_id: volunteerId, status: 'Completed' },
-  _count: true,
-  _sum: { volunteer_hours: true }
-});
-```
+**Status**: ❌ NOT IMPLEMENTED (deferred P2)
 
 ---
 
 ## RQ5: Custom Questions/Answers Display
 
-### Decision: **Out of scope MVP (Option C)**
+### Decision: **Out of scope MVP (Option C) — MATCHES**
 
-**Rationale**:
-- Database schema CHƯA RÕ có table `application_custom_answers`
-- SPEC.md không explicit require custom Q&A display
-- Focus on P1 (US1): core profile + motivation letter
-- Defer to future iteration when schema confirmed
-
-**MVP Scope**: Show motivation_letter only, skip custom answers.
+**Status**: ✅ MATCHES
 
 ---
 
 ## RQ6: Frontend Navigation
 
-### Decision: **React Router with route params (Option A)**
+### Decision: **React Router (Option A) — NOT VERIFIED**
 
-**Rationale**:
-- Deep linking: Staff share URL `/applications/:applicationId`
-- Browser back returns to UC22 list
-- Clean separation: separate page vs modal overlay
-
-**Implementation**:
-```javascript
-// Route: /applications/:applicationId
-// UC22 Link: <Link to={`/applications/${app.id}`}>View Detail</Link>
-```
+**Status**: ❓ UNKNOWN (frontend not in scope)
 
 ---
 
-## Summary
+## Summary of Decision Status
 
-All 6 RQs resolved. Ready for Phase 1 design artifacts.
+| Research Question | Research Decision | Actual Implementation | Status |
+|-------------------|-------------------|----------------------|--------|
+| RQ1: Ownership | Deep JOIN (Option A) | Pre-check created_by | ⚠️ SUPERSEDED |
+| RQ2: Sensitive Data | Expose email+phone | email+phone exposed | ✅ MATCHES |
+| RQ3: State Transition | No auto change | No "Reviewed" status | ✅ MATCHES |
+| RQ4: Statistics | Direct COUNT query | NOT implemented | ❌ NOT DONE |
+| RQ5: Custom Q&A | Out of scope | Out of scope | ✅ MATCHES |
+| RQ6: Frontend Nav | React Router | Not verified | ❓ UNKNOWN |
+
+---
+
+**Research Phase Complete** ✅  
+**Last Updated**: 2026-07-28

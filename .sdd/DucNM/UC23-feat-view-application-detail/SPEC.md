@@ -1,8 +1,8 @@
 # Feature Specification: View Application Detail (UC23)
 **Feature Branch**: `023-feat-view-application-detail`
 **Created**: 2026-06-28
-**Updated**: 2026-07-18
-**Status**: REVIEWED
+**Updated**: 2026-07-28
+**Status**: IMPLEMENTED
 
 **Consistency Check**: Aligned with Prisma schema — ApplicationStatus: PENDING, APPROVED, REJECTED, CANCELLED.
 
@@ -22,7 +22,7 @@ Là một **Staff**, tôi muốn xem các thông tin: Họ tên, Email, Số đi
 ## Requirements
 ### Functional Requirements
 - **FR-001**: **WHEN** Staff gửi yêu cầu xem chi tiết, **THE** system **SHALL** kiểm tra `created_by` của event gắn với application đó có khớp với Staff hay không.
-- **FR-002**: **WHEN** trả về dữ liệu, **THE** system **SHALL** bao gồm: Tên, Ảnh đại diện, Email, SĐT, Danh sách kỹ năng, Message (motivation letter), và Trạng thái đơn hiện tại.
+- **FR-002**: **WHEN** trả về dữ liệu, **THE** system **SHALL** bao gồm: id, userId, eventId, status, message, processedBy, processedAt, createdAt, updatedAt, volunteer (id, fullName, email, phone, avatarUrl, skills), event (id, title, startDate, endDate).
 - **FR-003**: **WHERE** không tìm thấy Application ID, **THE** system **SHALL** trả về lỗi 404.
 
 ---
@@ -35,3 +35,4 @@ Là một **Staff**, tôi muốn xem các thông tin: Họ tên, Email, Số đi
 ## Out of Scope
 - Phê duyệt/Từ chối tại màn hình này (UC24/UC25).
 - Staff sửa thông tin cá nhân của Volunteer.
+- Volunteer statistics (events_joined, completion_rate) — not implemented.

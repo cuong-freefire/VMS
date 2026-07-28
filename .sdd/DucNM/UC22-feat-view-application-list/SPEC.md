@@ -1,8 +1,8 @@
 # Feature Specification: View Application List (UC22)
 **Feature Branch**: `022-feat-view-application-list`
 **Created**: 2026-06-28
-**Updated**: 2026-07-18
-**Status**: REVIEWED
+**Updated**: 2026-07-28
+**Status**: IMPLEMENTED
 
 **Consistency Check**: Aligned with Prisma schema — ApplicationStatus: PENDING, APPROVED, REJECTED, CANCELLED.
 
@@ -22,10 +22,10 @@ Là một **Staff**, tôi muốn chọn một sự kiện cụ thể và xem t�
 ## Requirements
 ### Functional Requirements
 - **FR-001**: **WHEN** Staff truy cập danh sách, **THE** system **SHALL** kiểm tra quyền truy cập: Staff chỉ xem được application của event do mình tạo (`created_by`).
-- **FR-002**: **WHEN** dữ liệu trả về, **THE** system **SHALL** bao gồm các trường: applicationId, volunteerName, submittedAt (createdAt), status.
+- **FR-002**: **WHEN** dữ liệu trả về, **THE** system **SHALL** bao gồm các trường: id, userId, eventId, status, message, processedBy, processedAt, createdAt, updatedAt, và volunteer (id, fullName, avatarUrl).
 - **FR-003**: **WHERE** danh sách có nhiều hơn 20 bản ghi, **THE** system **SHALL** thực hiện phân trang.
 - **FR-004**: **WHEN** Staff nhấn vào tên một Volunteer, **THE** system **SHALL** điều hướng sang UC23 (View Application Detail).
-- **FR-005**: **WHERE** không có đơn đăng ký nào, **THE** system **SHALL** hiển thị thông báo "No applications found for this event."
+- **FR-005**: **WHERE** không có đơn đăng ký nào, **THE** system **SHALL** hiển thị thông báo "Không có đơn đăng ký nào."
 
 ---
 

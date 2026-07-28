@@ -1,8 +1,8 @@
 # Feature Specification: Approve Application (UC24)
 **Feature Branch**: `024-feat-approve-application`
 **Created**: 2026-06-28
-**Updated**: 2026-07-18
-**Status**: REVIEWED
+**Updated**: 2026-07-28
+**Status**: IMPLEMENTED
 
 **Consistency Check**: Aligned with Prisma schema, AGENTS.md §3.1 (capacity MUST NOT be exceeded).
 
@@ -14,7 +14,7 @@
 1. **Given** Application đang `PENDING` và event còn chỗ (`approvedParticipants < maxCapacity`), **When** Staff nhấn "Approve", **Then** hệ thống trả về HTTP 200, cập nhật status thành `APPROVED`, increment `approvedParticipants`.
 
 ### User Story 2 - Từ chối nếu đầy chỗ (Priority: P1)
-1. **Given** event đã đầy (`approvedParticipants >= maxCapacity`), **When** Staff cố gắng approve, **Then** hệ thống trả về HTTP 409 với message "Event is at full capacity."
+1. **Given** event đã đầy (`approvedParticipants >= maxCapacity`), **When** Staff cố gắng approve, **Then** hệ thống trả về HTTP 409 với message "Event is at full capacity. Cannot approve more applications."
 
 ### User Story 3 - Chặn truy cập với người dùng không có quyền (Priority: P1)
 1. **Given** Staff không sở hữu event, **When** Staff gửi request approve, **Then** HTTP 403.

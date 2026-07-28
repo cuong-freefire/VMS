@@ -12,7 +12,7 @@
 ## Overview
 
 Staff từ chối một đơn đăng ký volunteer. Hệ thống:
-1. Validate ownership (Staff chỉ reject application của event do mình tạo)
+1. Validate ownership (Staff chỉ reject application của event do mình tạo — `created_by`)
 2. Update application status + timestamp + message (rejection reason) + processedBy
 3. `message` field stores the rejection reason (no separate `rejection_reason` field on Application model)
 
@@ -27,7 +27,7 @@ Staff từ chối một đơn đăng ký volunteer. Hệ thống:
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `applicationId` | Integer | ✅ YES | Application ID to reject |
+| `applicationId` | Integer | ✅ YES | Application ID to reject (positive integer) |
 
 ### Request Headers
 
@@ -56,7 +56,7 @@ Staff từ chối một đơn đăng ký volunteer. Hệ thống:
 ```json
 {
   "success": true,
-  "message": "Application rejected successfully",
+  "message": "Từ chối đơn đăng ký thành công",
   "data": {
     "id": 1,
     "userId": 5,
@@ -77,8 +77,8 @@ Staff từ chối một đơn đăng ký volunteer. Hệ thống:
 ```json
 {
   "success": false,
-  "message": "Cannot reject application in APPROVED state",
-  "code": "INVALID_STATE_TRANSITION",
+  "message": "Lý do từ chối phải có ít nhất 10 ký tự",
+  "code": "VALIDATION_ERROR",
   "details": null
 }
 ```
@@ -117,7 +117,7 @@ Staff từ chối một đơn đăng ký volunteer. Hệ thống:
 ```json
 {
   "success": false,
-  "message": "Application is already APPROVED or REJECTED",
+  "message": "Application in APPROVED state cannot be processed",
   "code": "INVALID_STATUS",
   "details": null
 }
@@ -135,10 +135,10 @@ Staff từ chối một đơn đăng ký volunteer. Hệ thống:
 
 ### Rejection Reason
 - Stored in Application.`message` field (Prisma schema has no `rejection_reason` on Application)
-- Required, minimum 10 characters
+- Required, minimum 10 characters, maximum 2000 characters
 
 ---
 
-**Contract Version**: 2.0  
-**Last Updated**: 2026-07-18  
-**Status**: REVIEWED
+**Contract Version**: 3.0  
+**Last Updated**: 2026-07-28  
+**Status**: IMPLEMENTED

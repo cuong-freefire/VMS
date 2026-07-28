@@ -30,6 +30,7 @@ export const validate = (schema) => (req, res, next) => {
       success: false,
       message: messages,
       code: "VALIDATION_ERROR",
+      details: null,
     });
   }
 
@@ -57,6 +58,7 @@ export const validateQuery = (schema) => (req, res, next) => {
       success: false,
       message: messages,
       code: "VALIDATION_ERROR",
+      details: null,
     });
   }
 
@@ -84,6 +86,7 @@ export const validateParams = (schema) => (req, res, next) => {
       success: false,
       message: messages,
       code: "VALIDATION_ERROR",
+      details: null,
     });
   }
 

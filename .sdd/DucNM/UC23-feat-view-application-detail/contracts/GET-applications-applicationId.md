@@ -2,14 +2,15 @@
 
 **Endpoint**: `GET /api/v1/applications/:applicationId`  
 **Feature**: View Application Detail (UC23)  
-**Owner**: TienTD - Application Module  
-**Date**: 2026-06-29
+**Owner**: DucNM - Application Module  
+**Date**: 2026-06-29 | **Updated**: 2026-07-28  
+**Status**: IMPLEMENTED
 
 ---
 
 ## Authentication
 - **Required**: Yes (JWT token in HttpOnly cookie)
-- **Role**: Staff, Manager
+- **Role**: STAFF, MANAGER, ADMIN
 
 ---
 
@@ -17,14 +18,14 @@
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `applicationId` | UUID | Yes | Application ID to fetch |
+| `applicationId` | Integer | Yes | Application ID to fetch (positive integer) |
 
 ---
 
 ## Request Example
 
 ```http
-GET /api/v1/applications/550e8400-e29b-41d4-a716-446655440000 HTTP/1.1
+GET /api/v1/applications/1 HTTP/1.1
 Host: api.vms.com
 Cookie: token=<jwt_token>
 ```
@@ -37,44 +38,37 @@ Cookie: token=<jwt_token>
 {
   "success": true,
   "data": {
-    "application": {
-      "id": "550e8400-e29b-41d4-a716-446655440000",
-      "status": "SUBMITTED",
-      "motivation_letter": "I am passionate about volunteering...",
-      "submitted_at": "2026-06-15T10:30:00Z",
-      "reviewed_at": null,
-      "notes": null,
-      "volunteer": {
-        "id": "123e4567-e89b-12d3-a456-426614174000",
-        "name": "Nguyen Van A",
-        "email": "nguyenvana@example.com",
-        "phone_number": "+84901234567",
-        "avatar_url": "https://cloudinary.com/avatar.jpg",
-        "skills": [
-          {
-            "id": "skill-uuid-1",
-            "skill_name": "First Aid",
-            "level": "INTERMEDIATE"
-          },
-          {
-            "id": "skill-uuid-2",
-            "skill_name": "Event Management",
-            "level": "ADVANCED"
-          }
-        ],
-        "statistics": {
-          "events_joined": 12,
-          "events_completed": 10,
-          "completion_rate": 83.3,
-          "total_volunteer_hours": 120
+    "id": 1,
+    "userId": 5,
+    "eventId": 10,
+    "status": "PENDING",
+    "message": "I am passionate about volunteering...",
+    "processedBy": null,
+    "processedAt": null,
+    "createdAt": "2026-06-15T10:30:00.000Z",
+    "updatedAt": "2026-06-15T10:30:00.000Z",
+    "volunteer": {
+      "id": 5,
+      "fullName": "Nguyen Van A",
+      "email": "nguyenvana@example.com",
+      "phone": "+84901234567",
+      "avatarUrl": "https://cloudinary.com/avatar.jpg",
+      "skills": [
+        {
+          "id": 1,
+          "name": "First Aid"
+        },
+        {
+          "id": 2,
+          "name": "Communication"
         }
-      },
-      "event": {
-        "id": "event-uuid",
-        "name": "Community Cleanup 2026",
-        "start_date": "2026-07-01T08:00:00Z",
-        "end_date": "2026-07-01T17:00:00Z"
-      }
+      ]
+    },
+    "event": {
+      "id": 10,
+      "title": "Community Cleanup 2026",
+      "startDate": "2026-07-01T08:00:00.000Z",
+      "endDate": "2026-07-01T17:00:00.000Z"
     }
   }
 }
@@ -84,51 +78,47 @@ Cookie: token=<jwt_token>
 
 ## Error Responses
 
-### 400 Bad Request - Invalid UUID Format
+### 400 Bad Request - Invalid Application ID Format
+
 ```json
 {
   "success": false,
-  "error": {
-    "code": "INVALID_UUID",
-    "message": "Application ID must be a valid UUID",
-    "details": {
-      "field": "applicationId",
-      "value": "invalid-id"
-    }
-  }
+  "message": "Mã đơn đăng ký phải là số nguyên dương",
+  "code": "VALIDATION_ERROR",
+  "details": null
 }
 ```
 
 ### 401 Unauthorized - Missing/Invalid Token
+
 ```json
 {
   "success": false,
-  "error": {
-    "code": "UNAUTHORIZED",
-    "message": "Authentication required"
-  }
+  "message": "Vui lòng đăng nhập.",
+  "code": "UNAUTHORIZED",
+  "details": null
 }
 ```
 
-### 403 Forbidden - Organization Ownership Violation
+### 403 Forbidden - Event Ownership Violation
+
 ```json
 {
   "success": false,
-  "error": {
-    "code": "FORBIDDEN",
-    "message": "Access denied: Application belongs to different organization"
-  }
+  "message": "Bạn không có quyền truy cập tài nguyên này",
+  "code": "FORBIDDEN",
+  "details": null
 }
 ```
 
 ### 404 Not Found - Application Not Found
+
 ```json
 {
   "success": false,
-  "error": {
-    "code": "NOT_FOUND",
-    "message": "Application not found"
-  }
+  "message": "Application not found",
+  "code": "RESOURCE_NOT_FOUND",
+  "details": null
 }
 ```
 
@@ -136,22 +126,19 @@ Cookie: token=<jwt_token>
 
 ## Business Rules
 
-1. **Organization Access Control**: Staff can ONLY view applications for events belonging to their organization
-2. **Sensitive Data Protection**: NEVER expose `address` or `identity_card_number` in response
-3. **Audit Logging**: Every detail view MUST be logged with `{ staff_id, application_id, volunteer_id, timestamp }`
-4. **Performance**: Response time target <300ms (p95)
+1. **Event Creator Access Control**: Staff can ONLY view applications for events they created (`created_by`)
+2. **Sensitive Data Protection**: NEVER expose `passwordHash` in response
+3. **No status auto-change**: Viewing detail does NOT change application status
 
 ---
 
 ## Security Notes
 
-- Organization validation happens at query level (Prisma nested where)
-- Sensitive fields filtered using Prisma select
-- Audit log written to database before returning response
-- Browser console MUST NOT log email/phone (FR-016)
+- Event ownership validation via `event.createdBy` check in service layer
+- Sensitive fields filtered using Prisma select in repository layer
+- Response format follows `response.util.js` standard
 
 ---
 
-**Contract Status**: DRAFT  
-**Reviewed By**: Pending  
-**Approved By**: Pending
+**Contract Status**: IMPLEMENTED  
+**Last Updated**: 2026-07-28
