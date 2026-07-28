@@ -1,10 +1,13 @@
 /**
  * Application Service - Business logic for Application Management module
- * Owner: Member 4 - DucNM (UC22, UC23, UC24)
+ * Owner: Member 4 - DucNM (UC22, UC23, UC24, UC25)
  *
  * Responsibilities:
  * - UC22: Get paginated list of applications by event with status filter
  * - UC23: Get application detail
+ * - UC24: Approve application
+ * - UC25: Reject application
+ * 
  * - Validate event ownership (Staff chỉ xem applications của event do mình tạo)
  * - Format response with volunteer info and pagination metadata
  *
@@ -50,6 +53,49 @@ function formatApplication(app) {
             }
             : null
     };
+}
+
+/**
+ * Validate that an application:
+ * - exists
+ * - belongs to the current event owner
+ * - is still in PENDING status
+ *
+ * @param {number} applicationId
+ * @param {Object} currentUser
+ * @returns {Promise<Object>} Application with event information
+ * @throws {ServiceError}
+ */
+async function validatePendingApplication(applicationId, currentUser) {
+    const application = await applicationRepository.findById(applicationId);
+    
+    if (!application) {
+        throw new ServiceError(
+            'Application not found',
+            404,
+            'RESOURCE_NOT_FOUND'
+        );
+    }
+
+    // 2. Validate ownership — only event creator can process the application
+    if (application.event.createdBy !== currentUser.user_id) {
+        throw new ServiceError(
+            'Bạn không có quyền truy cập tài nguyên này',
+            403,
+            'FORBIDDEN'
+        );
+    }
+
+    // 3. Validate application status — must be PENDING
+    if (application.status !== 'PENDING') {
+        throw new ServiceError(
+            `Application in ${application.status} state cannot be processed`,
+            409,
+            'INVALID_STATUS'
+        );
+    }
+
+    return application;
 }
 
 /**
@@ -188,13 +234,11 @@ function formatApplicationDetail(app) {
  * UC24: Approve Application — Staff phê duyệt đơn đăng ký.
  *
  * Business Logic:
- * 1. Validate application exists via findById (404 if not)
- * 2. Validate ownership — only event creator can approve (403 if not)
- * 3. Check application status — must be PENDING (409 if not)
- * 4. Check event capacity — approvedParticipants < maxCapacity (409 if full)
- * 5. Update application: status = APPROVED, processedBy, processedAt
- * 6. Increment event.approvedParticipants
- * 7. Return formatted response
+ * 1. Validate pending application
+ * 2. Check event capacity
+ * 3. Approve application
+ * 4. Update approved participant count
+ * 5. Return response
  *
  * @param {number} applicationId - Application ID from route param
  * @param {Object} currentUser - User from JWT (req.user)
@@ -204,33 +248,11 @@ function formatApplicationDetail(app) {
  * @throws {ServiceError} 409 if status not PENDING or capacity full
  */
 async function approveApplication(applicationId, currentUser) {
-    // 1. Find application by ID
-    const application = await applicationRepository.findById(applicationId);
-    if (!application) {
-        throw new ServiceError(
-            'Application not found',
-            404,
-            'RESOURCE_NOT_FOUND'
-        );
-    }
-
-    // 2. Validate ownership — only event creator can approve
-    if (application.event.createdBy !== currentUser.user_id) {
-        throw new ServiceError(
-            'Bạn không có quyền truy cập tài nguyên này',
-            403,
-            'FORBIDDEN'
-        );
-    }
-
-    // 3. Check application status — must be PENDING
-    if (application.status !== 'PENDING') {
-        throw new ServiceError(
-            'Cannot approve application in ' + application.status + ' state',
-            409,
-            'INVALID_STATUS'
-        );
-    }
+    // 1. Validate pending application
+    const application = await validatePendingApplication(
+        applicationId,
+        currentUser
+    );
 
     // 4. Check event capacity
     if (application.event.approvedParticipants >= application.event.maxCapacity) {
@@ -257,8 +279,45 @@ async function approveApplication(applicationId, currentUser) {
     return buildBaseApplication(updatedApp);
 }
 
+/**
+ * Reject a pending application.
+ * UC25: Reject Application — Staff từ chối đơn đăng ký kèm lý do.
+ *
+ * Business Logic:
+ * 1. Validate pending application
+ * 2. Update application status to REJECTED with rejection reason
+ * 3. Return formatted response
+ *
+ * @param {number} applicationId - Application ID from route param
+ * @param {Object} data - Request body: { message: string }
+ * @param {Object} currentUser - User from JWT (req.user)
+ * @returns {Promise<Object>} Updated application object
+ * @throws {ServiceError} 404 if application not found
+ * @throws {ServiceError} 403 if not event owner
+ * @throws {ServiceError} 409 if status not PENDING
+ */
+async function rejectApplication(applicationId, data, currentUser) {
+    // 1. Validate pending application
+    await validatePendingApplication(
+        applicationId,
+        currentUser
+    );
+
+    // 4. Update application: status = REJECTED, message, processedBy, processedAt
+    const updatedApp = await applicationRepository.updateApplicationStatus(applicationId, {
+        status: 'REJECTED',
+        message: data.message,
+        processedBy: currentUser.user_id,
+        processedAt: new Date()
+    });
+
+    // 5. Return formatted response
+    return buildBaseApplication(updatedApp);
+}
+
 export default {
     getApplicationsByEvent,
     getApplicationDetail,
-    approveApplication
+    approveApplication,
+    rejectApplication
 };

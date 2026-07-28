@@ -5,7 +5,7 @@
  * - getApplicationsQuerySchema: GET /api/v1/events/:eventId/applications (UC22)
  * - applicationIdParamSchema: GET /api/v1/applications/:applicationId (UC23)
  *
- * Owner: Member 4 - DucNM (UC22, UC23)
+ * Owner: Member 4 - DucNM (UC22, UC23, UC24, UC25)
  */
 
 import { z } from 'zod';
@@ -96,4 +96,22 @@ export const applicationIdParamSchema = z.object({
             },
             { message: 'Mã đơn đăng ký phải là số nguyên dương' }
         )
+});
+
+/**
+ * Schema validation cho PATCH /api/v1/applications/:applicationId/reject request body.
+ * UC25: Reject Application — Staff từ chối đơn đăng ký kèm lý do.
+ *
+ * Validation rules:
+ * - message: required
+ * - minimum length: 10
+ * - maximum length: 2000
+ * - trimmed before validation
+ */
+export const rejectApplicationSchema = z.object({
+    message: z
+        .string()
+        .trim()
+        .min(10, 'Lý do từ chối phải có ít nhất 10 ký tự')
+        .max(2000, 'Lý do từ chối không được vượt quá 2000 ký tự')
 });

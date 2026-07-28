@@ -2,24 +2,30 @@
  * Application Routes
  *
  * Các endpoint liên quan đến đơn đăng ký (Application Management):
-  * - GET /events/:eventId/applications
+ * - GET /events/:eventId/applications
  *   UC22 - View Application List
  *
  * - GET /applications/:applicationId
  *   UC23 - View Application Detail
  * 
+ * - PATCH /applications/:applicationId/approve
+ *   UC24 - Approve Application
+ *
+ * - PATCH /applications/:applicationId/reject
+ *   UC25 - Reject Application
+ * 
  * Prefix: /api/v1 (mount tại app.js)
  *
- * Owner: Member 4 - DucNM (UC22. UC23, UC24)
+ * Owner: Member 4 - DucNM (UC22. UC23, UC24, UC25)
  * Module: Application Management
  */
 
 import { Router } from "express";
 import authMiddleware from "../middlewares/auth.middleware.js";
 import authorize from "../middlewares/authorize.middleware.js";
-import { validateQuery, validateParams } from "../middlewares/validators/validate.js";
-import { getApplicationsByEventHandler, getApplicationDetailHandler, approveApplicationHandler } from "../controllers/application.controller.js";
-import { getApplicationsQuerySchema, applicationIdParamSchema, eventIdParamSchema } from "../middlewares/validators/application.validator.js";
+import { validate, validateQuery, validateParams } from "../middlewares/validators/validate.js";
+import { getApplicationsByEventHandler, getApplicationDetailHandler, approveApplicationHandler, rejectApplicationHandler } from "../controllers/application.controller.js";
+import { getApplicationsQuerySchema, applicationIdParamSchema, eventIdParamSchema, rejectApplicationSchema } from "../middlewares/validators/application.validator.js";
 
 const router = Router();
 
@@ -251,6 +257,87 @@ router.patch(
     authorize("STAFF", "MANAGER", "ADMIN"),
     validateParams(applicationIdParamSchema),
     approveApplicationHandler
+);
+
+/**
+ * PATCH /api/v1/applications/:applicationId/reject
+ * Từ chối đơn đăng ký (UC25: Reject Application)
+ * Chỉ Staff (chủ sở hữu event) mới có quyền.
+ */
+/**
+ * @swagger
+ * /api/v1/applications/{applicationId}/reject:
+ *   patch:
+ *     summary: Từ chối đơn đăng ký
+ *     description: |
+ *       Từ chối một đơn đăng ký tình nguyện viên kèm lý do.
+ *       Chỉ Staff (chủ sở hữu event) mới có quyền.
+ *       Application phải ở trạng thái PENDING.
+ *       Lý do từ chối (message) là bắt buộc, tối thiểu 10 ký tự.
+ *     tags: [Application Management]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: applicationId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID của đơn đăng ký
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - message
+ *             properties:
+ *               message:
+ *                 type: string
+ *                 minLength: 10
+ *                 maxLength: 2000
+ *                 description: Lý do từ chối
+ *           example:
+ *             message: "Hồ sơ chưa đủ kinh nghiệm tổ chức sự kiện tình nguyện."
+ *     responses:
+ *       200:
+ *         description: Từ chối thành công
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: "Từ chối đơn đăng ký thành công"
+ *               data:
+ *                 id: 1
+ *                 userId: 5
+ *                 eventId: 10
+ *                 status: "REJECTED"
+ *                 message: "Hồ sơ chưa đủ kinh nghiệm tổ chức sự kiện."
+ *                 processedBy: 3
+ *                 processedAt: "2026-07-18T10:00:00.000Z"
+ *                 createdAt: "2026-06-15T10:30:00.000Z"
+ *                 updatedAt: "2026-07-18T10:00:00.000Z"
+ *       400:
+ *         description: Dữ liệu không hợp lệ (message thiếu hoặc quá ngắn)
+ *       401:
+ *         description: Chưa xác thực
+ *       403:
+ *         description: Không có quyền (không phải chủ sở hữu event)
+ *       404:
+ *         description: Application not found
+ *       409:
+ *         description: Conflict (status không phải PENDING)
+ *       500:
+ *         description: Lỗi server
+ */
+router.patch(
+    "/applications/:applicationId/reject",
+    authMiddleware,
+    authorize("STAFF", "MANAGER", "ADMIN"),
+    validateParams(applicationIdParamSchema),
+    validate(rejectApplicationSchema),
+    rejectApplicationHandler
 );
 
 export default router;
