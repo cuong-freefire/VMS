@@ -1,6 +1,6 @@
 /**
  * Application Service - Business logic for Application Management module
- * Owner: Member 4 - DucNM (UC22, UC23)
+ * Owner: Member 4 - DucNM (UC22, UC23, UC24)
  *
  * Responsibilities:
  * - UC22: Get paginated list of applications by event with status filter
@@ -183,7 +183,82 @@ function formatApplicationDetail(app) {
     };
 }
 
+/**
+ * Approve a pending application.
+ * UC24: Approve Application — Staff phê duyệt đơn đăng ký.
+ *
+ * Business Logic:
+ * 1. Validate application exists via findById (404 if not)
+ * 2. Validate ownership — only event creator can approve (403 if not)
+ * 3. Check application status — must be PENDING (409 if not)
+ * 4. Check event capacity — approvedParticipants < maxCapacity (409 if full)
+ * 5. Update application: status = APPROVED, processedBy, processedAt
+ * 6. Increment event.approvedParticipants
+ * 7. Return formatted response
+ *
+ * @param {number} applicationId - Application ID from route param
+ * @param {Object} currentUser - User from JWT (req.user)
+ * @returns {Promise<Object>} Updated application object
+ * @throws {ServiceError} 404 if application not found
+ * @throws {ServiceError} 403 if not event owner
+ * @throws {ServiceError} 409 if status not PENDING or capacity full
+ */
+async function approveApplication(applicationId, currentUser) {
+    // 1. Find application by ID
+    const application = await applicationRepository.findById(applicationId);
+    if (!application) {
+        throw new ServiceError(
+            'Application not found',
+            404,
+            'RESOURCE_NOT_FOUND'
+        );
+    }
+
+    // 2. Validate ownership — only event creator can approve
+    if (application.event.createdBy !== currentUser.user_id) {
+        throw new ServiceError(
+            'Bạn không có quyền truy cập tài nguyên này',
+            403,
+            'FORBIDDEN'
+        );
+    }
+
+    // 3. Check application status — must be PENDING
+    if (application.status !== 'PENDING') {
+        throw new ServiceError(
+            'Cannot approve application in ' + application.status + ' state',
+            409,
+            'INVALID_STATUS'
+        );
+    }
+
+    // 4. Check event capacity
+    if (application.event.approvedParticipants >= application.event.maxCapacity) {
+        throw new ServiceError(
+            'Event is at full capacity. Cannot approve more applications.',
+            409,
+            'CAPACITY_EXCEEDED'
+        );
+    }
+
+    // 5. Update application: status = APPROVED, processedBy, processedAt
+    const updatedApp = await applicationRepository.updateApplicationStatus(applicationId, {
+        status: 'APPROVED',
+        processedBy: currentUser.user_id,
+        processedAt: new Date()
+    });
+
+    // 6. Increment event.approvedParticipants
+    await eventRepository.updateEvent(application.eventId, {
+        approvedParticipants: application.event.approvedParticipants + 1
+    });
+
+    // 7. Return formatted response
+    return buildBaseApplication(updatedApp);
+}
+
 export default {
     getApplicationsByEvent,
-    getApplicationDetail
+    getApplicationDetail,
+    approveApplication
 };

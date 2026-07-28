@@ -1,11 +1,12 @@
 /**
  * Application Repository - Database operations for Application Management module
- * Owner: Member 4 - DucNM (UC22)
+ * Owner: Member 4 - DucNM (UC22, UC23, UC24)
  *
  * Responsibilities:
  * - Find applications by event ID with pagination and status filter
  * - Count applications by event ID for pagination metadata
  * - Include volunteer (user) information
+ * - Update application status
  *
  * Rules:
  * - All database access goes through Prisma ORM
@@ -54,6 +55,32 @@ const findByEventId = async (eventId, { skip, take, status }) => {
                     id: true,
                     fullName: true,
                     avatarUrl: true
+                }
+            }
+        }
+    });
+};
+
+/**
+ * Find application by ID.
+ * UC24: Approve Application — validate application exists and get event info.
+ *
+ * @param {number} id
+ * @returns {Promise<Object|null>}
+ */
+const findById = async (id) => {
+    return prisma.application.findUnique({
+        where: { id },
+        select: {
+            id: true,
+            eventId: true,
+            status: true,
+            event: {
+                select: {
+                    id: true,
+                    createdBy: true,
+                    maxCapacity: true,
+                    approvedParticipants: true
                 }
             }
         }
@@ -129,8 +156,36 @@ const findDetailById = async (id) => {
     });
 };
 
+/**
+ * Update application status with processed info.
+ * UC24: Approve Application — update status, processedBy, processedAt.
+ *
+ * @param {number} id - Application ID
+ * @param {Object} data - Fields to update (status, processedBy, processedAt)
+ * @returns {Promise<Object>} Updated application record
+ */
+const updateApplicationStatus = async (id, data) => {
+    return prisma.application.update({
+        where: { id },
+        data,
+        select: {
+            id: true,
+            userId: true,
+            eventId: true,
+            status: true,
+            message: true,
+            processedBy: true,
+            processedAt: true,
+            createdAt: true,
+            updatedAt: true
+        }
+    });
+};
+
 export default {
     findByEventId,
+    findById,
     countByEventId,
-    findDetailById
+    findDetailById,
+    updateApplicationStatus
 };

@@ -10,7 +10,7 @@
  * 
  * Prefix: /api/v1 (mount tại app.js)
  *
- * Owner: Member 4 - DucNM (UC22)
+ * Owner: Member 4 - DucNM (UC22. UC23, UC24)
  * Module: Application Management
  */
 
@@ -18,7 +18,7 @@ import { Router } from "express";
 import authMiddleware from "../middlewares/auth.middleware.js";
 import authorize from "../middlewares/authorize.middleware.js";
 import { validateQuery, validateParams } from "../middlewares/validators/validate.js";
-import { getApplicationsByEventHandler, getApplicationDetailHandler } from "../controllers/application.controller.js";
+import { getApplicationsByEventHandler, getApplicationDetailHandler, approveApplicationHandler } from "../controllers/application.controller.js";
 import { getApplicationsQuerySchema, applicationIdParamSchema, eventIdParamSchema } from "../middlewares/validators/application.validator.js";
 
 const router = Router();
@@ -187,6 +187,70 @@ router.get(
     authorize("STAFF", "MANAGER", "ADMIN"),
     validateParams(applicationIdParamSchema),
     getApplicationDetailHandler
+);
+
+/**
+ * PATCH /api/v1/applications/:applicationId/approve
+ * Phê duyệt đơn đăng ký (UC24: Approve Application)
+ * Chỉ Staff (chủ sở hữu event) mới có quyền.
+ */
+/**
+ * @swagger
+ * /api/v1/applications/{applicationId}/approve:
+ *   patch:
+ *     summary: Phê duyệt đơn đăng ký
+ *     description: |
+ *       Phê duyệt một đơn đăng ký tình nguyện viên.
+ *       Chỉ Staff (chủ sở hữu event) mới có quyền.
+ *       Application phải ở trạng thái PENDING.
+ *       Event phải còn chỗ (approvedParticipants < maxCapacity).
+ *     tags: [Application Management]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: applicationId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID của đơn đăng ký
+ *     responses:
+ *       200:
+ *         description: Phê duyệt thành công
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: "Phê duyệt đơn đăng ký thành công"
+ *               data:
+ *                 id: 1
+ *                 userId: 5
+ *                 eventId: 10
+ *                 status: "APPROVED"
+ *                 message: null
+ *                 processedBy: 3
+ *                 processedAt: "2026-07-18T10:00:00.000Z"
+ *                 createdAt: "2026-06-15T10:30:00.000Z"
+ *                 updatedAt: "2026-07-18T10:00:00.000Z"
+ *       400:
+ *         description: Application ID không hợp lệ
+ *       401:
+ *         description: Chưa xác thực
+ *       403:
+ *         description: Không có quyền (không phải chủ sở hữu event)
+ *       404:
+ *         description: Application not found
+ *       409:
+ *         description: Conflict (status không phải PENDING hoặc event đã đầy)
+ *       500:
+ *         description: Lỗi server
+ */
+router.patch(
+    "/applications/:applicationId/approve",
+    authMiddleware,
+    authorize("STAFF", "MANAGER", "ADMIN"),
+    validateParams(applicationIdParamSchema),
+    approveApplicationHandler
 );
 
 export default router;

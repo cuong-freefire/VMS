@@ -1,6 +1,6 @@
 /**
  * Application Controller - HTTP layer for Application Management module
- * Owner: Member 4 - DucNM (UC22, UC23)
+ * Owner: Member 4 - DucNM (UC22, UC23, UC24)
  *
  * Responsibilities:
  * - UC22: Handle GET /api/v1/events/:eventId/applications
@@ -69,7 +69,31 @@ async function getApplicationDetailHandler(req, res, next) {
     }
 }
 
+/**
+ * PATCH /api/v1/applications/:applicationId/approve
+ * Phê duyệt đơn đăng ký (UC24).
+ * Chỉ Staff (chủ sở hữu event) mới có quyền.
+ */
+async function approveApplicationHandler(req, res, next) {
+    try {
+        const applicationId = Number(req.validatedParams.applicationId);
+        const result = await applicationService.approveApplication(applicationId, req.user);
+
+        return res.status(200).json(
+            successResponse(result, 'Phê duyệt đơn đăng ký thành công')
+        );
+    } catch (error) {
+        if (error.status && error.code) {
+            return res.status(error.status).json(
+                errorResponse(error.message, error.code, error.details)
+            );
+        }
+        next(error);
+    }
+}
+
 export {
     getApplicationsByEventHandler,
-    getApplicationDetailHandler
+    getApplicationDetailHandler,
+    approveApplicationHandler
 };
