@@ -1,12 +1,12 @@
 /**
  * Category Validator - Zod Schemas
  *
- * Validation cho Category Management API.
- * - createCategorySchema: POST /api/v1/categories
- * - updateCategorySchema: PATCH /api/v1/categories/:id
- * - getCategoriesQuerySchema: GET /api/v1/categories (Search Category)
+ * Validation cho Category Management API:
+ * - UC31/UC-feat-search-category: getCategoriesQuerySchema (query params)
+ * - UC32: createCategorySchema (request body)
+ * - UC33: updateCategorySchema (request body), categoryIdSchema (route param)
  *
- * Owner: Member 4 - DucNM (UC32, UC33, UC-feat-search-category)
+ * Owner: Member 4 - DucNM (UC31, UC32, UC33, UC-feat-search-category)
  */
 
 import { z } from 'zod';
@@ -38,7 +38,19 @@ export const updateCategorySchema = z.object({
 });
 
 /**
+ * Schema validation cho categoryId route param.
+ * UC33: Edit Category — validate id là số nguyên dương.
+ */
+export const categoryIdSchema = z.object({
+    id: z.coerce
+        .number()
+        .int()
+        .positive("Category ID phải là số nguyên dương")
+});
+
+/**
  * Schema validation cho GET /api/v1/categories query params.
+ * UC31: View Category List — search, type filters.
  * UC-feat-search-category: thêm search param để tìm kiếm danh mục.
  */
 export const getCategoriesQuerySchema = z.object({

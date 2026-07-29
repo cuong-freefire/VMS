@@ -1,6 +1,6 @@
 /**
  * Category Service - Business logic for Category Management module
- * Owner: Member 4 - DucNM (UC31, UC-feat-search-category)
+ * Owner: Member 4 - DucNM (UC31, UC32, UC33, UC-feat-search-category)
  *
  * Responsibilities:
  * - Get list of categories with role-based visibility

@@ -1,6 +1,6 @@
 /**
  * Category Repository - Database operations for Category Management module
- * Owner: Member 4 - DucNM (UC31)
+ * Owner: Member 4 - DucNM (UC31, UC32, UC33, UC-feat-search-category)
  *
  * Responsibilities:
  * - Query all categories with optional where filter

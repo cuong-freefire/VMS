@@ -1,6 +1,6 @@
 /**
  * Category Controller - HTTP layer for Category Management module
- * Owner: Member 4 - DucNM (UC31, UC-feat-search-category)
+ * Owner: Member 4 - DucNM (UC31, UC32, UC33, UC-feat-search-category)
  *
  * Responsibilities:
  * - Handle HTTP request/response for category management endpoints
@@ -25,7 +25,8 @@ import { successResponse, errorResponse } from '../utils/response.util.js';
  */
 async function getCategoriesHandler(req, res, next) {
     try {
-        const result = await categoryService.getCategories(req.user, req.query);
+        const query = req.validatedQuery || req.query;
+        const result = await categoryService.getCategories(req.user, query);
 
         const message = result.categories.length > 0
             ? 'Lấy danh sách danh mục thành công'
@@ -74,16 +75,7 @@ async function createCategoryHandler(req, res, next) {
  */
 async function updateCategoryHandler(req, res, next) {
     try {
-        const categoryId = Number.parseInt(req.params.id, 10);
-        if (Number.isNaN(categoryId)) {
-            return res.status(400).json(
-                errorResponse(
-                    'Invalid category ID.',
-                    'INVALID_CATEGORY_ID'
-                )
-            );
-        }
-
+        const categoryId = req.validatedParams.id;
         const category = await categoryService.updateCategoryService(categoryId, req.body);
 
         return res.status(200).json(

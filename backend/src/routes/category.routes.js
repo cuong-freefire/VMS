@@ -16,9 +16,9 @@ import { Router } from "express";
 import authMiddleware from "../middlewares/auth.middleware.js";
 import authorize from "../middlewares/authorize.middleware.js";
 import optionalAuth from "../middlewares/optionalAuth.middleware.js";
-import { validate, validateQuery } from "../middlewares/validators/validate.js";
+import { validate, validateQuery, validateParams } from "../middlewares/validators/validate.js";
 import { getCategoriesHandler, createCategoryHandler, updateCategoryHandler } from "../controllers/category.controller.js";
-import { createCategorySchema, updateCategorySchema, getCategoriesQuerySchema } from "../middlewares/validators/category.validator.js";
+import { createCategorySchema, updateCategorySchema, categoryIdSchema, getCategoriesQuerySchema } from "../middlewares/validators/category.validator.js";
 
 const router = Router();
 
@@ -69,6 +69,7 @@ const router = Router();
  *                 categories:
  *                   - category_id: 1
  *                     name: "Giáo dục"
+ *                     description: "Các sự kiện giáo dục"
  *                     type: "event_type"
  *                     is_active: true
  *       400:
@@ -137,6 +138,7 @@ router.get(
  *               data:
  *                 category_id: 3
  *                 name: "Thể thao"
+ *                 description: "Các sự kiện thể thao"
  *                 type: "event_type"
  *                 is_active: true
  *       400:
@@ -215,6 +217,7 @@ router.post(
  *               data:
  *                 category_id: 1
  *                 name: "Giáo dục (Updated)"
+ *                 description: "Các sự kiện giáo dục cập nhật"
  *                 type: "event_type"
  *                 is_active: true
  *       400:
@@ -234,6 +237,7 @@ router.patch(
     "/:id",
     authMiddleware,
     authorize("MANAGER", "ADMIN"),
+    validateParams(categoryIdSchema),
     validate(updateCategorySchema),
     updateCategoryHandler
 );
