@@ -1,12 +1,13 @@
 /**
  * User Validator - Zod Schemas
  *
- * Validation cho các query params của User Management API.
- * Bao gồm: phân trang, tìm kiếm, lọc theo role, sắp xếp.
- * Mở rộng cho UC27: userId schema cho route param.
- * Mở rộng cho UC30 Filter User: is_active, from_date, to_date params + date range validation.
+ * Validation cho User Management API:
+ * - UC26/UC30: getUsersSchema (query params: page, limit, search, role, sort, is_active, from_date, to_date)
+ * - UC27: userIdSchema (route param)
+ * - UC28: createUserSchema (request body)
+ * - UC29: updateUserSchema (request body)
  *
- * Owner: Member 4 - DucNM (UC26, UC27, UC30)
+ * Owner: Member 4 - DucNM (UC26, UC27, UC28, UC29, UC30)
  */
 
 import { z } from 'zod';

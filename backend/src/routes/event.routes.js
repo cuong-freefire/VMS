@@ -3,14 +3,17 @@
  *
  * Các endpoint liên quan đến sự kiện (Event Management):
  * - POST / (UC15 - Add Event)
- * - GET / (View Events - supports UC67 Pending filter)
+ * - PATCH /:id (UC16 - Edit Event)
+ * - DELETE /:id (UC17 - Delete Event)
+ * - GET / (UC67 - View Event List)
+ * - GET /:id (UC68 - View Event Detail)
  * - PATCH /:id/approve (UC69)
  * - PATCH /:id/reject (UC70)
  *
  * Prefix: /api/v1/events (mount tại app.js)
  *
- * Owner: Member 5 - DucNM (UC15, UC67, UC69, UC70)
- * Module: Event Approval Management
+ * Owner: Member 5 - DucNM (UC15, UC16, UC17, UC67, UC68, UC69, UC70)
+ * Module: Event Management
  */
 
 import { Router } from "express";
@@ -18,7 +21,7 @@ import authMiddleware from "../middlewares/auth.middleware.js";
 import authorize from "../middlewares/authorize.middleware.js";
 import optionalAuth from "../middlewares/optionalAuth.middleware.js";
 import { validate, validateQuery } from "../middlewares/validators/validate.js";
-import { getEventsHandler, approveEventHandler, rejectEventHandler, createEventHandler, updateEventHandler, deleteEventHandler } from "../controllers/event.controller.js";
+import { getEventsHandler, approveEventHandler, rejectEventHandler, createEventHandler, updateEventHandler, deleteEventHandler, getEventByIdHandler } from "../controllers/event.controller.js";
 import { getEventsQuerySchema, rejectEventSchema, createEventSchema, updateEventSchema } from "../middlewares/validators/event.validator.js";
 
 const router = Router();
@@ -42,7 +45,8 @@ const router = Router();
  *       Trả về danh sách sự kiện với phân trang và lọc theo status.
  *       Hỗ trợ optional auth:
  *       - Guest (không token): chỉ PUBLISHED events
- *       - Volunteer/Staff: chỉ PUBLISHED events
+ *       - Volunteer: chỉ PUBLISHED events
+ *       - Staff: PUBLISHED events + own events
  *       - Manager/Admin: tất cả events; có thể lọc status=pending_approval
  *       Chỉ Manager/Admin mới có quyền xem PENDING_APPROVAL events.
  *     tags: [Event Management]
@@ -555,6 +559,65 @@ router.delete(
     authMiddleware,
     authorize("STAFF"),
     deleteEventHandler
+);
+
+/**
+ * GET /api/v1/events/:id
+ * Lấy chi tiết sự kiện (UC68: View Pending Event Detail)
+ * Manager/Admin có thể xem event PENDING_APPROVAL.
+ * Staff/Volunteer bị 403 khi xem PENDING_APPROVAL.
+ * Guest chỉ nhận 401 khi truy cập event PENDING_APPROVAL.
+ */
+/**
+ * @swagger
+ * /api/v1/events/{id}:
+ *   get:
+ *     summary: Lấy thông tin chi tiết sự kiện
+ *     description: |
+ *       Trả về thông tin chi tiết của một sự kiện.
+ *       Chỉ Manager và Admin mới có quyền xem sự kiện PENDING_APPROVAL.
+ *       Staff/Volunteer xem PENDING_APPROVAL sẽ nhận 403.
+ *       Guest có thể xem các sự kiện công khai; chỉ khi truy cập event PENDING_APPROVAL mới nhận 401.
+ *     tags: [Event Management]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID của sự kiện
+ *     responses:
+ *       200:
+ *         description: Thành công, trả về thông tin chi tiết sự kiện
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: "Lấy thông tin sự kiện thành công"
+ *               data:
+ *                 event_id: 1
+ *                 title: "Dọn dẹp bãi biển"
+ *                 status: "pending_approval"
+ *                 created_by:
+ *                   id: 2
+ *                   full_name: "Nguyễn Văn B"
+ *       400:
+ *         description: Event ID không hợp lệ
+ *       401:
+ *         description: Chưa xác thực
+ *       403:
+ *         description: Không có quyền (Staff/Volunteer không xem được PENDING)
+ *       404:
+ *         description: Event not found
+ *       500:
+ *         description: Lỗi server
+ */
+router.get(
+    "/:id",
+    optionalAuth,
+    getEventByIdHandler
 );
 
 export default router;

@@ -1,6 +1,6 @@
 /**
  * Event Service - Business logic for Event Management module
- * Owner: Member 5 - DucNM (UC15, UC16, UC67, UC69, UC70)
+ * Owner: Member 5 - DucNM (UC15, UC16, UC67, UC68, UC69, UC70)
  *
  * Responsibilities:
  * - Get paginated list of events with role-based visibility and status filter
@@ -281,7 +281,7 @@ async function getEvents(query, currentUser) {
 }
 
 /**
- * Validate event ID and ensure event exists.
+ * Validate event ID and return existing event.
  *
  * @param {number} eventId
  * @returns {Promise<Object>}
@@ -321,7 +321,7 @@ async function validateEventExists(eventId) {
  * @throws {ServiceError} 409 nếu event không ở trạng thái PENDING_APPROVAL
  */
 async function validatePendingEvent(eventId) {
-    // Validate event ID and ensure event exists
+    // Validate event exists
     const event = await validateEventExists(eventId);
 
     // Check event is pending approval
@@ -474,7 +474,7 @@ async function createEvent(data, currentUser) {
  * @throws {ServiceError} 409 if status not editable or capacity invalid
  */
 async function updateEvent(eventId, data, currentUser) {
-    // 1. Validate event ID and ensure event exists
+    // 1. Validate event exists
     const event = await validateEventExists(eventId);
 
     // 2. Validate ownership — only creator can edit
@@ -613,10 +613,67 @@ async function deleteEvent(eventId, currentUser) {
     }
 
     // 6. Soft delete event via repository
-    const deletedEvent = await eventRepository.softDelete(eventId);
+    const deletedEvent = await eventRepository.softDeleteEvent(eventId);
 
     // 7. Return success response
     return formatDeletedEvent(deletedEvent);
+}
+
+/**
+ * Get event detail by ID.
+ * UC68: Manager/Admin có thể xem chi tiết sự kiện PENDING.
+ *
+ * Business Logic:
+ * 1. Validate event exists (400/404 if invalid or not found)
+ * 2. Role-based check for PENDING events
+ * - Guest → 401
+ * - Staff/Volunteer → 403
+ * - Manager/Admin → allow
+ * 3. Return formatted event
+ *
+ * @param {number} eventId - Event ID from route param
+ * @param {Object|null} currentUser - User from JWT (req.user) or null for Guest
+ * @returns {Promise<Object>} Formatted event object
+ * @throws {ServiceError} 400 if invalid ID
+ * @throws {ServiceError} 404 if event not found
+ * @throws {ServiceError} 401 if Guest tries to view PENDING
+ * @throws {ServiceError} 403 if Staff/Volunteer tries to view PENDING
+ */
+async function getEventById(eventId, currentUser) {
+    // 1. Validate event exists
+    const event = await validateEventExists(eventId);
+
+    if (event.status === 'PENDING_APPROVAL') {
+
+        if (!currentUser) {
+            throw new ServiceError(
+                'Vui lòng đăng nhập.',
+                401,
+                'UNAUTHORIZED'
+            );
+        }
+
+        let roleName = null;
+
+        if (currentUser?.role_id) {
+            roleName = await eventRepository.findRoleNameById(currentUser.role_id);
+        }
+
+        const normalizedRole = roleName?.toUpperCase();
+
+        if (
+            normalizedRole !== 'MANAGER' &&
+            normalizedRole !== 'ADMIN'
+        ) {
+            throw new ServiceError(
+                'Bạn không có quyền truy cập tài nguyên này.',
+                403,
+                'FORBIDDEN'
+            );
+        }
+    }
+    // 3. Return formatted event
+    return formatEvent(event);
 }
 
 export default {
@@ -625,5 +682,6 @@ export default {
     rejectEvent,
     createEvent,
     updateEvent,
-    deleteEvent
+    deleteEvent,
+    getEventById
 };

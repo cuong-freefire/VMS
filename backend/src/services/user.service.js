@@ -1,6 +1,6 @@
 /**
  * User Service - Business logic for User Management module
- * Owner: Member 4 - DucNM (UC26, UC27, UC30)
+ * Owner: Member 4 - DucNM (UC26, UC27, UC28, UC29, UC30)
  *
  * Responsibilities:
  * - Get paginated list of users with search, filter, sort
@@ -273,8 +273,8 @@ async function createUserService(data) {
  *
  * Business Logic:
  * 1. Check user exists → 404 nếu không tìm thấy
- * 2. Check self-role-downgrade → 403 nếu Admin tự hạ role
- * 3. Validate role_id tồn tại (nếu có)
+ * 2. Validate role_id tồn tại (nếu có) → 400 nếu không hợp lệ
+ * 3. Check self-role-downgrade → 403 nếu Admin tự hạ role
  * 4. Map request fields to Prisma field names
  * 5. Update user trong database
  * 6. Format response (không bao gồm password)

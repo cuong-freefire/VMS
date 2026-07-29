@@ -1,6 +1,6 @@
 /**
  * User Controller - HTTP layer for User Management module
- * Owner: Member 4 - DucNM (UC26)
+ * Owner: Member 4 - DucNM (UC26, UC27, UC28, UC29, UC30)
  *
  * Responsibilities:
  * - Handle HTTP request/response for user management endpoints
@@ -30,7 +30,8 @@ import { successResponse, errorResponse } from '../utils/response.util.js';
  */
 async function getUsersHandler(req, res, next) {
     try {
-        const result = await userService.getUsers(req.query);
+        const query = req.validatedQuery || req.query;
+        const result = await userService.getUsers(query);
 
         const message = result.users.length > 0
             ? 'Lấy danh sách người dùng thành công'
@@ -61,7 +62,7 @@ async function getUsersHandler(req, res, next) {
  */
 async function getUserByIdHandler(req, res, next) {
     try {
-        const userId = req.params.id;
+        const userId = req.validatedParams.id;
         const user = await userService.getUserById(userId);
 
         return res.status(200).json(
@@ -108,7 +109,7 @@ async function createUserHandler(req, res, next) {
  */
 async function updateUserHandler(req, res, next) {
     try {
-        const userId = parseInt(req.params.id, 10);
+        const userId = req.validatedParams.id;
         const currentUserId = req.user.user_id;
         const user = await userService.updateUserService(userId, req.body, currentUserId);
 

@@ -1,6 +1,6 @@
 /**
  * User Repository - Database operations for User Management module
- * Owner: Member 4 - DucNM (UC26, UC27)
+ * Owner: Member 4 - DucNM (UC26, UC27, UC28, UC29, UC30)
  *
  * Responsibilities:
  * - Query users with pagination, search, filter, sort

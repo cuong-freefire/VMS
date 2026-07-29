@@ -1,14 +1,21 @@
 /**
  * User Routes
  *
- * Các endpoint liên quan đến thông tin người dùng:
- * - GET /me: Xem hồ sơ cá nhân (UC18 - View Profile)
- * - PATCH /me: Cập nhật hồ sơ cá nhân (UC19 - Edit Profile)
+ * Các endpoint liên quan đến quản lý người dùng (User Management):
+ * - GET /users: Danh sách người dùng (UC26 - View User List, UC30 - Filter User)
+ * - GET /users/:id: Chi tiết người dùng (UC27 - View User Detail)
+ * - POST /users: Tạo người dùng mới (UC28 - Add User)
+ * - PATCH /users/:id: Cập nhật thông tin người dùng (UC29 - Edit User)
  *
- * Prefix: /api/v1/user (mount tại app.js)
+ * Ngoài ra còn có các endpoint hồ sơ cá nhân (Profile Management):
+ * - GET /user/me: Xem hồ sơ cá nhân (UC18 - View Profile)
+ * - PATCH /user/me: Cập nhật hồ sơ cá nhân (UC19 - Edit Profile)
+ * - GET /user/me/history: Lịch sử tình nguyện (UC021)
+ *
+ * Prefix: /api/v1 (mount tại app.js)
  *
  * Owner: Member 1 - CuongLH
- * Module: Profile Management
+ * Module: User Management & Profile Management
  */
 
 import { Router } from "express";
@@ -20,33 +27,11 @@ import { getUsersHandler, getUserByIdHandler, createUserHandler, updateUserHandl
 import { updateProfileSchema, validateVolunteerHistoryQuery } from "../middlewares/validators/profile.validator.js";
 import { getMyProfile, updateMyProfile, getMyHistory } from "../controllers/profile.controller.js";
 import { errorResponse } from "../utils/response.util.js";
-import { validate, validateQuery } from "../middlewares/validators/validate.js";
+import { validate, validateQuery, validateParams } from "../middlewares/validators/validate.js";
 import { getUsersSchema, userIdSchema, createUserSchema, updateUserSchema } from "../middlewares/validators/user.validator.js";
 import authorize from "../middlewares/authorize.middleware.js";
 
 const router = Router();
-
-/**
- * Validate route parameter :id cho User Management.
- * UC27 chỉ cần validate params nên không mở rộng shared validate.js.
- */
-const validateUserId = (req, res, next) => {
-    const result = userIdSchema.safeParse(req.params);
-
-    if (!result.success) {
-        return res.status(400).json(
-            errorResponse(
-                result.error.issues[0].message,
-                "VALIDATION_ERROR"
-            )
-        );
-    }
-
-    // Ghi đè lại params sau khi đã parse (string -> number)
-    req.params = result.data;
-
-    next();
-};
 
 /**
  * GET /api/v1/users
@@ -127,9 +112,12 @@ const validateUserId = (req, res, next) => {
  *                   - user_id: 1
  *                     full_name: "Nguyễn Văn A"
  *                     email: "nguyenvana@example.com"
+ *                     phone: "0123456789"
+ *                     avatar_url: null
  *                     role: "VOLUNTEER"
  *                     is_active: true
  *                     created_at: "2026-01-15T08:30:00.000Z"
+ *                     updated_at: "2026-01-15T08:30:00.000Z"
  *                 pagination:
  *                   page: 1
  *                   limit: 20
@@ -218,9 +206,12 @@ router.get(
  *                 user_id: 2
  *                 full_name: "Nguyễn Văn B"
  *                 email: "nguyenvanb@example.com"
+ *                 phone: "0987654321"
+ *                 avatar_url: null
  *                 role: "VOLUNTEER"
  *                 is_active: true
  *                 created_at: "2026-06-30T12:00:00.000Z"
+ *                 updated_at: "2026-06-30T12:00:00.000Z"
  *       400:
  *         description: Dữ liệu đầu vào không hợp lệ
  *       401:
@@ -278,9 +269,12 @@ router.post(
  *                 user_id: 1
  *                 full_name: "Nguyễn Văn A"
  *                 email: "nguyenvana@example.com"
+ *                 phone: "0123456789"
+ *                 avatar_url: null
  *                 role: "VOLUNTEER"
  *                 is_active: true
  *                 created_at: "2026-01-15T08:30:00.000Z"
+ *                 updated_at: "2026-01-15T08:30:00.000Z"
  *       400:
  *         description: User ID không hợp lệ
  *       401:
@@ -296,7 +290,7 @@ router.get(
     "/:id",
     authMiddleware,
     authorize("ADMIN"),
-    validateUserId,
+    validateParams(userIdSchema),
     getUserByIdHandler
 );
 
@@ -366,8 +360,12 @@ router.get(
  *                 user_id: 1
  *                 full_name: "Nguyễn Văn B (Updated)"
  *                 email: "nguyenvanb@example.com"
+ *                 phone: "0909123456"
+ *                 avatar_url: null
  *                 role: "STAFF"
  *                 is_active: true
+ *                 created_at: "2026-01-15T08:30:00.000Z"
+ *                 updated_at: "2026-01-15T08:30:00.000Z"
  *       400:
  *         description: Dữ liệu không hợp lệ hoặc body rỗng
  *       401:
@@ -383,7 +381,7 @@ router.patch(
     "/:id",
     authMiddleware,
     authorize("ADMIN"),
-    validateUserId,
+    validateParams(userIdSchema),
     validate(updateUserSchema),
     updateUserHandler
 );
