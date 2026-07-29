@@ -45,6 +45,8 @@ const APP_STATUS_LABELS = {
     APPROVED: "Đã duyệt",
     REJECTED: "Từ chối",
     CANCELLED: "Đã hủy",
+    WAITING_PAYMENT: "Chờ thanh toán",
+    PAYMENT_EXPIRED: "Hết hạn thanh toán",
 };
 
 const APP_STATUS_COLORS = {
@@ -52,6 +54,8 @@ const APP_STATUS_COLORS = {
     APPROVED: { bg: "#dbeafe", text: "#1e40af" },
     REJECTED: { bg: "#fee2e2", text: "#991b1b" },
     CANCELLED: { bg: "#f3f4f6", text: "#374151" },
+    WAITING_PAYMENT: { bg: "#fef3c7", text: "#92400e" },
+    PAYMENT_EXPIRED: { bg: "#fee2e2", text: "#991b1b" },
 };
 
 /* ------------------------------------------------------------------ */
@@ -414,32 +418,84 @@ export default function EventDetailPage() {
                         </InfoRow>
                     </Card>
 
-                    {/* CTA: Apply button for logged-in volunteers without application */}
-                    {isAuthenticated && !event.userApplication && event.status === "PUBLISHED" && (
+                    {/* Status: Event is full */}
+                    {event.status === "PUBLISHED" && event.isFull && (
                         <div style={{ marginTop: "var(--space-3)" }}>
-                            <Link to={`/volunteer/events/${event.id}/apply`} style={{ textDecoration: "none" }}>
-                                <Button style={{ width: "100%" }}>
-                                    Đăng ký tham gia
-                                </Button>
-                            </Link>
+                            <div style={{
+                                backgroundColor: "#fee2e2",
+                                borderRadius: "var(--radius-md)",
+                                padding: "var(--space-3) var(--space-4)",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 10,
+                            }}>
+                                <Users size={20} style={{ color: "#991b1b", flexShrink: 0 }} />
+                                <span style={{
+                                    fontSize: "var(--font-size-body)",
+                                    fontWeight: "var(--font-weight-semibold)",
+                                    color: "#991b1b",
+                                }}>
+                                    Sự kiện đã đủ số lượng tình nguyện viên.
+                                </span>
+                            </div>
                         </div>
                     )}
 
-                    {/* CTA: Login prompt for guests */}
-                    {!isAuthenticated && event.status === "PUBLISHED" && (
+                    {/* Status: Registration deadline passed */}
+                    {event.status === "PUBLISHED" && !event.isFull && new Date(event.applicationDeadline) <= new Date() && (
                         <div style={{ marginTop: "var(--space-3)" }}>
-                            <Link to="/login" style={{ textDecoration: "none" }}>
-                                <Button variant="secondary" style={{ width: "100%" }}>
-                                    Đăng nhập để đăng ký
-                                </Button>
-                            </Link>
+                            <div style={{
+                                backgroundColor: "#fef3c7",
+                                borderRadius: "var(--radius-md)",
+                                padding: "var(--space-3) var(--space-4)",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 10,
+                            }}>
+                                <Clock4 size={20} style={{ color: "#92400e", flexShrink: 0 }} />
+                                <span style={{
+                                    fontSize: "var(--font-size-body)",
+                                    fontWeight: "var(--font-weight-semibold)",
+                                    color: "#92400e",
+                                }}>
+                                    Đã hết hạn đăng ký.
+                                </span>
+                            </div>
                         </div>
                     )}
+
+                    {/* CTA: Apply button for logged-in volunteers without application */}
+                    {isAuthenticated && !event.userApplication
+                        && event.status === "PUBLISHED"
+                        && new Date(event.applicationDeadline) > new Date()
+                        && !event.isFull && (
+                            <div style={{ marginTop: "var(--space-3)" }}>
+                                <Link to={`/volunteer/events/${event.id}/apply`} style={{ textDecoration: "none" }}>
+                                    <Button style={{ width: "100%" }}>
+                                        Đăng ký tham gia
+                                    </Button>
+                                </Link>
+                            </div>
+                        )}
+
+                    {/* CTA: Login prompt for guests */}
+                    {!isAuthenticated
+                        && event.status === "PUBLISHED"
+                        && new Date(event.applicationDeadline) > new Date()
+                        && !event.isFull && (
+                            <div style={{ marginTop: "var(--space-3)" }}>
+                                <Link to="/login" style={{ textDecoration: "none" }}>
+                                    <Button variant="secondary" style={{ width: "100%" }}>
+                                        Đăng nhập để đăng ký
+                                    </Button>
+                                </Link>
+                            </div>
+                        )}
 
                     {/* CTA: Cancel application button */}
                     {isAuthenticated
                         && event.userApplication
-                        && (event.userApplication.status === "PENDING" || event.userApplication.status === "APPROVED")
+                        && ["PENDING", "APPROVED", "WAITING_PAYMENT", "PAYMENT_EXPIRED"].includes(event.userApplication.status)
                         && event.status === "PUBLISHED" && (
                             <div style={{ marginTop: "var(--space-3)" }}>
                                 <Button

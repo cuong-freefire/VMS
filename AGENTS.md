@@ -4,7 +4,7 @@
 
 Bạn là **Senior Software Engineer** xây dựng hệ thống **Volunteer Management System (VMS)** để kết nối tình nguyện viên và tổ chức. Mục tiêu chính: Số hóa toàn trình quy trình sự kiện tình nguyện từ tìm kiếm, đăng ký tham gia, xét duyệt, điểm danh cho đến khâu đánh giá và cấp phát chứng nhận.
 
-Hệ thống phục vụ 5 nhóm người dùng: **Guest, Volunteer, Staff, Manager, Admin**.
+Hệ thống phục vụ 4 nhóm người dùng: **Volunteer, Staff, Manager, Admin**.
 
 ## 2. Tech Stack (STRICT — do not deviate)
 
@@ -20,7 +20,8 @@ Hệ thống phục vụ 5 nhóm người dùng: **Guest, Volunteer, Staff, Mana
 - **API Doc**: swagger-jsdoc + swagger-ui-express
 - **Testing**: Jest + Supertest
 - **File Storage**: Cloudinary
-- **Payment**: VNPay, MoMo
+- **Payment**: VNPay
+- **Payment Package**: vnpay(https://vnpay.js.org/)
 
 ### Frontend
 
@@ -46,7 +47,10 @@ Hệ thống phục vụ 5 nhóm người dùng: **Guest, Volunteer, Staff, Mana
 
 ### Application rules (Quy tắc xét duyệt đơn)
 
-1. **Luồng trạng thái một chiều**: Đơn đăng ký đã chuyển sang `Approved` hoặc `Rejected` thì TUYỆT ĐỐI KHÔNG được quay ngược lại trạng thái `Pending`.
+1. **Luồng trạng thái một chiều**:
+   - Event miễn phí: `PENDING` → `APPROVED` hoặc `REJECTED` (một chiều, không quay lại).
+   - Event có phí: `PENDING` → `WAITING_PAYMENT` → (thanh toán thành công) → `APPROVED`; hoặc `WAITING_PAYMENT` → `PAYMENT_EXPIRED` (quá hạn).
+   - Đơn đã chuyển sang `APPROVED`, `REJECTED`, hoặc `PAYMENT_EXPIRED` thì TUYỆT ĐỐI KHÔNG được quay ngược lại.
 2. **Điều kiện hợp lệ**: Chỉ tình nguyện viên có account hợp lệ (`is_active: true`) mới được tạo Application.
 
 ### Attendance & Certificate rules (Điểm danh và Chứng nhận)
@@ -55,17 +59,19 @@ Hệ thống phục vụ 5 nhóm người dùng: **Guest, Volunteer, Staff, Mana
 2. **Điều kiện cấp chứng nhận**: TUYỆT ĐỐI KHÔNG cấp phát chứng nhận cho Tình nguyện viên không có dữ liệu điểm danh hợp lệ.
 3. **Tính duy nhất**: Mỗi tình nguyện viên chỉ được cấp tối đa 1 chứng nhận cho mỗi sự kiện hoàn thành.
 
-### Donation & Payment rules (Quyên góp và Thanh toán)
+### Payment rules (Thanh toán)
 
-1. **Tính bất biến của giao dịch**: Giao dịch quyên góp qua VNPay/MoMo sau khi ghi nhận trạng thái `Success` là dữ liệu bất biến. TUYỆT ĐỐI KHÔNG tự ý cập nhật/sửa đổi số tiền hoặc trạng thái.
-2. **Rollback thanh toán**: Các giao dịch lỗi hoặc timeout phải chuyển sang `Failed` hoặc `Cancelled`, không được kẹt vĩnh viễn ở trạng thái `Pending`.
+1. **Tính bất biến của giao dịch**: Giao dịch thanh toán phí sự kiện qua VNPay sau khi ghi nhận trạng thái `SUCCESS` là dữ liệu bất biến. TUYỆT ĐỐI KHÔNG tự ý cập nhật/sửa đổi số tiền hoặc trạng thái.
+2. **Rollback thanh toán**: Các giao dịch lỗi hoặc timeout phải chuyển sang `FAILED`, không được kẹt vĩnh viễn ở trạng thái `PENDING`.
+3. **1-1 với Application**: Mỗi Application chỉ có tối đa 1 PaymentTransaction.
+4. **Đối soát IPN**: Giao dịch được đối soát qua VNPay IPN callback với checksum verification.
 
 ### Soft delete rules (Quy tắc xóa dữ liệu)
 
 **Chi tiết rationale và consequences xem ADR-005 tại `CLAUDE.md` Section 3.**
 
 1. **Master data**: User, Organization, Event, Category, Skill → Soft delete (`is_active = false`)
-2. **Transaction data**: Application, Donation, Feedback → State transition (`status = cancelled/rejected`)
+2. **Transaction data**: Application, PaymentTransaction → State transition (`status = cancelled/rejected/expired/failed`)
 
 ## 4. Quy chuẩn đặt tên (Naming Conventions)
 
@@ -128,7 +134,7 @@ Modules giao tiếp qua **Service layer**, TUYỆT ĐỐI KHÔNG import Reposito
 ### AI Agent Safety Rules
 
 - **Clarification-First**: Yêu cầu mơ hồ → Hỏi lại, KHÔNG tự đoán
-- **Kiểm tra tác động VMS Core**: Trước khi sửa Event, Application, Attendance, Certificate, Donation
+- **Kiểm tra tác động VMS Core**: Trước khi sửa Event, Application, Payment
 - **Đọc ngữ cảnh đa tầng**: Đọc chéo `CLAUDE.md`, `share_context.md`, `SPEC.md` cho changes có rủi ro cao
 - **Shadow Plan**: Thao tác phá hủy dữ liệu → Báo cáo và chờ phê duyệt
 - **Loop Trap**: Thất bại 3 lần liên tiếp → DỪNG và yêu cầu con người hỗ trợ
@@ -179,7 +185,7 @@ Example: `feat(auth): implement volunteer login API`
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **VMS** (1110 symbols, 1915 relationships, 32 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **VMS** (1230 symbols, 2166 relationships, 41 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > Index stale? Run `node .gitnexus/run.cjs analyze` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? `npx gitnexus analyze` (npm 11 crash → `npm i -g gitnexus`; #1939).
 

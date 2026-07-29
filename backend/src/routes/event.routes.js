@@ -1,7 +1,7 @@
 import { Router } from "express";
 import eventController from "../controllers/event.controller.js";
-import { getByIdParamSchema } from "../middlewares/validators/event.validator.js";
-import { validateParams } from "../middlewares/validators/validate.js";
+import { getByIdParamSchema, listEventsQuerySchema } from "../middlewares/validators/event.validator.js";
+import { validateParams, validateQuery } from "../middlewares/validators/validate.js";
 import { authenticateOptional } from "../middlewares/auth.middleware.js";
 
 const router = Router();
@@ -425,6 +425,12 @@ const router = Router();
  *                 code: "INTERNAL_ERROR"
  *                 message: "Đã xảy ra lỗi không mong đợi. Vui lòng thử lại sau."
  */
+router.get(
+    "/",
+    validateQuery(listEventsQuerySchema),
+    eventController.getEvents
+);
+
 router.get(
     "/:id",
     authenticateOptional,

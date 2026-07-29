@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 
-export default function Card({ title, subtitle, padding = 'var(--space-3)', children, style, ...rest }) {
+export default function Card({ title, subtitle, padding = 'var(--space-3)', children, style, className, ...rest }) {
   return (
-    <div className="card-vms" style={{ padding, ...style }} {...rest}>
+    <div className={`card-vms${className ? ` ${className}` : ''}`} style={{ padding, ...style }} {...rest}>
       {title && (
         <h3 className="card-vms-title">{title}</h3>
       )}

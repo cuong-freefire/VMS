@@ -107,7 +107,7 @@ export default function HomePage() {
               { 
                 title: 'Sự kiện sắp tới', 
                 desc: 'Khám phá và đăng ký tham gia các sự kiện mới nhất.', 
-                link: '/events', 
+                link: '/volunteer/events', 
                 actionText: 'Tìm sự kiện', 
                 icon: CalendarDays 
               }

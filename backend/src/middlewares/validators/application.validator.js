@@ -2,9 +2,20 @@
  * Application Validation Schemas — Zod schemas for application endpoints.
  *
  * Owner: Member 1 - CuongLH
- * Feature: UC14 — Cancel Application
+ * Features: UC10 — Submit Application, UC14 — Cancel Application
  */
 import { z } from "zod";
+
+/**
+ * Schema for POST /api/v1/applications
+ * Validates the request body for submitting a new application.
+ */
+export const submitApplicationSchema = z.object({
+  eventId: z
+    .number({ required_error: "eventId là bắt buộc", invalid_type_error: "eventId phải là số" })
+    .int("eventId phải là số nguyên")
+    .positive("eventId phải là số nguyên dương"),
+});
 
 /**
  * Schema for PATCH /api/v1/applications/:id/cancel
@@ -17,4 +28,4 @@ export const cancelApplicationParamsSchema = z.object({
     .transform(Number),
 });
 
-export default { cancelApplicationParamsSchema };
+export default { submitApplicationSchema, cancelApplicationParamsSchema };

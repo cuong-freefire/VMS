@@ -20,6 +20,7 @@ import categoryRoutes from './routes/category.routes.js';
 import skillRoutes from './routes/skill.routes.js';
 import eventRoutes from './routes/event.routes.js';
 import applicationRoutes from './routes/application.routes.js';
+import vnpayRoutes from './routes/vnpay.routes.js';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 
@@ -96,6 +97,8 @@ app.use('/api/v1/skills', skillRoutes);
 app.use('/api/v1/events', eventRoutes);
 // 6.7 Application routes
 app.use('/api/v1/applications', applicationRoutes);
+// 6.7 VNPay routes
+app.use('/api/v1/vnpay', vnpayRoutes);
 
 app.get('/', (req, res) => {
   res.cookie('testCookie', 'testValue', {
