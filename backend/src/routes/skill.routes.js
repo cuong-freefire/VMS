@@ -16,9 +16,9 @@ import { Router } from "express";
 import authMiddleware from "../middlewares/auth.middleware.js";
 import authorize from "../middlewares/authorize.middleware.js";
 import optionalAuth from "../middlewares/optionalAuth.middleware.js";
-import { validate, validateQuery } from "../middlewares/validators/validate.js";
+import { validate, validateQuery, validateParams } from "../middlewares/validators/validate.js";
 import { getSkillsHandler, createSkillHandler, updateSkillHandler } from "../controllers/skill.controller.js";
-import { createSkillSchema, updateSkillSchema, getSkillsQuerySchema } from "../middlewares/validators/skill.validator.js";
+import { createSkillSchema, updateSkillSchema, skillIdSchema, getSkillsQuerySchema } from "../middlewares/validators/skill.validator.js";
 
 const router = Router();
 
@@ -220,6 +220,7 @@ router.patch(
     "/:id",
     authMiddleware,
     authorize("MANAGER", "ADMIN"),
+    validateParams(skillIdSchema),
     validate(updateSkillSchema),
     updateSkillHandler
 );

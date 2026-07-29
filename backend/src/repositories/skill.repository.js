@@ -1,6 +1,6 @@
 /**
  * Skill Repository - Database operations for Skill Management module
- * Owner: Member 4 - DucNM (UC34)
+ * Owner: Member 4 - DucNM (UC34, UC35, UC36, UC-feat-search-skill)
  *
  * Responsibilities:
  * - Query all skills

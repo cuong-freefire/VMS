@@ -25,7 +25,8 @@ import { successResponse, errorResponse } from '../utils/response.util.js';
  */
 async function getSkillsHandler(req, res, next) {
     try {
-        const result = await skillService.getSkills(req.user, req.query);
+        const query = req.validatedQuery || req.query;
+        const result = await skillService.getSkills(req.user, query);
 
         const message = result.skills.length > 0
             ? 'Lấy danh sách kỹ năng thành công'
@@ -74,16 +75,7 @@ async function createSkillHandler(req, res, next) {
  */
 async function updateSkillHandler(req, res, next) {
     try {
-        const skillId = Number.parseInt(req.params.id, 10);
-        if (Number.isNaN(skillId)) {
-            return res.status(400).json(
-                errorResponse(
-                    'Invalid skill ID.',
-                    'INVALID_SKILL_ID'
-                )
-            );
-        }
-
+        const skillId = req.validatedParams.id;
         const skill = await skillService.updateSkillService(skillId, req.body);
 
         return res.status(200).json(
