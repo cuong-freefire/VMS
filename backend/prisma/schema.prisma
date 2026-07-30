@@ -26,9 +26,11 @@ enum UserRole {
 
 enum ApplicationStatus {
   PENDING
+  WAITING_PAYMENT
   APPROVED
   REJECTED
   CANCELLED
+  PAYMENT_EXPIRED
 }
 
 enum EventStatus {
@@ -50,6 +52,12 @@ enum EventCategoryType {
 enum EmailVerificationType {
   REGISTER
   RESET_PASSWORD
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
 }
 
 // ============================================================================
@@ -90,6 +98,7 @@ model User {
   userSkills            UserSkill[]
   eventsCreated         Event[]       @relation("createdByStaff")
   eventsApproved        Event[]       @relation("approvedByManager")
+  eventsRejected Event[] @relation("rejectedByManager")
 
   @@index([roleId])
   @@index([isActive])
@@ -216,6 +225,8 @@ model Event {
   maxCapacity          Int         @map("max_capacity")
   approvedParticipants Int         @default(0) @map("approved_participants")
   imageUrl             String?     @db.VarChar(500) @map("image_url")
+  isPaid               Boolean     @default(false) @map("is_paid")
+  price                Int?
   categoryId           Int         @map("category_id")
   createdBy            Int         @map("created_by")
   approvedBy           Int?        @map("approved_by")
@@ -256,18 +267,41 @@ model Application {
   eventId     Int               @map("event_id")
   status      ApplicationStatus @default(PENDING)
   message     String?           @db.Text
-  processedBy Int?              @map("processed_by")
-  processedAt DateTime?         @map("processed_at")
-  createdAt   DateTime          @default(now()) @map("created_at")
-  updatedAt   DateTime          @updatedAt @map("updated_at")
+  processedBy       Int?              @map("processed_by")
+  processedAt       DateTime?         @map("processed_at")
+  paymentExpiresAt  DateTime?         @map("payment_expires_at")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
 
-  submittedByUser User  @relation("applicationSubmittedByUser", fields: [userId], references: [id])
-  event           Event @relation(fields: [eventId], references: [id])
-  processedByUser User? @relation("applicationProcessedByUser", fields: [processedBy], references: [id])
+  submittedByUser User               @relation("applicationSubmittedByUser", fields: [userId], references: [id])
+  event           Event              @relation(fields: [eventId], references: [id])
+  processedByUser User?              @relation("applicationProcessedByUser", fields: [processedBy], references: [id])
+  payment         PaymentTransaction?
 
-  @@unique([userId, eventId])
   @@index([userId, status])
   @@index([eventId, status])
   @@index([processedBy])
   @@map("applications")
+}
+
+/// Giao dịch thanh toán VNPay cho Application có phí
+model PaymentTransaction {
+  id               Int           @id @default(autoincrement())
+  applicationId    Int           @unique @map("application_id")
+  vnpTxnRef        String        @unique @db.VarChar(100) @map("vnp_txn_ref")
+  vnpTransactionNo String?       @db.VarChar(100) @map("vnp_transaction_no")
+  amount           Int           @map("amount")
+  bankCode         String?       @db.VarChar(50) @map("bank_code")
+  payDate          DateTime?     @map("pay_date")
+  responseCode     String?       @db.VarChar(10) @map("response_code")
+  status           PaymentStatus @default(PENDING)
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+
+  application Application @relation(fields: [applicationId], references: [id])
+
+  @@index([applicationId])
+  @@index([vnpTxnRef])
+  @@index([status])
+  @@map("payment_transactions")
 }

@@ -20,6 +20,7 @@ import categoryRoutes from './routes/category.routes.js';
 import skillRoutes from './routes/skill.routes.js';
 import eventRoutes from './routes/event.routes.js';
 import applicationRoutes from './routes/application.routes.js';
+import vnpayRoutes from './routes/vnpay.routes.js';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 
@@ -44,7 +45,7 @@ app.use(cookieParser());
  * 4. Cấu hình CORS (Cross-Origin Resource Sharing)
  * Cho phép giao tiếp cross-origin giữa Frontend (port 3000), Backend (port 5000),
  * và Swagger UI (port 3636) để test API từ giao diện
- * 
+ *
  * Lý do cần 3 origins:
  * - Frontend (3000): Ứng dụng React chính
  * - Backend (5000): API server + Swagger UI cùng process
@@ -55,7 +56,7 @@ app.use(
     // Cho phép requests từ các origins này
     origin: [
       `http://localhost:${process.env.PORT_FE}`, // Frontend: port 3000
-      `http://localhost:${process.env.PORT_BE}`, // Backend + Swagger: port 5000
+      `http://localhost:${process.env.PORT}`, // Backend + Swagger: port 5000
       'http://localhost:3636' // Swagger UI standalone (optional): port 3636
     ],
     methods: 'GET,PUT,PATCH,POST,DELETE', // HTTP methods được phép
@@ -69,7 +70,7 @@ app.use(
  * 5. Cấu hình Pino-HTTP Logger Middleware
  * Phải đặt SAU các parser (json, cookie) và CORS, TRƯỚC routes
  * để log được mọi request tới endpoints
- * 
+ *
  * Logger sẽ tự động:
  * - Log mỗi request với method, URL, status code
  * - Phân loại log level theo HTTP status (info/warn/error)
@@ -92,10 +93,12 @@ app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/categories', categoryRoutes);
 // 6.5 Skill Management routes
 app.use('/api/v1/skills', skillRoutes);
-// 6.6 Event Management routes (UC67: View Pending Event)
+// 6.6 Event routes (UC08-UC09: List/View Events, UC15-UC17: CRUD, UC67-UC70: Approve/Reject)
 app.use('/api/v1/events', eventRoutes);
-// 6.7 Application Management routes (UC22: View Application List)
-app.use('/api/v1', applicationRoutes);
+// 6.7 Application routes (UC10: Submit, UC14: Cancel, UC22: List, UC23-UC24: Approve/Reject)
+app.use('/api/v1/applications', applicationRoutes);
+// 6.8 VNPay routes
+app.use('/api/v1/vnpay', vnpayRoutes);
 
 app.get('/', (req, res) => {
   res.cookie('testCookie', 'testValue', {

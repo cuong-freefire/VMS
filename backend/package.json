@@ -37,6 +37,7 @@
     "prisma": "^6.19.3",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1",
+    "vnpay": "^2.5.0",
     "zod": "^4.4.3"
   },
   "type": "module",

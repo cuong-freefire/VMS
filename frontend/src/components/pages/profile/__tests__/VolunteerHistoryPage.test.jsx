@@ -183,11 +183,8 @@ describe("VolunteerHistoryPage", () => {
 
       renderPage();
 
-      // "Đã điểm danh" và "Đã duyệt" xuất hiện ở cả filter option và status badge → dùng getAllByText
-      const attendedElements = screen.getAllByText("Đã điểm danh");
-      expect(attendedElements.length).toBeGreaterThanOrEqual(2); // option + badge
-      const approvedElements = screen.getAllByText("Đã duyệt");
-      expect(approvedElements.length).toBeGreaterThanOrEqual(2); // option + badge
+      expect(screen.getByText("Đã điểm danh")).toBeInTheDocument();
+      expect(screen.getByText("Đã duyệt")).toBeInTheDocument();
     });
 
     it("shows certificate badge for issued certificates", () => {
@@ -256,16 +253,18 @@ describe("VolunteerHistoryPage", () => {
 
       // Tìm nút ">" điều hướng (ChevronRight) bằng các button đã render
       const buttons = getAllButtons();
-      // PaginationBar có 2 button: [ChevronLeft] [ChevronRight]
-      // Filter buttons: chỉ giữ button không chứa text "Lọc" / "Xóa bộ lọc"
+      // ArrowRight nằm ở button thứ 2 trong pagination (sau nút ChevronLeft)
+      // PaginationPanel có 2 button: [ChevronLeft] [ChevronRight]
+      // Tìm button không disabled và không chứa text "Lọc" / "Xóa bộ lọc"
       const paginationButtons = buttons.filter(
         (btn) =>
+          !btn.disabled &&
           !btn.textContent.includes("Lọc") &&
           !btn.textContent.includes("Xóa"),
       );
-      // Ít nhất có 2 button pagination (prev next)
+      // Ít nhất có 2 button pagination (prev + next)
       expect(paginationButtons.length).toBeGreaterThanOrEqual(2);
-      // Click button cuối cùng (next page - ChevronRight, button enabled)
+      // Click nút cuối cùng (next page - ChevronRight)
       const nextBtn = paginationButtons[paginationButtons.length - 1];
       fireEvent.click(nextBtn);
       expect(mockGoToPage).toHaveBeenCalledWith(2);

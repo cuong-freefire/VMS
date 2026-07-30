@@ -1,14 +1,14 @@
 /**
- * Application Validator - Zod Schemas
+ * Application Validation Schemas — Zod schemas for application endpoints.
  *
- * Validation cho Application Management API.
- * - getApplicationsQuerySchema: GET /api/v1/events/:eventId/applications (UC22)
- * - applicationIdParamSchema: GET /api/v1/applications/:applicationId (UC23)
- *
+ * Owner: Member 1 - CuongLH (UC10, UC14)
  * Owner: Member 4 - DucNM (UC22, UC23, UC24, UC25)
+ *
+ * Features: UC10 — Submit Application, UC14 — Cancel Application
+ *           UC22 — View Application List, UC23 — View Application Detail
+ *           UC24 — Approve Application, UC25 — Reject Application
  */
-
-import { z } from 'zod';
+import { z } from "zod";
 
 const ALLOWED_APPLICATION_STATUSES = [
     'pending',
@@ -17,14 +17,35 @@ const ALLOWED_APPLICATION_STATUSES = [
     'cancelled'
 ];
 
+// ─── UC10-UC14: Volunteer-facing schemas ─────────────────────────────
+
+/**
+ * Schema for POST /api/v1/applications
+ * Validates the request body for submitting a new application.
+ */
+export const submitApplicationSchema = z.object({
+  eventId: z
+    .number({ required_error: "eventId là bắt buộc", invalid_type_error: "eventId phải là số" })
+    .int("eventId phải là số nguyên")
+    .positive("eventId phải là số nguyên dương"),
+});
+
+/**
+ * Schema for PATCH /api/v1/applications/:id/cancel
+ * Validates the path param :id is a positive integer.
+ */
+export const cancelApplicationParamsSchema = z.object({
+  id: z
+    .string()
+    .regex(/^[1-9]\d*$/, "ID đơn đăng ký không hợp lệ")
+    .transform(Number),
+});
+
+// ─── UC22-UC25: Staff-facing schemas ─────────────────────────────────
+
 /**
  * Schema validation cho GET /api/v1/events/:eventId/applications query params.
  * UC22: View Application List — Staff xem danh sách đơn đăng ký của sự kiện.
- *
- * Query params:
- * - status: optional, filter by application status
- * - page: optional, page number (default 1)
- * - limit: optional, records per page (default 20, max 100)
  */
 export const getApplicationsQuerySchema = z.object({
     status: z
@@ -101,12 +122,6 @@ export const applicationIdParamSchema = z.object({
 /**
  * Schema validation cho PATCH /api/v1/applications/:applicationId/reject request body.
  * UC25: Reject Application — Staff từ chối đơn đăng ký kèm lý do.
- *
- * Validation rules:
- * - message: required
- * - minimum length: 10
- * - maximum length: 2000
- * - trimmed before validation
  */
 export const rejectApplicationSchema = z.object({
     message: z
@@ -115,3 +130,12 @@ export const rejectApplicationSchema = z.object({
         .min(10, 'Lý do từ chối phải có ít nhất 10 ký tự')
         .max(2000, 'Lý do từ chối không được vượt quá 2000 ký tự')
 });
+
+export default {
+    submitApplicationSchema,
+    cancelApplicationParamsSchema,
+    getApplicationsQuerySchema,
+    eventIdParamSchema,
+    applicationIdParamSchema,
+    rejectApplicationSchema
+};

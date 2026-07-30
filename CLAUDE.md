@@ -25,10 +25,10 @@ Prisma -> MySQL
 | Member | Module | Use Cases | Responsibilities |
 |--------|--------|-----------|------------------|
 | **Member 1 - CuongLH** | Authentication + Profile + Email | UC01-07, UC18-21, UC62-66 | Login/Register/Logout, Password Management, User Profile CRUD, Volunteer Skills, Volunteer History, Email Verification & Notifications |
-| **Member 2 - NamLD** | Volunteer Event Features | UC08-14, UC48, UC51-52 | Event List/Detail/Search/Filter (Volunteer view), Apply Event, Cancel Application, Submit Feedback, View/Download Certificate |
-| **Member 3 - TienTD** | Event & Application Management (Staff) | UC15-17, UC22-25, UC45-47, UC49-50, UC53 | Event CRUD (Staff), Application Approval/Rejection, Attendance Check, View Feedback, Generate Certificate |
+| **Member 2 - NamLD** | Volunteer Event Features | UC08-14, UC48, UC51-52 | Event List/Detail/Search/Filter (Volunteer view), Apply Event, Cancel Application, Payment (VNPay) |
+| **Member 3 - TienTD** | Event & Application Management (Staff) | UC15-17, UC22-25, UC45-47, UC49-50, UC53 | Event CRUD (Staff), Application Approval/Rejection/WaitingPayment |
 | **Member 4 - AnhND** | Admin & Manager Tools | UC26-36 | User Management (CRUD + Filter), Category Management, Skill Management |
-| **Member 5 - DucNM** | Organization + Notification + Dashboard + Payment | UC37-44, UC54-61 | Organization CRUD, Notification System, Dashboard/Reports/Statistics, Donation & Payment Gateway |
+| **Member 5 - DucNM** | Organization + Notification + Dashboard + Payment | UC37-44, UC54-61 | Organization CRUD, Notification System, Dashboard/Reports/Statistics, Payment Gateway (VNPay) |
 
 **Cross-module Communication Rules:**
 
@@ -427,36 +427,21 @@ REACT_APP_API_BASE_URL=http://localhost:5000/api/v1
 ### Event & Application Management
 
 1. Event capacity MUST be enforced at Service layer with transaction lock
-2. Application state transitions follow FSM: `Pending → [Approved | Rejected]` (one-way only)
+2. Application state transitions follow FSM:
+   - Miễn phí: `PENDING → [APPROVED | REJECTED]` (one-way only)
+   - Có phí: `PENDING → WAITING_PAYMENT → [APPROVED | PAYMENT_EXPIRED]` (one-way only)
 3. Soft delete for Event/User/Organization to preserve audit trail
 4. Staff can only manage events they created (ownership check required)
+5. `is_paid` và `price` chỉ được set khi tạo Event, không thay đổi sau khi PUBLISHED
 
-### Attendance & Check-in
+### Payment (VNPay)
 
-1. Check-in only allowed if Application status = `Approved`
-2. QR code generation MUST be server-side with expiry timestamp
-3. Duplicate check-in prevention via unique constraint on `(application_id, check_in_time)`
-4. Attendance records are immutable (no UPDATE/DELETE after creation)
-
-### Donation & Payment
-
-1. All donation amounts MUST be validated server-side
-2. Donation history is immutable (no UPDATE/DELETE)
-3. Payment gateway integration MUST use server-side signature verification
+1. All payment amounts MUST be validated server-side against event.price
+2. PaymentTransaction history is immutable after SUCCESS (no UPDATE/DELETE)
+3. Payment gateway integration MUST use server-side signature verification (VNPay checksum)
 4. Failed payment attempts MUST be logged for audit
-
-### Notification System
-
-1. Notifications MUST be sent asynchronously (queue-based)
-2. Email delivery failures MUST be logged but not block main flow
-3. Notification preferences MUST be respected (opt-in/opt-out)
-4. Critical notifications (event approval, certificate) have retry logic
-
-### Certificate Generation
-
-1. Certificates only generated for `Approved` applications with attendance records
-2. Certificate URL MUST be stored in database (not regenerated each time)
-3. Certificate templates MUST support localization (Vietnamese/English)
+5. Payment timeout enforced: `PAYMENT_EXPIRED` after `payment_expires_at` deadline
+6. Mỗi Application chỉ có tối đa 1 PaymentTransaction (1-1)
 
 ## 9. GitNexus Integration
 
@@ -531,7 +516,7 @@ VMS project được indexed bởi GitNexus để hỗ trợ code intelligence, 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **VMS** (983 symbols, 1528 relationships, 27 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **VMS** (1230 symbols, 2166 relationships, 41 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > Index stale? Run `node .gitnexus/run.cjs analyze` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? `npx gitnexus analyze` (npm 11 crash → `npm i -g gitnexus`; #1939).
 

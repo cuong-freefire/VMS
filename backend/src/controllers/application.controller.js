@@ -1,22 +1,67 @@
 /**
- * Application Controller - HTTP layer for Application Management module
+ * Application Controller — HTTP layer for application endpoints.
+ *
+ * Handles UC10 — Submit Application, UC14 — Cancel Application (Volunteer-facing)
+ * Handles UC22 — View Application List, UC23 — View Application Detail,
+ *          UC24 — Approve Application, UC25 — Reject Application (Staff-facing)
+ *
+ * Owner: Member 1 - CuongLH (UC10, UC14)
  * Owner: Member 4 - DucNM (UC22, UC23, UC24, UC25)
- *
- * Responsibilities:
- * - UC22: Handle GET /api/v1/events/:eventId/applications
- * - UC23: Handle GET /api/v1/applications/:applicationId
- * - UC24: Handle PATCH /api/v1/applications/:applicationId/approve
- * - UC25: Handle PATCH /api/v1/applications/:applicationId/reject
- * - Parse request params and pass to Service layer
- * - Return standardized API response
- *
- * Rules:
- * - No business logic in Controller
- * - Always use response.util.js for response format
  */
 
+import { submitApplication, cancelUserApplication } from "../services/application.service.js";
 import applicationService from '../services/application.service.js';
-import { successResponse, errorResponse } from '../utils/response.util.js';
+import { errorResponse, successResponse } from "../utils/response.util.js";
+
+/**
+ * POST /api/v1/applications
+ *
+ * Tình nguyện viên gửi đơn đăng ký tham gia sự kiện.
+ * Body: { eventId, message? }
+ */
+export async function submitApplicationHandler(req, res) {
+  try {
+    const { user_id, role_name: role } = req.user;
+    const { eventId, message } = req.body;
+
+    const application = await submitApplication(user_id, role, eventId, message);
+
+    return res
+      .status(201)
+      .json(successResponse(application, "Đăng ký sự kiện thành công"));
+  } catch (error) {
+    return res
+      .status(error.statusCode || 500)
+      .json(
+        errorResponse(error.message, error.code || "INTERNAL_SERVER_ERROR")
+      );
+  }
+}
+
+/**
+ * PATCH /api/v1/applications/:id/cancel
+ *
+ * Tình nguyện viên tự hủy đơn đăng ký trước khi sự kiện bắt đầu.
+ * Chỉ hủy được đơn ở trạng thái PENDING hoặc APPROVED.
+ */
+export async function cancelApplication(req, res) {
+  try {
+    const { user_id } = req.user;
+    const { id } = req.validatedParams;
+
+    const cancelled = await cancelUserApplication(id, user_id);
+
+    return res
+      .status(200)
+      .json(successResponse(cancelled, "Hủy đơn đăng ký thành công"));
+  } catch (error) {
+    return res
+      .status(error.statusCode || 500)
+      .json(
+        errorResponse(error.message, error.code || "INTERNAL_SERVER_ERROR")
+      );
+  }
+}
 
 /**
  * GET /api/v1/events/:eventId/applications
@@ -118,8 +163,12 @@ async function rejectApplicationHandler(req, res, next) {
 }
 
 export {
+    submitApplicationHandler,
+    cancelApplication,
     getApplicationsByEventHandler,
     getApplicationDetailHandler,
     approveApplicationHandler,
     rejectApplicationHandler
 };
+
+export default { submitApplicationHandler, cancelApplication, getApplicationsByEventHandler, getApplicationDetailHandler, approveApplicationHandler, rejectApplicationHandler };

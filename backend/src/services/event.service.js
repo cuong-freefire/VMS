@@ -1,12 +1,15 @@
 /**
  * Event Service - Business logic for Event Management module
  * Owner: Member 5 - DucNM (UC15, UC16, UC67, UC68, UC69, UC70)
+ * Owner: Member 1 (CuongLH) — UC08, UC09 (Volunteer-facing event endpoints)
  *
  * Responsibilities:
- * - Get paginated list of events with role-based visibility and status filter
+ * - UC08: List published events (public, volunteer-facing)
+ * - UC09: View event detail (public, volunteer-facing)
  * - UC15: Create event
  * - UC16: Edit event
  * - UC67: View Pending Events — Manager/Admin xem sự kiện PENDING_APPROVAL
+ * - UC68: Get event detail (role-based)
  * - UC69: Approve Event — Manager/Admin phê duyệt sự kiện PENDING_APPROVAL
  * - UC70: Reject event — Manager/Admin từ chối sự kiện PENDING_APPROVAL
  *
@@ -20,9 +23,187 @@
  * - Manager/Admin mới có quyền reject event
  */
 
+import eventRepository from "../repositories/event.repository.js";
+import applicationRepository from "../repositories/application.repository.js";
+import logger from "../config/logger.config.js";
 import { parsePagination, createPaginationMeta } from '../utils/pagination.util.js';
-import eventRepository from '../repositories/event.repository.js';
 import { ServiceError } from '../utils/response.util.js';
+
+// ─── UC08-UC09: Volunteer-facing event endpoints ─────────────────────
+
+/**
+ * Get event detail by ID.
+ * Handles both Guest (userId = null) and logged-in Volunteer.
+ * UC09: Volunteer-facing event detail.
+ *
+ * Business rules:
+ * - Only PUBLIC events: status IN [PUBLISHED, IN_PROGRESS, COMPLETED], isActive = true
+ * - Guest: userApplication = null
+ * - Volunteer: userApplication = { id, status, createdAt } or null
+ * - Computed fields: remainingSlots, isFull
+ *
+ * @param {number} eventId
+ * @param {number|null} userId
+ * @returns {Promise<object>} EventDetailDTO
+ * @throws {AppError} 404 if event not found
+ */
+export async function getEventDetail(eventId, userId) {
+  // 1. Fetch event with relations
+  const event = await eventRepository.findByIdWithRelations(eventId);
+
+  if (!event) {
+    throw Object.assign(new Error("Không tìm thấy sự kiện."), {
+      status: 404,
+      code: "NOT_FOUND",
+    });
+  }
+
+  // 2. Compute derived fields
+  const remainingSlots = Math.max(0, event.maxCapacity - event.approvedParticipants);
+  const isFull = event.approvedParticipants >= event.maxCapacity;
+
+  // 3. Determine user application (null for Guest by default)
+  let userApplication = null;
+
+  // 4. If user is logged in, check for their application
+  if (userId) {
+    try {
+      const application = await applicationRepository.findByUserAndEvent(
+        userId,
+        eventId
+      );
+
+      if (application) {
+        userApplication = {
+          id: application.id,
+          status: application.status,
+          createdAt: application.createdAt,
+        };
+      }
+    } catch (err) {
+      logger.error(
+        { userId, eventId, error: err.message },
+        "Failed to query user application"
+      );
+      // Not fatal — continue with userApplication = null
+    }
+  }
+
+  // 5. Build and return DTO
+  return {
+    id: event.id,
+    title: event.title,
+    description: event.description,
+    location: event.location,
+    startDate: event.startDate,
+    endDate: event.endDate,
+    applicationDeadline: event.applicationDeadline,
+    maxCapacity: event.maxCapacity,
+    approvedParticipants: event.approvedParticipants,
+    remainingSlots,
+    isFull,
+    imageUrl: event.imageUrl,
+    status: event.status,
+    createdAt: event.createdAt,
+    updatedAt: event.updatedAt,
+    category: event.category
+      ? {
+          id: event.category.id,
+          name: event.category.name,
+          categoryType: event.category.categoryType,
+        }
+      : null,
+    createdBy: event.createdByUser
+      ? {
+          id: event.createdByUser.id,
+          fullName: event.createdByUser.fullName,
+          avatarUrl: event.createdByUser.avatarUrl,
+        }
+      : null,
+    userApplication,
+  };
+}
+
+/**
+ * List published events with pagination, filtering, and sorting.
+ * Public endpoint — no authentication required.
+ * UC08: Volunteer-facing event list.
+ *
+ * @param {object} options
+ * @param {number} options.page
+ * @param {number} options.limit
+ * @param {string} [options.search]
+ * @param {number} [options.category]
+ * @param {string} [options.sort]
+ * @param {boolean} [options.isPaid]
+ * @param {boolean} [options.hasSlots]
+ * @returns {Promise<{ events: object[], pagination: object }>}
+ */
+export async function listEvents({ page, limit, search, category, sort, isPaid, hasSlots }) {
+  const { events, total } = await eventRepository.findAllWithFilters({
+    page,
+    limit,
+    search,
+    category,
+    sort,
+    isPaid,
+    hasSlots,
+  });
+
+  // Compute derived fields for each event
+  const mappedEvents = events.map((event) => {
+    const remainingSlots = Math.max(0, event.maxCapacity - event.approvedParticipants);
+    const isFull = event.approvedParticipants >= event.maxCapacity;
+
+    return {
+      id: event.id,
+      title: event.title,
+      description: event.description,
+      location: event.location,
+      startDate: event.startDate,
+      endDate: event.endDate,
+      applicationDeadline: event.applicationDeadline,
+      maxCapacity: event.maxCapacity,
+      approvedParticipants: event.approvedParticipants,
+      remainingSlots,
+      isFull,
+      imageUrl: event.imageUrl,
+      status: event.status,
+      isPaid: event.isPaid,
+      price: event.price,
+      createdAt: event.createdAt,
+      updatedAt: event.updatedAt,
+      category: event.category
+        ? {
+            id: event.category.id,
+            name: event.category.name,
+            categoryType: event.category.categoryType,
+          }
+        : null,
+      createdBy: event.createdByUser
+        ? {
+            id: event.createdByUser.id,
+            fullName: event.createdByUser.fullName,
+            avatarUrl: event.createdByUser.avatarUrl,
+          }
+        : null,
+    };
+  });
+
+  const totalPages = Math.ceil(total / limit);
+
+  return {
+    events: mappedEvents,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages,
+    },
+  };
+}
+
+// ─── UC15-UC17, UC67-UC70: Management event endpoints ────────────────
 
 /**
  * Format event from Prisma format to API response format.
@@ -137,7 +318,6 @@ const EVENT_STATUS_MAP = {
     cancelled: 'CANCELLED'
 };
 
-
 /**
  * Non-editable statuses for UC16.
  * IN_PROGRESS, COMPLETED, CANCELLED cannot be edited.
@@ -248,14 +428,12 @@ function buildWhereClause(normalizedRole, query, currentUser) {
  * @param {Object} query - Query params: { page, limit, status }
  * @param {Object|null} currentUser - User from JWT (req.user) or null for Guest
  * @returns {Promise<Object>} { events, pagination }
- * @throws {ServiceError} 403 nếu user không có quyền xem pending events
  */
-
 async function getEvents(query, currentUser) {
-    // 1. Parse pagination
-    const { skip, take, page, limit } = parsePagination(query);
+    // 1. Parse pagination params
+    const { page, limit, skip } = parsePagination(query);
 
-    // 2. Determine role
+    // 2. Determine role from JWT
     let roleName = null;
     if (currentUser?.role_id) {
         roleName = await eventRepository.findRoleNameById(currentUser.role_id);
@@ -265,13 +443,16 @@ async function getEvents(query, currentUser) {
     // 3. Build where clause
     const where = buildWhereClause(normalizedRole, query, currentUser);
 
-    // 4. Query database
+    // 4. Build orderBy
+    const orderBy = { createdAt: 'desc' };
+
+    // 5. Query database
     const [events, total] = await Promise.all([
-        eventRepository.findEvents({ skip, take, where }),
-        eventRepository.countEvents(where)
+        eventRepository.findMany({ skip, take: limit, where, orderBy }),
+        eventRepository.count({ where })
     ]);
 
-    // 5. Format response
+    // 6. Format response
     const formattedEvents = events.map(formatEvent);
 
     return {
@@ -281,25 +462,14 @@ async function getEvents(query, currentUser) {
 }
 
 /**
- * Validate event ID and return existing event.
+ * Validate event exists by ID.
  *
  * @param {number} eventId
- * @returns {Promise<Object>}
- * @throws {ServiceError}
+ * @returns {Promise<Object>} Event object
+ * @throws {ServiceError} 404 if not found
  */
 async function validateEventExists(eventId) {
-    // Validate event ID
-    if (!Number.isInteger(eventId) || eventId <= 0) {
-        throw new ServiceError(
-            'Mã sự kiện không hợp lệ.',
-            400,
-            'INVALID_EVENT_ID'
-        );
-    }
-
     const event = await eventRepository.findById(eventId);
-
-    // Check event exists
     if (!event) {
         throw new ServiceError(
             'Sự kiện không tồn tại.',
@@ -307,132 +477,134 @@ async function validateEventExists(eventId) {
             'EVENT_NOT_FOUND'
         );
     }
-
     return event;
 }
 
 /**
- * Validate pending event before approval.
+ * Approve a PENDING_APPROVAL event.
+ * UC69: Manager/Admin phê duyệt sự kiện.
  *
- * @param {number} eventId - Event ID
- * @returns {Promise<Object>} Event record
- * @throws {ServiceError} 400 nếu ID không hợp lệ
- * @throws {ServiceError} 404 nếu event không tồn tại
- * @throws {ServiceError} 409 nếu event không ở trạng thái PENDING_APPROVAL
+ * Business Logic:
+ * 1. Validate event exists (404 if not)
+ * 2. Validate status is PENDING_APPROVAL (409 if not)
+ * 3. Update event status to PUBLISHED
+ * 4. Return formatted response
+ *
+ * @param {number} eventId - Event ID from route param
+ * @param {Object} currentUser - User from JWT (req.user)
+ * @returns {Promise<Object>} Formatted approved event object
+ * @throws {ServiceError} 404 if event not found
+ * @throws {ServiceError} 409 if event not in PENDING_APPROVAL status
  */
-async function validatePendingEvent(eventId) {
-    // Validate event exists
+async function approveEvent(eventId, currentUser) {
+    // 1. Validate event exists
     const event = await validateEventExists(eventId);
 
-    // Check event is pending approval
+    // 2. Validate status is PENDING_APPROVAL
     if (event.status !== 'PENDING_APPROVAL') {
         throw new ServiceError(
-            'Sự kiện không ở trạng thái chờ duyệt.',
+            'Chỉ có thể phê duyệt sự kiện ở trạng thái chờ phê duyệt.',
             409,
             'INVALID_STATUS'
         );
     }
 
-    return event;
-}
-
-/**
- * Approve a pending event.
- * UC69: Manager/Admin phê duyệt sự kiện PENDING_APPROVAL.
- *
- * Business Logic:
- * 1. Validate pending event
- * 2. Update event: status = PUBLISHED, approvedBy = currentUser.id, approvedAt = now
- * 3. Return formatted response
- *
- * @param {number} eventId - Event ID từ route param
- * @param {Object} currentUser - User from JWT (req.user)
- * @returns {Promise<Object>} Formatted event object
- * @throws {ServiceError} 400/404/409 errors
- */
-async function approveEvent(eventId, currentUser) {
-    // 1. Validate event can be approved
-    await validatePendingEvent(eventId);
-
-    // 2. Update event: status = PUBLISHED, approvedBy, approvedAt
-    const updatedEvent = await eventRepository.updateEventStatus(eventId, {
+    // 3. Update event status to PUBLISHED
+    const updatedEvent = await eventRepository.updateEvent(eventId, {
         status: 'PUBLISHED',
         approvedBy: currentUser.user_id,
         approvedAt: new Date()
     });
 
-    // 3. Return formatted response
+    // 4. Return formatted response
     return formatApprovedEvent(updatedEvent);
 }
 
 /**
- * Reject a pending event.
- * UC70: Reject Event — Manager/Admin từ chối sự kiện PENDING_APPROVAL
+ * Reject a PENDING_APPROVAL event.
+ * UC70: Manager/Admin từ chối sự kiện kèm lý do.
  *
  * Business Logic:
- * 1. Validate pending event
- * 2. Get rejection reason
- * 3. Update event
- * 4. Return formatted response
+ * 1. Validate event exists (404 if not)
+ * 2. Validate status is PENDING_APPROVAL (409 if not)
+ * 3. Validate rejection reason (400 if empty)
+ * 4. Update event status to REJECTED
+ * 5. Return formatted response
  *
- * @param {number} eventId - Event ID từ route param
- * @param {Object} data - Request body: { rejection_reason }
+ * @param {number} eventId - Event ID from route param
+ * @param {Object} body - Request body containing rejection reason
  * @param {Object} currentUser - User from JWT (req.user)
- * @returns {Promise<Object>} Formatted event object
- * @throws {ServiceError} 400/404/409 errors
+ * @returns {Promise<Object>} Formatted rejected event object
+ * @throws {ServiceError} 404 if event not found
+ * @throws {ServiceError} 409 if event not in PENDING_APPROVAL status
+ * @throws {ServiceError} 400 if rejection reason is empty
  */
-async function rejectEvent(eventId, data, currentUser) {
-    // 1. Validate pending event
-    await validatePendingEvent(eventId);
+async function rejectEvent(eventId, body, currentUser) {
+    // 1. Validate event exists
+    const event = await validateEventExists(eventId);
 
-    // 2. Get rejection_reason
-    const reason = data.rejection_reason.trim();
+    // 2. Validate status is PENDING_APPROVAL
+    if (event.status !== 'PENDING_APPROVAL') {
+        throw new ServiceError(
+            'Chỉ có thể từ chối sự kiện ở trạng thái chờ phê duyệt.',
+            409,
+            'INVALID_STATUS'
+        );
+    }
 
-    // 3. Update event: status = REJECTED, rejectedReason, rejectedBy, rejectedAt
-    const updatedEvent = await eventRepository.updateEventStatus(eventId, {
+    // 3. Validate rejection reason
+    if (!body.rejection_reason || !body.rejection_reason.trim()) {
+        throw new ServiceError(
+            'Vui lòng cung cấp lý do từ chối sự kiện.',
+            400,
+            'REJECTION_REASON_REQUIRED'
+        );
+    }
+
+    // 4. Update event status to REJECTED
+    const updatedEvent = await eventRepository.updateEvent(eventId, {
         status: 'REJECTED',
-        rejectedReason: reason,
         rejectedBy: currentUser.user_id,
-        rejectedAt: new Date()
+        rejectedAt: new Date(),
+        rejectedReason: body.rejection_reason.trim()
     });
 
-    // 4. Return formatted response
+    // 5. Return formatted response
     return formatRejectedEvent(updatedEvent);
 }
 
 /**
  * Create a new event.
- * UC15: Add Event — Staff tạo sự kiện mới.
+ * UC15: Staff tạo sự kiện mới.
  *
  * Business Logic:
- * 1. Validate category exists and is active
- * 2. Extract createdBy from JWT (req.user.user_id)
- * 3. Convert validated date strings to Date objects
- * 4. Create event with status DRAFT
- * 5. Return formatted response
+ * 1. Validate category exists
+ * 2. Build create data
+ * 3. Create event via repository
+ * 4. Return formatted response
  *
- * @param {Object} data - Event data from validated request body
+ * @param {Object} data - Validated event data from request body
  * @param {Object} currentUser - User from JWT (req.user)
  * @returns {Promise<Object>} Formatted created event object
  * @throws {ServiceError} 400 if category not found
  */
 async function createEvent(data, currentUser) {
-    const { categoryId } = data;
-
-    // 1. Validate category exists and is active
-    const category = await eventRepository.findCategoryById(categoryId);
-    if (!category || !category.isActive) {
-        throw new ServiceError(
-            'Danh mục sự kiện không tồn tại.',
-            400,
-            'CATEGORY_NOT_FOUND'
-        );
+    // 1. Validate category exists
+    if (data.categoryId) {
+        const category = await eventRepository.findCategoryById(data.categoryId);
+        if (!category || !category.isActive) {
+            throw new ServiceError(
+                'Danh mục sự kiện không tồn tại.',
+                400,
+                'CATEGORY_NOT_FOUND'
+            );
+        }
     }
 
-    // 2. Build create data with createdBy from JWT
+    // 2. Build create data
     const createData = {
         title: data.title,
-        description: data.description,
+        description: data.description || null,
         location: data.location,
         startDate: new Date(data.startDate),
         endDate: new Date(data.endDate),
@@ -620,7 +792,7 @@ async function deleteEvent(eventId, currentUser) {
 }
 
 /**
- * Get event detail by ID.
+ * Get event detail by ID (Management).
  * UC68: Manager/Admin có thể xem chi tiết sự kiện PENDING.
  *
  * Business Logic:
@@ -676,7 +848,21 @@ async function getEventById(eventId, currentUser) {
     return formatEvent(event);
 }
 
+export {
+    getEventDetail,
+    listEvents,
+    getEvents,
+    approveEvent,
+    rejectEvent,
+    createEvent,
+    updateEvent,
+    deleteEvent,
+    getEventById
+};
+
 export default {
+    getEventDetail,
+    listEvents,
     getEvents,
     approveEvent,
     rejectEvent,

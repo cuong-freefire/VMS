@@ -13,9 +13,18 @@
 
 import nodemailer from "nodemailer";
 import logger from "./logger.config.js";
+import dns from "node:dns";
+
+dns.setDefaultResultOrder("ipv4first");
 
 export const transporter = nodemailer.createTransport({
-    service: "gmail",
+    pool: true,
+    
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
+    requireTLS: true,
+
     auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
@@ -23,12 +32,10 @@ export const transporter = nodemailer.createTransport({
     connectionTimeout: 10000, // Đợi tối đa 10 giây để kết nối tới SMTP.
     greetingTimeout: 10000, // Sau khi kết nối thành công, Gmail sẽ gửi lời chào SMTP. Nếu quá 10 giây mà chưa nhận được lời chào thì hủy kết nối.
     socketTimeout: 10000, // Trong lúc gửi email, nếu socket không có dữ liệu trong 10 giây thì đóng kết nối.
-    pool: { // Nodemailer sẽ giữ sẵn các kết nối để tái sử dụng
-        maxConnections: 5, // Cho phép tối đa 5 kết nối SMTP đồng thời. 
-        maxMessages: 100, // Mỗi kết nối sẽ gửi tối đa 100 email rồi tự đóng và mở lại kết nối mới
-        rateDelta: 1000, // Khoảng thời gian tính giới hạn tốc độ, tính bằng milliseconds.
-        rateLimit: 14, // Cho phép gửi tối đa 14 email trong mỗi rateDelta
-    },
+    maxConnections: 5, // Cho phép tối đa 5 kết nối SMTP đồng thời. 
+    maxMessages: 100, // Mỗi kết nối sẽ gửi tối đa 100 email rồi tự đóng và mở lại kết nối mới
+    rateDelta: 1000, // Khoảng thời gian tính giới hạn tốc độ, tính bằng milliseconds.
+    rateLimit: 14, // Cho phép gửi tối đa 14 email trong mỗi rateDelta
 });
 
 /**

@@ -1,12 +1,15 @@
 /**
  * Application Repository - Database operations for Application Management module
- * Owner: Member 4 - DucNM (UC22, UC23, UC24)
+ * Owner: Member 1 - CuongLH (UC10, UC14)
+ * Owner: Member 4 - DucNM (UC22, UC23, UC24, UC25)
  *
  * Responsibilities:
- * - Find applications by event ID with pagination and status filter
- * - Count applications by event ID for pagination metadata
- * - Include volunteer (user) information
- * - Update application status
+ * - UC10: Find/create applications for volunteer submission
+ * - UC14: Find/cancel applications for volunteer cancellation
+ * - UC22: Find applications by event ID with pagination and status filter
+ * - UC23: Find application detail with full volunteer and event info
+ * - UC24: Update application status (approve/reject)
+ * - UC25: Update application status (reject)
  *
  * Rules:
  * - All database access goes through Prisma ORM
@@ -16,6 +19,136 @@
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
+
+// ─── UC10-UC14: Volunteer-facing application queries ─────────────────
+
+/**
+ * Find an application by userId and eventId.
+ * Only returns active applications (status != CANCELLED).
+ *
+ * @param {number} userId
+ * @param {number} eventId
+ * @returns {Promise<object|null>} Application record, or null.
+ */
+export async function findByUserAndEvent(userId, eventId) {
+  return prisma.application.findFirst({
+    where: {
+      userId,
+      eventId,
+      status: { not: "CANCELLED" },
+    },
+    select: {
+      id: true,
+      status: true,
+      createdAt: true,
+    },
+  });
+}
+
+/**
+ * Find an active application by userId and eventId.
+ * "Active" means status is NOT in terminal states that allow re-apply:
+ *   - CANCELLED (user tự hủy → được apply lại)
+ *   - PAYMENT_EXPIRED (hết hạn thanh toán → được apply lại)
+ * Terminal states that BLOCK re-apply: REJECTED.
+ *
+ * @param {object} tx - Prisma transaction client (or prisma for standalone)
+ * @param {number} userId
+ * @param {number} eventId
+ * @returns {Promise<object|null>} Active application, or null.
+ */
+export async function findActiveByUserAndEvent(tx, userId, eventId) {
+  return tx.application.findFirst({
+    where: {
+      userId,
+      eventId,
+      status: { notIn: ["CANCELLED", "PAYMENT_EXPIRED"] },
+    },
+    select: {
+      id: true,
+      status: true,
+    },
+  });
+}
+
+/**
+ * Create a new application. Must be called inside a Prisma transaction.
+ *
+ * @param {import("@prisma/client").PrismaClient} tx - Transaction client
+ * @param {object} params
+ * @param {number} params.userId
+ * @param {number} params.eventId
+ * @param {string}  params.status - Initial status (always PENDING for new applications)
+ * @param {string?} params.message - Optional message from volunteer
+ * @returns {Promise<object>} Created application
+ */
+export async function createApplication(tx, { userId, eventId, status, message }) {
+  return tx.application.create({
+    data: {
+      userId,
+      eventId,
+      status,
+      message: message || null,
+    },
+    select: {
+      id: true,
+      userId: true,
+      eventId: true,
+      status: true,
+      message: true,
+      createdAt: true,
+    },
+  });
+}
+
+/**
+ * Find application by ID with related event data.
+ * Used by cancel flow to validate event state (not InProgress/Completed).
+ *
+ * @param {number} applicationId
+ * @returns {Promise<object|null>} Application with event, or null.
+ */
+export async function findByIdWithEvent(applicationId) {
+  return prisma.application.findFirst({
+    where: { id: applicationId, status: { not: "CANCELLED" } },
+    include: {
+      event: {
+        select: { id: true, status: true, startDate: true },
+      },
+    },
+  });
+}
+
+/**
+ * Cancel (set status = CANCELLED) an application.
+ * Must be called inside a Prisma transaction.
+ *
+ * @param {import("@prisma/client").PrismaClient} tx - Transaction client
+ * @param {number} applicationId
+ * @returns {Promise<object>} Updated application
+ */
+export async function cancelApplication(tx, applicationId) {
+  return tx.application.update({
+    where: { id: applicationId },
+    data: { status: "CANCELLED" },
+  });
+}
+
+/**
+ * Find a payment transaction by application ID.
+ *
+ * @param {import("@prisma/client").PrismaClient} tx - Transaction client
+ * @param {number} applicationId
+ * @returns {Promise<object|null>} PaymentTransaction, or null.
+ */
+export async function findPaymentByApplicationId(tx, applicationId) {
+  return tx.paymentTransaction.findFirst({
+    where: { applicationId },
+    select: { id: true, status: true, vnpTxnRef: true },
+  });
+}
+
+// ─── UC22-UC25: Staff-facing application queries ─────────────────────
 
 /**
  * Find applications by event ID with pagination and optional status filter.
@@ -182,7 +315,27 @@ const updateApplicationStatus = async (id, data) => {
     });
 };
 
+export {
+    findByUserAndEvent,
+    findActiveByUserAndEvent,
+    createApplication,
+    findByIdWithEvent,
+    cancelApplication,
+    findPaymentByApplicationId,
+    findByEventId,
+    findById,
+    countByEventId,
+    findDetailById,
+    updateApplicationStatus
+};
+
 export default {
+    findByUserAndEvent,
+    findActiveByUserAndEvent,
+    createApplication,
+    findByIdWithEvent,
+    cancelApplication,
+    findPaymentByApplicationId,
     findByEventId,
     findById,
     countByEventId,
