@@ -141,7 +141,7 @@ export default function EditUserPage() {
                 <ErrorState
                     title="Không thể tải thông tin người dùng"
                     message={fetchError}
-                    onRetry={fetchUser}
+                    onRetry={() => window.location.reload()}
                 />
             </div>
         );

@@ -15,6 +15,7 @@
  */
 
 import { ServiceError } from '../utils/response.util.js';
+import { parsePagination, createPaginationMeta } from '../utils/pagination.util.js';
 import categoryRepository from '../repositories/category.repository.js';
 
 /**
@@ -28,8 +29,10 @@ function formatCategory(cat) {
         category_id: cat.id,
         name: cat.name,
         description: cat.description,
-        type: cat.categoryType ? cat.categoryType.toLowerCase() : null,
-        is_active: cat.isActive
+        type: cat.categoryType ? CATEGORY_TYPE_TO_API[cat.categoryType] || null : null,
+        is_active: cat.isActive,
+        created_at: cat.createdAt ? cat.createdAt.toISOString() : null,
+        updated_at: cat.updatedAt ? cat.updatedAt.toISOString() : null
     };
 }
 
@@ -41,6 +44,16 @@ const CATEGORY_TYPE_MAP = {
     'location': 'LOCATION',
     'event_type': 'TYPE',
     'time_frame': 'TIME'
+};
+
+/**
+ * Map Prisma EventCategoryType enum sang API contract type string.
+ * "LOCATION" → "location", "TYPE" → "event_type", "TIME" → "time_frame"
+ */
+const CATEGORY_TYPE_TO_API = {
+    'LOCATION': 'location',
+    'TYPE': 'event_type',
+    'TIME': 'time_frame'
 };
 
 /**
@@ -101,12 +114,13 @@ function buildWhereClause(showAll, query) {
 }
 
 /**
- * Get categories based on user role, with optional search and type filter.
+ * Get paginated list of categories based on user role.
+ * UC31: View Category List — page, limit, search, type, sort.
  * UC-feat-search-category: thêm search và type filter support.
  *
  * @param {Object|null} currentUser - User from JWT (req.user) or null for Guest
- * @param {Object} [query={}] - Query params: { search, type }
- * @returns {Promise<Object>} { categories: Array }
+ * @param {Object} [query={}] - Query params: { page, limit, search, type, sort }
+ * @returns {Promise<Object>} { categories, pagination }
  */
 async function getCategories(currentUser, query = {}) {
     let roleName = null;
@@ -123,14 +137,65 @@ async function getCategories(currentUser, query = {}) {
         normalizedRole === "MANAGER" ||
         normalizedRole === "ADMIN";
 
+    // 1. Parse pagination
+    const { skip, take, page, limit } = parsePagination(query);
 
+    // 2. Build where clause (role visibility + search + type)
     const where = buildWhereClause(showAll, query);
 
-    const categories = await categoryRepository.findAll(where);
+    // 3. Build orderBy clause
+    const orderBy = buildOrderBy(query.sort);
+
+    // 4. Query database
+    const [categories, total] = await Promise.all([
+        categoryRepository.findMany({ skip, take, where, orderBy }),
+        categoryRepository.count(where)
+    ]);
+
+    // 5. Format response
+    const formattedCategories = categories.map(formatCategory);
 
     return {
-        categories: categories.map(formatCategory)
+        categories: formattedCategories,
+        pagination: createPaginationMeta(total, page, limit)
     };
+}
+
+/**
+ * Build Prisma orderBy clause từ sort param.
+ * Default: created_at:desc
+ *
+ * @param {string} sort - Sort string (field:direction)
+ * @returns {Array} Prisma orderBy array
+ */
+function buildOrderBy(sort) {
+    const defaultSort = [{ createdAt: 'desc' }];
+
+    if (!sort) {
+        return defaultSort;
+    }
+
+    const match = sort.match(/^(\w+):(asc|desc)$/i);
+    if (!match) {
+        return defaultSort;
+    }
+
+    const field = match[1];
+    const direction = match[2].toLowerCase();
+
+    // Map query field names to Prisma field names
+    const fieldMap = {
+        'created_at': 'createdAt',
+        'updated_at': 'updatedAt',
+        'name': 'name'
+    };
+
+    const prismaField = fieldMap[field];
+    if (!prismaField) {
+        return defaultSort;
+    }
+
+    return [{ [prismaField]: direction }];
 }
 
 /**

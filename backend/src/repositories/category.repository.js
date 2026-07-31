@@ -15,15 +15,21 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 /**
- * Find all categories với điều kiện lọc.
+ * Find categories with pagination, search, filter and sort.
  *
- * @param {Object} [where={}] - Prisma where clause
+ * @param {Object} options - Query options
+ * @param {number} options.skip - Number of records to skip (pagination)
+ * @param {number} options.take - Number of records to take (pagination)
+ * @param {Object} options.where - Prisma where clause for filtering
+ * @param {Object} options.orderBy - Prisma orderBy clause for sorting
  * @returns {Promise<Array>} List of categories
  */
-const findAll = async (where = {}) => {
+const findMany = async ({ skip, take, where, orderBy }) => {
     return prisma.eventCategory.findMany({
+        skip,
+        take,
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy,
         select: {
             id: true,
             name: true,
@@ -34,6 +40,16 @@ const findAll = async (where = {}) => {
             updatedAt: true
         }
     });
+};
+
+/**
+ * Count total categories matching filter criteria.
+ *
+ * @param {Object} where - Prisma where clause for filtering
+ * @returns {Promise<number>} Total count of matching categories
+ */
+const count = async (where) => {
+    return prisma.eventCategory.count({ where });
 };
 
 /**
@@ -148,7 +164,8 @@ const updateCategory = async (id, data) => {
 };
 
 export default {
-    findAll,
+    findMany,
+    count,
     findRoleNameById,
     findByNameAndType,
     createCategory,
