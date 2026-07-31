@@ -24,6 +24,10 @@ import ApplyEventPage from "./components/pages/ApplyEventPage";
 import NotFoundPage from "./components/pages/NotFoundPage";
 import AboutPage from "./components/pages/AboutPage";
 import PlaceholderPage from "./components/pages/PlaceholderPage";
+import UserListPage from "./components/pages/admin/UserListPage";
+import UserDetailPage from "./components/pages/admin/UserDetailPage";
+import AddUserPage from "./components/pages/admin/AddUserPage";
+import EditUserPage from "./components/pages/admin/EditUserPage";
 
 function App() {
   return (
@@ -96,7 +100,10 @@ function App() {
           <Route element={<MainLayout />}>
             <Route element={<RoleRoute allowedRoles={[ROLES.ADMIN]} />}>
               <Route path="/admin/dashboard" element={<PlaceholderPage title="Dashboard (Admin)" member="AnhND (Member 4)" />} />
-              <Route path="/admin/users" element={<PlaceholderPage title="Quản lý Người dùng" member="AnhND (Member 4)" />} />
+              <Route path="/admin/users" element={<UserListPage />} />
+              <Route path="/admin/users/add" element={<AddUserPage />} />
+              <Route path="/admin/users/:id" element={<UserDetailPage />} />
+              <Route path="/admin/users/:id/edit" element={<EditUserPage />} />
               <Route path="/admin/categories" element={<PlaceholderPage title="Quản lý Danh mục" member="AnhND (Member 4)" />} />
               <Route path="/admin/skills" element={<PlaceholderPage title="Quản lý Kỹ năng" member="AnhND (Member 4)" />} />
             </Route>
