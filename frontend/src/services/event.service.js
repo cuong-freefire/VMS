@@ -82,4 +82,29 @@ export const eventService = {
     async deleteEvent(id) {
         return axiosApi.delete(`/api/v1/events/${id}`);
     },
+
+    /* ── Manager/Admin: Event Approval (UC69, UC70) ── */
+
+    /**
+     * Phê duyệt sự kiện PENDING_APPROVAL.
+     * UC69: Manager/Admin — không cần request body.
+     *
+     * @param {number} id - Event ID
+     * @returns {Promise<{ data: Object }>}
+     */
+    async approveEvent(id) {
+        return axiosApi.patch(`/api/v1/events/${id}/approve`);
+    },
+
+    /**
+     * Từ chối sự kiện PENDING_APPROVAL kèm lý do.
+     * UC70: Manager/Admin — body bắt buộc { rejection_reason }.
+     *
+     * @param {number} id - Event ID
+     * @param {Object} data - { rejection_reason: string }
+     * @returns {Promise<{ data: Object }>}
+     */
+    async rejectEvent(id, data) {
+        return axiosApi.patch(`/api/v1/events/${id}/reject`, data);
+    },
 };

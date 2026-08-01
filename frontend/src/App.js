@@ -37,6 +37,8 @@ import EditSkillPage from "./components/pages/admin/EditSkillPage";
 import StaffEventListPage from "./components/pages/staff/StaffEventListPage";
 import CreateEventPage from "./components/pages/staff/CreateEventPage";
 import EditEventPage from "./components/pages/staff/EditEventPage";
+import ManagerEventListPage from "./components/pages/manager/ManagerEventListPage";
+import ManagerEventDetailPage from "./components/pages/manager/ManagerEventDetailPage";
 
 function App() {
   return (
@@ -101,6 +103,8 @@ function App() {
         <Route element={<ProtectedRoute />}>
           <Route element={<MainLayout />}>
             <Route element={<RoleRoute allowedRoles={[ROLES.MANAGER]} />}>
+              <Route path="/manager/events" element={<ManagerEventListPage />} />
+              <Route path="/manager/events/:id" element={<ManagerEventDetailPage />} />
               <Route path="/manager/dashboard" element={<PlaceholderPage title="Dashboard (Manager)" member="DucNM (Member 5)" />} />
             </Route>
           </Route>
