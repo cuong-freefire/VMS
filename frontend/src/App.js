@@ -31,6 +31,9 @@ import EditUserPage from "./components/pages/admin/EditUserPage";
 import CategoryListPage from "./components/pages/admin/CategoryListPage";
 import AddCategoryPage from "./components/pages/admin/AddCategoryPage";
 import EditCategoryPage from "./components/pages/admin/EditCategoryPage";
+import SkillListPage from "./components/pages/admin/SkillListPage";
+import AddSkillPage from "./components/pages/admin/AddSkillPage";
+import EditSkillPage from "./components/pages/admin/EditSkillPage";
 
 function App() {
   return (
@@ -110,7 +113,9 @@ function App() {
               <Route path="/admin/categories" element={<CategoryListPage />} />
               <Route path="/admin/categories/add" element={<AddCategoryPage />} />
               <Route path="/admin/categories/:id/edit" element={<EditCategoryPage />} />
-              <Route path="/admin/skills" element={<PlaceholderPage title="Quản lý Kỹ năng" member="AnhND (Member 4)" />} />
+              <Route path="/admin/skills" element={<SkillListPage />} />
+              <Route path="/admin/skills/add" element={<AddSkillPage />} />
+              <Route path="/admin/skills/:id/edit" element={<EditSkillPage />} />
             </Route>
           </Route>
         </Route>

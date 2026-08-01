@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 import { ArrowLeft, Save } from "lucide-react";
-import { categoryService } from "../../../services/category.service.js";
+import { skillService } from "../../../services/skill.service.js";
 import useFormSubmit from "../../../hooks/useFormSubmit";
 import Card from "../../ui/Card";
 import Button from "../../ui/Button";
@@ -10,15 +10,15 @@ import Skeleton from "../../ui/Skeleton";
 import ErrorState from "../../ui/ErrorState";
 
 /* ------------------------------------------------------------------ */
-/*  EditCategoryPage                                                  */
+/*  EditSkillPage                                                     */
 /* ------------------------------------------------------------------ */
-export default function EditCategoryPage() {
+export default function EditSkillPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { isSubmitting, error, handleSubmit, clearError } = useFormSubmit();
 
-  const [loadingCategory, setLoadingCategory] = useState(true);
+  const [loadingSkill, setLoadingSkill] = useState(true);
   const [fetchError, setFetchError] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
@@ -27,44 +27,44 @@ export default function EditCategoryPage() {
   });
   const [fieldErrors, setFieldErrors] = useState({});
 
-  /* Load category — prefer data passed via router state; otherwise fetch list & find by ID */
+  /* Load skill — prefer data passed via router state; otherwise fetch list & find by ID */
   useEffect(() => {
     let cancelled = false;
-    setLoadingCategory(true);
+    setLoadingSkill(true);
     setFetchError(null);
 
-    const applyCategory = (category) => {
+    const applySkill = (skill) => {
       if (cancelled) return;
       setFormData({
-        name: category.name || "",
-        description: category.description || "",
-        is_active: category.is_active,
+        name: skill.name || "",
+        description: skill.description || "",
+        is_active: skill.is_active,
       });
-      setLoadingCategory(false);
+      setLoadingSkill(false);
     };
 
-    const passedCategory = location.state?.category;
-    if (passedCategory && String(passedCategory.category_id) === String(id)) {
-      applyCategory(passedCategory);
+    const passedSkill = location.state?.skill;
+    if (passedSkill && String(passedSkill.skill_id) === String(id)) {
+      applySkill(passedSkill);
       return;
     }
 
-    categoryService.getCategories({ limit: 100 })
+    skillService.getSkills()
       .then((response) => {
         if (cancelled) return;
-        const categories = response.data?.categories || [];
-        const found = categories.find((c) => String(c.category_id) === String(id));
+        const skills = response.data?.skills || [];
+        const found = skills.find((s) => String(s.skill_id) === String(id));
         if (found) {
-          applyCategory(found);
+          applySkill(found);
         } else {
-          setFetchError("Không tìm thấy danh mục.");
-          setLoadingCategory(false);
+          setFetchError("Không tìm thấy kỹ năng.");
+          setLoadingSkill(false);
         }
       })
       .catch((err) => {
         if (!cancelled) {
-          setFetchError(err?.message || "Không thể tải thông tin danh mục.");
-          setLoadingCategory(false);
+          setFetchError(err?.message || "Không thể tải thông tin kỹ năng.");
+          setLoadingSkill(false);
         }
       });
 
@@ -84,7 +84,7 @@ export default function EditCategoryPage() {
   const validate = useCallback(() => {
     const errors = {};
     if (!formData.name.trim()) {
-      errors.name = "Tên danh mục không được để trống";
+      errors.name = "Tên kỹ năng không được để trống";
     }
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
@@ -94,21 +94,21 @@ export default function EditCategoryPage() {
     if (!validate()) return;
 
     const result = await handleSubmit(
-      () => categoryService.updateCategory(id, {
+      () => skillService.updateSkill(id, {
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
         is_active: formData.is_active,
       }),
-      "Cập nhật danh mục thành công"
+      "Cập nhật kỹ năng thành công"
     );
 
     if (result.success) {
-      navigate("/admin/categories");
+      navigate("/admin/skills");
     }
   }, [formData, id, handleSubmit, navigate, validate]);
 
   /* Loading state */
-  if (loadingCategory) {
+  if (loadingSkill) {
     return (
       <div style={{ maxWidth: 600, margin: "0 auto" }}>
         <div style={{ marginBottom: "var(--space-4)" }}>
@@ -126,7 +126,7 @@ export default function EditCategoryPage() {
     return (
       <div style={{ maxWidth: 600, margin: "0 auto" }}>
         <ErrorState
-          title="Không thể tải thông tin danh mục"
+          title="Không thể tải thông tin kỹ năng"
           message={fetchError}
           onRetry={() => window.location.reload()}
         />
@@ -156,10 +156,10 @@ export default function EditCategoryPage() {
             fontSize: "var(--font-size-h2)", fontWeight: "var(--font-weight-semibold)",
             color: "var(--text-primary)", margin: 0,
           }}>
-            Chỉnh sửa danh mục
+            Chỉnh sửa kỹ năng
           </h1>
           <p style={{ fontSize: "var(--font-size-small)", color: "var(--text-secondary)", margin: "4px 0 0" }}>
-            Cập nhật thông tin cho danh mục: <strong>{formData.name}</strong>
+            Cập nhật thông tin cho kỹ năng: <strong>{formData.name}</strong>
           </p>
         </div>
 
@@ -177,13 +177,13 @@ export default function EditCategoryPage() {
         <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }}>
           {/* Name */}
           <FormInput
-            label="Tên danh mục *"
+            label="Tên kỹ năng *"
             name="name"
             type="text"
             value={formData.name}
             onChange={handleChange}
             error={fieldErrors.name}
-            placeholder="Nhập tên danh mục"
+            placeholder="Nhập tên kỹ năng"
           />
 
           {/* Description */}
@@ -197,7 +197,7 @@ export default function EditCategoryPage() {
             placeholder="Nhập mô tả"
           />
 
-          {/* Visibility */}
+          {/* Active status */}
           <div className="mb-3">
             <label
               style={{
@@ -221,7 +221,7 @@ export default function EditCategoryPage() {
                   cursor: "pointer",
                 }}
               />
-              Hiển thị danh mục
+              Đang hoạt động
             </label>
             <p style={{
               margin: "4px 0 0",
@@ -229,7 +229,7 @@ export default function EditCategoryPage() {
               color: "var(--text-tertiary)",
               marginLeft: 28,
             }}>
-              Bỏ chọn để ẩn danh mục khỏi người dùng.
+              Bỏ chọn để vô hiệu hóa kỹ năng.
             </p>
           </div>
 
@@ -245,7 +245,7 @@ export default function EditCategoryPage() {
               <Save size={16} />
               {isSubmitting ? "Đang lưu..." : "Lưu thay đổi"}
             </Button>
-            <Link to="/admin/categories" style={{ textDecoration: "none" }}>
+            <Link to="/admin/skills" style={{ textDecoration: "none" }}>
               <Button variant="secondary" disabled={isSubmitting}>
                 Hủy
               </Button>
