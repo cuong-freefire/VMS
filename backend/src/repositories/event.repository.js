@@ -210,12 +210,12 @@ export async function findAllWithFilters({ page, limit, search, category, sort, 
  * @param {Object} [options.where={}] - Prisma where clause for filtering
  * @returns {Promise<Array>} List of events with category and creator information
  */
-const findMany = async ({ skip, take, where = {} }) => {
+const findMany = async ({ skip, take, where = {}, orderBy }) => {
     return prisma.event.findMany({
         skip,
         take,
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: orderBy || { createdAt: 'desc' },
         select: {
             id: true,
             title: true,
@@ -499,8 +499,6 @@ const countApplications = async (eventId) => {
 };
 
 export {
-    findByIdWithRelations,
-    findAllWithFilters,
     findMany,
     count,
     findRoleNameById,

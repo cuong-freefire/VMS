@@ -23,6 +23,34 @@ router.get(
 );
 
 /**
+ * GET /api/v1/events/manage
+ * Lấy danh sách sự kiện với role-based visibility và status filter.
+ * UC67: Manager/Admin có thể lọc theo status (bao gồm pending_approval).
+ * Chỉ Staff/Manager/Admin mới có quyền truy cập.
+ */
+router.get(
+    "/manage",
+    authMiddleware,
+    authorize("STAFF", "MANAGER", "ADMIN"),
+    validateQuery(getEventsQuerySchema),
+    eventController.getEventsHandler
+);
+
+/**
+ * GET /api/v1/events/manage/:id
+ * Lấy chi tiết sự kiện với role-based visibility.
+ * UC68: Manager/Admin có thể xem sự kiện PENDING_APPROVAL.
+ * Chỉ Staff/Manager/Admin mới có quyền truy cập.
+ */
+router.get(
+    "/manage/:id",
+    authMiddleware,
+    authorize("STAFF", "MANAGER", "ADMIN"),
+    validateParams(getByIdParamSchema),
+    eventController.getEventByIdHandler
+);
+
+/**
  * GET /api/v1/events/:id
  * Handles both Guest (unauthenticated) and Volunteer (authenticated) requests.
  * Volunteer-facing: UC09

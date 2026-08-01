@@ -173,6 +173,8 @@ export const updateEventSchema = z.object({
   maxCapacity: z.coerce.number().int().positive('Max capacity must be a positive integer').optional(),
   categoryId: z.coerce.number().int().positive('Category is required').optional(),
   imageUrl: z.string().optional().nullable()
+}).refine(data => Object.keys(data).length > 0, {
+  message: 'No fields to update.'
 });
 
 /**

@@ -230,7 +230,7 @@ function formatEvent(event) {
         category: event.category ? {
             id: event.category.id,
             name: event.category.name,
-            type: event.category.categoryType.toLowerCase()
+            type: CATEGORY_TYPE_TO_API[event.category.categoryType] || null
         } : null,
         created_by: event.createdByUser ? {
             id: event.createdByUser.id,
@@ -319,6 +319,16 @@ const EVENT_STATUS_MAP = {
 };
 
 /**
+ * Map Prisma EventCategoryType enum sang API contract type string.
+ * "LOCATION" → "location", "TYPE" → "event_type", "TIME" → "time_frame"
+ */
+const CATEGORY_TYPE_TO_API = {
+    'LOCATION': 'location',
+    'TYPE': 'event_type',
+    'TIME': 'time_frame'
+};
+
+/**
  * Non-editable statuses for UC16.
  * IN_PROGRESS, COMPLETED, CANCELLED cannot be edited.
  */
@@ -345,6 +355,28 @@ function buildWhereClause(normalizedRole, query, currentUser) {
     conditions.push({
         isActive: true
     });
+
+    // Search: tìm theo title hoặc location (case-insensitive)
+    if (query.search) {
+        const keyword = query.search.trim();
+
+        conditions.push({
+            OR: [
+                {
+                    title: {
+                        contains: keyword,
+                        mode: 'insensitive'
+                    }
+                },
+                {
+                    location: {
+                        contains: keyword,
+                        mode: 'insensitive'
+                    }
+                }
+            ]
+        });
+    }
 
     const requestedStatus = query.status?.toLowerCase();
 
@@ -415,6 +447,42 @@ function buildWhereClause(normalizedRole, query, currentUser) {
 }
 
 /**
+ * Build Prisma orderBy clause từ sort param.
+ * Default: created_at:desc
+ *
+ * @param {string} sort - Sort string (field:direction)
+ * @returns {Object} Prisma orderBy object
+ */
+function buildOrderBy(sort) {
+    const defaultSort = { createdAt: 'desc' };
+
+    if (!sort) {
+        return defaultSort;
+    }
+
+    const match = sort.match(/^(\w+):(asc|desc)$/i);
+    if (!match) {
+        return defaultSort;
+    }
+
+    const field = match[1];
+    const direction = match[2].toLowerCase();
+
+    // Map query field names to Prisma field names
+    const fieldMap = {
+        'created_at': 'createdAt',
+        'start_date': 'startDate'
+    };
+
+    const prismaField = fieldMap[field];
+    if (!prismaField) {
+        return defaultSort;
+    }
+
+    return { [prismaField]: direction };
+}
+
+/**
  * Get paginated list of events with role-based visibility and status filter.
  * UC67: Manager/Admin có thể xem sự kiện PENDING_APPROVAL.
  *
@@ -444,7 +512,7 @@ async function getEvents(query, currentUser) {
     const where = buildWhereClause(normalizedRole, query, currentUser);
 
     // 4. Build orderBy
-    const orderBy = { createdAt: 'desc' };
+    const orderBy = buildOrderBy(query.sort);
 
     // 5. Query database
     const [events, total] = await Promise.all([
@@ -510,7 +578,7 @@ async function approveEvent(eventId, currentUser) {
     }
 
     // 3. Update event status to PUBLISHED
-    const updatedEvent = await eventRepository.updateEvent(eventId, {
+    const updatedEvent = await eventRepository.updateEventStatus(eventId, {
         status: 'PUBLISHED',
         approvedBy: currentUser.user_id,
         approvedAt: new Date()
@@ -562,7 +630,7 @@ async function rejectEvent(eventId, body, currentUser) {
     }
 
     // 4. Update event status to REJECTED
-    const updatedEvent = await eventRepository.updateEvent(eventId, {
+    const updatedEvent = await eventRepository.updateEventStatus(eventId, {
         status: 'REJECTED',
         rejectedBy: currentUser.user_id,
         rejectedAt: new Date(),
@@ -604,7 +672,7 @@ async function createEvent(data, currentUser) {
     // 2. Build create data
     const createData = {
         title: data.title,
-        description: data.description || null,
+        description: data.description || '',
         location: data.location,
         startDate: new Date(data.startDate),
         endDate: new Date(data.endDate),
@@ -696,6 +764,8 @@ async function updateEvent(eventId, data, currentUser) {
         if (data[field] !== undefined) {
             if (field === 'startDate' || field === 'endDate' || field === 'applicationDeadline') {
                 updateData[field] = new Date(data[field]);
+            } else if (field === 'description') {
+                updateData[field] = data[field] ?? '';
             } else {
                 updateData[field] = data[field];
             }
@@ -849,8 +919,6 @@ async function getEventById(eventId, currentUser) {
 }
 
 export {
-    getEventDetail,
-    listEvents,
     getEvents,
     approveEvent,
     rejectEvent,
