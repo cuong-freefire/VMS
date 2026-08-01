@@ -3,7 +3,7 @@
  * Owner: Member 4 - DucNM (UC34, UC35, UC36, UC-feat-search-skill)
  *
  * Responsibilities:
- * - Get list of skills with role-based visibility
+ * - Get paginated list of skills with role-based visibility
  * - Search skills by name and description (UC-feat-search-skill)
  * - Create new skill
  * - Update existing skill
@@ -17,6 +17,7 @@
  */
 
 import { ServiceError } from '../utils/response.util.js';
+import { parsePagination, createPaginationMeta } from '../utils/pagination.util.js';
 import skillRepository from '../repositories/skill.repository.js';
 
 /**
@@ -30,7 +31,9 @@ function formatSkill(skill) {
         skill_id: skill.id,
         name: skill.name,
         description: skill.description,
-        is_active: skill.isActive
+        is_active: skill.isActive,
+        created_at: skill.createdAt ? skill.createdAt.toISOString() : null,
+        updated_at: skill.updatedAt ? skill.updatedAt.toISOString() : null
     };
 }
 
@@ -80,12 +83,50 @@ function buildWhereClause(showAll, query) {
 }
 
 /**
- * Get skills based on user role, with optional search.
+ * Build Prisma orderBy clause từ sort param.
+ * Default: created_at:desc
+ *
+ * @param {string} sort - Sort string (field:direction)
+ * @returns {Array} Prisma orderBy array
+ */
+function buildOrderBy(sort) {
+    const defaultSort = [{ createdAt: 'desc' }];
+
+    if (!sort) {
+        return defaultSort;
+    }
+
+    const match = sort.match(/^(\w+):(asc|desc)$/i);
+    if (!match) {
+        return defaultSort;
+    }
+
+    const field = match[1];
+    const direction = match[2].toLowerCase();
+
+    // Map query field names to Prisma field names
+    const fieldMap = {
+        'created_at': 'createdAt',
+        'updated_at': 'updatedAt',
+        'name': 'name'
+    };
+
+    const prismaField = fieldMap[field];
+    if (!prismaField) {
+        return defaultSort;
+    }
+
+    return [{ [prismaField]: direction }];
+}
+
+/**
+ * Get paginated list of skills based on user role, with optional search.
+ * UC34: View Skill List — page, limit, search, sort.
  * UC-feat-search-skill: thêm search support.
  *
  * @param {Object|null} currentUser - User from JWT (req.user) or null for Guest
- * @param {Object} [query={}] - Query params: { search }
- * @returns {Promise<Object>} { skills: Array }
+ * @param {Object} [query={}] - Query params: { page, limit, search, sort }
+ * @returns {Promise<Object>} { skills, pagination }
  */
 async function getSkills(currentUser, query = {}) {
     let roleName = null;
@@ -102,12 +143,27 @@ async function getSkills(currentUser, query = {}) {
         normalizedRole === 'MANAGER' ||
         normalizedRole === 'ADMIN';
 
+    // 1. Parse pagination
+    const { skip, take, page, limit } = parsePagination(query);
+
+    // 2. Build where clause (role visibility + search)
     const where = buildWhereClause(showAll, query);
 
-    const skills = await skillRepository.findAll(where);
+    // 3. Build orderBy clause
+    const orderBy = buildOrderBy(query.sort);
+
+    // 4. Query database
+    const [skills, total] = await Promise.all([
+        skillRepository.findMany({ skip, take, where, orderBy }),
+        skillRepository.count(where)
+    ]);
+
+    // 5. Format response
+    const formattedSkills = skills.map(formatSkill);
 
     return {
-        skills: skills.map(formatSkill)
+        skills: formattedSkills,
+        pagination: createPaginationMeta(total, page, limit)
     };
 }
 

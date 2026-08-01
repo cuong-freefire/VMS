@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
   Search,
@@ -9,6 +9,12 @@ import {
   XCircle,
   FileText,
   Sparkles,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Calendar,
+  ListFilter,
 } from "lucide-react";
 import useSkillList from "../../../hooks/useSkillList";
 import Card from "../../ui/Card";
@@ -18,13 +24,39 @@ import EmptyState from "../../ui/EmptyState";
 import ErrorState from "../../ui/ErrorState";
 
 /* ------------------------------------------------------------------ */
+/*  Constants                                                         */
+/* ------------------------------------------------------------------ */
+const SORT_OPTIONS = [
+  { value: "created_at:desc", label: "Mới nhất" },
+  { value: "created_at:asc", label: "Cũ nhất" },
+  { value: "name:asc", label: "Tên A-Z" },
+  { value: "name:desc", label: "Tên Z-A" },
+  { value: "updated_at:desc", label: "Cập nhật mới nhất" },
+];
+
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                           */
+/* ------------------------------------------------------------------ */
+function formatDate(iso) {
+  if (!iso) return "\u2014";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "\u2014";
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
+
+/* ------------------------------------------------------------------ */
 /*  SkillListPage                                                     */
 /* ------------------------------------------------------------------ */
 export default function SkillListPage() {
-  const { skills, loading, error, setParams, refetch } = useSkillList();
+  const { skills, pagination, loading, error, setParams, refetch } =
+    useSkillList();
 
   /* Local state */
   const [searchInput, setSearchInput] = useState("");
+  const [sortValue, setSortValue] = useState("created_at:desc");
 
   /* Search is debounced inside useSkillList */
   const handleSearchChange = useCallback(
@@ -35,6 +67,47 @@ export default function SkillListPage() {
     },
     [setParams]
   );
+
+  const handleSortChange = useCallback(
+    (e) => {
+      const val = e.target.value;
+      setSortValue(val);
+      setParams({ sort: val });
+    },
+    [setParams]
+  );
+
+  const handlePageChange = useCallback(
+    (page) => {
+      setParams({ page });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    },
+    [setParams]
+  );
+
+  /* Generate visible page numbers */
+  const visiblePages = useMemo(() => {
+    if (!pagination) return [];
+    const total = pagination.totalPages;
+    const current = pagination.page;
+    const pages = [];
+    const maxVisible = 5;
+
+    if (total <= maxVisible + 2) {
+      for (let i = 1; i <= total; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      let start = Math.max(2, current - 1);
+      let end = Math.min(total - 1, current + 1);
+      if (current <= 3) end = Math.min(total - 1, maxVisible);
+      if (current >= total - 2) start = Math.max(2, total - maxVisible + 1);
+      if (start > 2) pages.push("...");
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (end < total - 1) pages.push("...");
+      pages.push(total);
+    }
+    return pages;
+  }, [pagination]);
 
   /* ------------------------------------------------------------------ */
   /*  Render: Loading                                                   */
@@ -47,9 +120,10 @@ export default function SkillListPage() {
           <Skeleton width="300px" height="32px" />
           <Skeleton width="200px" height="16px" style={{ marginTop: 8 }} />
         </div>
-        {/* Skeleton search */}
-        <div style={{ marginBottom: "var(--space-4)" }}>
+        {/* Skeleton filters */}
+        <div style={{ display: "flex", gap: "var(--space-3)", marginBottom: "var(--space-4)", flexWrap: "wrap" }}>
           <Skeleton width="280px" height="40px" />
+          <Skeleton width="180px" height="40px" />
         </div>
         {/* Skeleton table */}
         <Card>
@@ -60,6 +134,7 @@ export default function SkillListPage() {
                 <Skeleton width="60%" height="16px" />
                 <Skeleton width="40%" height="12px" style={{ marginTop: 6 }} />
               </div>
+              <Skeleton width="120px" height="24px" />
               <Skeleton width="80px" height="24px" />
             </div>
           ))}
@@ -107,9 +182,10 @@ export default function SkillListPage() {
         </Link>
       </div>
 
-      {/* Search bar */}
-      <div style={{ marginBottom: "var(--space-4)" }}>
-        <div style={{ position: "relative", maxWidth: 400 }}>
+      {/* Filters bar */}
+      <div style={{ display: "flex", gap: "var(--space-3)", marginBottom: "var(--space-4)", flexWrap: "wrap", alignItems: "center" }}>
+        {/* Search */}
+        <div style={{ position: "relative", flex: "1 1 280px", minWidth: 200 }}>
           <Search size={18} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-tertiary)", pointerEvents: "none" }} />
           <input
             type="text"
@@ -119,6 +195,23 @@ export default function SkillListPage() {
             value={searchInput}
             onChange={handleSearchChange}
           />
+        </div>
+
+        {/* Sort */}
+        <div style={{ position: "relative", minWidth: 160 }}>
+          <ListFilter size={16} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-tertiary)", pointerEvents: "none" }} />
+          <select
+            className="input-vms"
+            style={{ minWidth: 160, paddingLeft: 36 }}
+            value={sortValue}
+            onChange={handleSortChange}
+          >
+            {SORT_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -143,6 +236,7 @@ export default function SkillListPage() {
                   <th style={thStyle}>Tên kỹ năng</th>
                   <th style={thStyle}>Mô tả</th>
                   <th style={thStyle}>Trạng thái</th>
+                  <th style={thStyle}>Ngày tạo</th>
                   <th style={{ ...thStyle, textAlign: "center", width: 80 }}>Thao tác</th>
                 </tr>
               </thead>
@@ -192,6 +286,12 @@ export default function SkillListPage() {
                         </span>
                       )}
                     </td>
+                    <td style={tdStyle}>
+                      <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "var(--font-size-small)", color: "var(--text-secondary)" }}>
+                        <Calendar size={14} style={{ color: "var(--text-tertiary)" }} />
+                        {formatDate(skill.created_at)}
+                      </span>
+                    </td>
                     <td style={{ ...tdStyle, textAlign: "center" }}>
                       <Link
                         to={`/admin/skills/${skill.skill_id}/edit`}
@@ -211,7 +311,7 @@ export default function SkillListPage() {
         </Card>
       )}
 
-      {/* Loading overlay for search */}
+      {/* Loading overlay for pagination */}
       {loading && skills.length > 0 && (
         <div style={{ display: "flex", justifyContent: "center", padding: "var(--space-4)" }}>
           <div style={{
@@ -221,6 +321,89 @@ export default function SkillListPage() {
             borderRadius: "50%",
             animation: "btn-spin 0.7s linear infinite",
           }} />
+        </div>
+      )}
+
+      {/* Pagination */}
+      {pagination && pagination.totalPages > 1 && (
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "var(--space-2)", marginTop: "var(--space-4)", flexWrap: "wrap" }}>
+          {/* First page */}
+          <Button
+            variant="secondary"
+            size="md"
+            disabled={pagination.page <= 1}
+            onClick={() => handlePageChange(1)}
+            title="Trang đầu"
+          >
+            <ChevronsLeft size={18} />
+          </Button>
+
+          {/* Previous */}
+          <Button
+            variant="secondary"
+            size="md"
+            disabled={pagination.page <= 1}
+            onClick={() => handlePageChange(pagination.page - 1)}
+          >
+            <ChevronLeft size={18} />
+          </Button>
+
+          {/* Page numbers */}
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            {visiblePages.map((p, idx) =>
+              p === "..." ? (
+                <span key={`ellipsis-${idx}`} style={{ padding: "0 4px", color: "var(--text-tertiary)" }}>
+                  &hellip;
+                </span>
+              ) : (
+                <button
+                  key={p}
+                  style={{
+                    minWidth: 36, height: 36, borderRadius: "var(--radius-input)",
+                    border: p === pagination.page ? "2px solid var(--green-accent)" : "1px solid var(--border-color)",
+                    backgroundColor: p === pagination.page ? "var(--green-light)" : "var(--surface-white)",
+                    color: p === pagination.page ? "var(--green-accent)" : "var(--text-primary)",
+                    fontWeight: p === pagination.page ? "var(--font-weight-bold)" : "var(--font-weight-normal)",
+                    cursor: "pointer", fontSize: "var(--font-size-small)",
+                    transition: "all 0.15s",
+                  }}
+                  onClick={() => handlePageChange(p)}
+                  aria-label={`Trang ${p}`}
+                  aria-current={p === pagination.page ? "page" : undefined}
+                >
+                  {p}
+                </button>
+              )
+            )}
+          </div>
+
+          {/* Next */}
+          <Button
+            variant="secondary"
+            size="md"
+            disabled={pagination.page >= pagination.totalPages}
+            onClick={() => handlePageChange(pagination.page + 1)}
+          >
+            <ChevronRight size={18} />
+          </Button>
+
+          {/* Last page */}
+          <Button
+            variant="secondary"
+            size="md"
+            disabled={pagination.page >= pagination.totalPages}
+            onClick={() => handlePageChange(pagination.totalPages)}
+            title="Trang cuối"
+          >
+            <ChevronsRight size={18} />
+          </Button>
+
+          <div style={{ fontSize: "var(--font-size-small)", color: "var(--text-secondary)", marginLeft: "var(--space-2)" }}>
+            Trang {pagination.page} / {pagination.totalPages}
+            <span style={{ marginLeft: 4 }}>
+              ({pagination.total} kỹ năng)
+            </span>
+          </div>
         </div>
       )}
     </div>

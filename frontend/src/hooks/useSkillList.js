@@ -2,15 +2,17 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { skillService } from "../services/skill.service.js";
 
 /**
- * Custom hook for fetching skill list with search.
+ * Custom hook for fetching paginated skill list with search & sort.
  * UC34 — View Skill List, UC-feat-search-skill
  *
- * Backend GET /api/v1/skills supports search only (no pagination/sort).
- *
  * @param {Object} initialParams - Initial query params
+ * @param {number} [initialParams.page=1]
+ * @param {number} [initialParams.limit=20]
  * @param {string} [initialParams.search]
+ * @param {string} [initialParams.sort]
  * @returns {{
  *   skills: Array,
+ *   pagination: Object|null,
  *   loading: boolean,
  *   error: string|null,
  *   refetch: () => void,
@@ -19,9 +21,13 @@ import { skillService } from "../services/skill.service.js";
  */
 export function useSkillList(initialParams = {}) {
   const [params, setParams] = useState({
+    page: initialParams.page || 1,
+    limit: initialParams.limit || 20,
     search: initialParams.search || "",
+    sort: initialParams.sort || "created_at:desc",
   });
   const [skills, setSkills] = useState([]);
+  const [pagination, setPagination] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -43,11 +49,13 @@ export function useSkillList(initialParams = {}) {
 
       const response = await skillService.getSkills(cleanParams);
       setSkills(response.data?.skills || []);
+      setPagination(response.data?.pagination || null);
     } catch (err) {
       const message =
         err?.message || "Không thể tải danh sách kỹ năng.";
       setError(message);
       setSkills([]);
+      setPagination(null);
     } finally {
       setLoading(false);
     }
@@ -63,6 +71,7 @@ export function useSkillList(initialParams = {}) {
 
   /**
    * Update query params with debounce for search field.
+   * Other filters reset page to 1 immediately.
    */
   const updateParams = useCallback((newParams) => {
     // Clear any pending debounce
@@ -73,11 +82,19 @@ export function useSkillList(initialParams = {}) {
     if (newParams.search !== undefined) {
       // Debounce search — 400ms
       debounceRef.current = setTimeout(() => {
-        setParams((prev) => ({ ...prev, ...newParams }));
+        setParams((prev) => {
+          const merged = { ...prev, ...newParams };
+          merged.page = 1;
+          return merged;
+        });
       }, 400);
     } else {
-      // Immediate update for other params
-      setParams((prev) => ({ ...prev, ...newParams }));
+      // Immediate update for other filters
+      setParams((prev) => {
+        const merged = { ...prev, ...newParams };
+        if (newParams.sort !== undefined) merged.page = 1;
+        return merged;
+      });
     }
   }, []);
 
@@ -90,7 +107,7 @@ export function useSkillList(initialParams = {}) {
     };
   }, []);
 
-  return { skills, loading, error, refetch, setParams: updateParams };
+  return { skills, pagination, loading, error, refetch, setParams: updateParams };
 }
 
 export default useSkillList;

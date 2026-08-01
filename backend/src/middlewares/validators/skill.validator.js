@@ -46,9 +46,32 @@ export const updateSkillSchema = z.object({
 
 /**
  * Schema validation cho GET /api/v1/skills query params.
+ * UC34: View Skill List — page, limit, search, sort.
  * UC-feat-search-skill: thêm search param để tìm kiếm kỹ năng.
  */
 export const getSkillsQuerySchema = z.object({
+    page: z
+        .string()
+        .optional()
+        .refine(
+            (val) => {
+                if (!val) return true;
+                const num = parseInt(val, 10);
+                return !isNaN(num) && num >= 1;
+            },
+            { message: 'Tham số page không hợp lệ' }
+        ),
+    limit: z
+        .string()
+        .optional()
+        .refine(
+            (val) => {
+                if (!val) return true;
+                const num = parseInt(val, 10);
+                return !isNaN(num) && num >= 1 && num <= 100;
+            },
+            { message: 'Tham số limit phải từ 1 đến 100' }
+        ),
     search: z
         .string()
         .trim()
@@ -60,5 +83,19 @@ export const getSkillsQuerySchema = z.object({
                 return /^[\w\s\-À-ÿà-ỹ]+$/.test(val);
             },
             { message: 'Từ khóa tìm kiếm không hợp lệ' }
+        ),
+    sort: z
+        .string()
+        .optional()
+        .refine(
+            (val) => {
+                if (!val) return true;
+                // Format: field:direction (VD: created_at:desc, name:asc)
+                const match = val.match(/^(\w+):(asc|desc|ASC|DESC)$/);
+                if (!match) return false;
+                const allowedFields = ['created_at', 'updated_at', 'name'];
+                return allowedFields.includes(match[1]);
+            },
+            { message: 'Tham số sort không đúng định dạng (field:direction)' }
         )
 });

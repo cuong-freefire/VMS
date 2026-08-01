@@ -49,7 +49,7 @@ export default function EditSkillPage() {
       return;
     }
 
-    skillService.getSkills()
+    skillService.getSkills({ limit: 100 })
       .then((response) => {
         if (cancelled) return;
         const skills = response.data?.skills || [];

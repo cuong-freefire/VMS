@@ -41,19 +41,39 @@ const router = Router();
  *       - Nếu không có token (Guest): trả về skills active (public)
  *       - Nếu có token Volunteer/Staff: trả về skills active
  *       - Nếu có token Manager/Admin: trả về tất cả skills (active + inactive)
- *       Hỗ trợ tìm kiếm theo tên hoặc mô tả (search).
+ *       Hỗ trợ tìm kiếm theo tên hoặc mô tả (search), phân trang (page, limit) và sắp xếp (sort).
  *     tags: [Skill Management]
  *     security:
  *       - cookieAuth: []
  *     parameters:
  *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Số trang (bắt đầu từ 1)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *           minimum: 1
+ *           maximum: 100
+ *         description: Số items mỗi trang (tối đa 100)
+ *       - in: query
  *         name: search
  *         schema:
  *           type: string
  *         description: Tìm kiếm theo tên hoặc mô tả (case-insensitive, partial match)
+ *       - in: query
+ *         name: sort
+ *         schema:
+ *           type: string
+ *           default: created_at:desc
+ *         description: Sắp xếp theo field:direction (created_at, updated_at, name — asc/desc)
  *     responses:
  *       200:
- *         description: Thành công, trả về danh sách skills
+ *         description: Thành công, trả về danh sách skills kèm phân trang
  *         content:
  *           application/json:
  *             example:
@@ -65,8 +85,15 @@ const router = Router();
  *                     name: "Giao tiếp"
  *                     description: "Kỹ năng giao tiếp hiệu quả"
  *                     is_active: true
+ *                     created_at: "2026-07-01T10:00:00.000Z"
+ *                     updated_at: "2026-07-01T10:00:00.000Z"
+ *                 pagination:
+ *                   page: 1
+ *                   limit: 20
+ *                   total: 1
+ *                   totalPages: 1
  *       400:
- *         description: Lỗi validation (search)
+ *         description: Lỗi validation (page, limit, search, sort)
  *       500:
  *         description: Lỗi server
  */

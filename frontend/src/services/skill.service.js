@@ -13,12 +13,15 @@ import axiosApi from "../api/axiosApi.js";
 
 export const skillService = {
     /**
-     * Get list of skills with optional search.
+     * Get paginated list of skills with search and sort.
      * UC34: View Skill List, UC-feat-search-skill.
      *
      * @param {Object} params - Query params
+     * @param {number} [params.page=1]
+     * @param {number} [params.limit=20]
      * @param {string} [params.search] - Search by name or description
-     * @returns {Promise<{ data: { skills: Array } }>}
+     * @param {string} [params.sort] - field:direction (created_at, updated_at, name)
+     * @returns {Promise<{ data: { skills: Array, pagination: Object } }>}
      */
     async getSkills(params = {}) {
         return axiosApi.get("/api/v1/skills", { params });
