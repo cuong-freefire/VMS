@@ -6,6 +6,8 @@ import {
   Plus,
   Pencil,
   Trash2,
+  ClipboardList,
+  Eye,
   AlertCircle,
   ChevronLeft,
   ChevronRight,
@@ -355,7 +357,7 @@ export default function StaffEventListPage() {
                   <th style={thStyle}>Ngày bắt đầu</th>
                   <th style={thStyle}>Sức chứa</th>
                   <th style={thStyle}>Trạng thái</th>
-                  <th style={{ ...thStyle, textAlign: "center", width: 130 }}>Thao tác</th>
+                  <th style={{ ...thStyle, textAlign: "center", width: 160 }}>Thao tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -427,6 +429,24 @@ export default function StaffEventListPage() {
                       </td>
                       <td style={{ ...tdStyle, textAlign: "center" }}>
                         <div style={{ display: "flex", gap: 4, justifyContent: "center" }}>
+                          <Link
+                            to={`/staff/events/${event.event_id}`}
+                            style={{ textDecoration: "none" }}
+                            title="Xem chi tiết"
+                          >
+                            <Button variant="ghost" size="sm">
+                              <Eye size={16} />
+                            </Button>
+                          </Link>
+                          <Link
+                            to={`/staff/events/${event.event_id}/applications`}
+                            style={{ textDecoration: "none" }}
+                            title="Xem đơn đăng ký"
+                          >
+                            <Button variant="ghost" size="sm">
+                              <ClipboardList size={16} />
+                            </Button>
+                          </Link>
                           {!NON_EDITABLE_STATUSES.includes(event.status) && (
                             <Link
                               to={`/staff/events/${event.event_id}/edit`}

@@ -35,8 +35,11 @@ import SkillListPage from "./components/pages/admin/SkillListPage";
 import AddSkillPage from "./components/pages/admin/AddSkillPage";
 import EditSkillPage from "./components/pages/admin/EditSkillPage";
 import StaffEventListPage from "./components/pages/staff/StaffEventListPage";
+import StaffEventDetailPage from "./components/pages/staff/StaffEventDetailPage";
 import CreateEventPage from "./components/pages/staff/CreateEventPage";
 import EditEventPage from "./components/pages/staff/EditEventPage";
+import ApplicationListPage from "./components/pages/staff/ApplicationListPage";
+import ApplicationDetailPage from "./components/pages/staff/ApplicationDetailPage";
 import ManagerEventListPage from "./components/pages/manager/ManagerEventListPage";
 import ManagerEventDetailPage from "./components/pages/manager/ManagerEventDetailPage";
 
@@ -91,9 +94,11 @@ function App() {
           <Route element={<MainLayout />}>
             <Route element={<RoleRoute allowedRoles={[ROLES.STAFF]} />}>
               <Route path="/staff/events" element={<StaffEventListPage />} />
+              <Route path="/staff/events/:id" element={<StaffEventDetailPage />} />
               <Route path="/staff/events/add" element={<CreateEventPage />} />
               <Route path="/staff/events/:id/edit" element={<EditEventPage />} />
-              <Route path="/staff/applications" element={<PlaceholderPage title="Xét duyệt Đơn đăng ký" member="TienTD (Member 3)" />} />
+              <Route path="/staff/events/:eventId/applications" element={<ApplicationListPage />} />
+              <Route path="/staff/events/:eventId/applications/:applicationId" element={<ApplicationDetailPage />} />
               <Route path="/staff/attendance" element={<PlaceholderPage title="Điểm danh" member="TienTD (Member 3)" />} />
             </Route>
           </Route>
